@@ -1,0 +1,8 @@
+Replace this file with your real resume PDF and rename it to `resume.pdf`.
+
+Expected path used by the portfolio page:
+- /resume.pdf
+
+Example:
+1. Put your file here: frontend/public/resume.pdf
+2. Restart frontend dev server if needed.
