@@ -1,6 +1,6 @@
-# Deployment Guide — GCP VM
+# Deployment Guide — GCP VM + Neon
 
-Full instructions for deploying the Dalton Portfolio platform on a Google Cloud Platform VM using Docker Compose, with HTTPS via Let's Encrypt.
+Full instructions for deploying the Dalton Portfolio platform on a Google Cloud Platform VM using Docker Compose, with PostgreSQL hosted on **Neon** (serverless managed Postgres) and HTTPS via Let's Encrypt.
 
 ---
 
@@ -8,13 +8,15 @@ Full instructions for deploying the Dalton Portfolio platform on a Google Cloud 
 
 | Service | Container | Exposed |
 |---------|-----------|---------|
-| PostgreSQL 16 | `db` | internal only |
+| PostgreSQL 16 | **Neon** (external, managed) | Neon cloud only |
 | Redis 7 | `redis` | internal only |
 | FastAPI (4 workers) | `api` | → nginx on host |
 | Celery worker | `worker` | internal only |
 | Celery beat | `beat` | internal only |
-| Flower dashboard | `flower` | `5555` (restrict in firewall) |
+| Flower dashboard | `flower` | `127.0.0.1:5555` only |
 | React / Nginx SPA | `frontend` | → nginx on host (port 80/443) |
+
+> There is **no `db` container**. The database is fully managed by Neon. You never run `pg_dump` against a local container — see [Database backups](#13-database-backups) for the Neon approach.
 
 ---
 
@@ -23,21 +25,19 @@ Full instructions for deploying the Dalton Portfolio platform on a Google Cloud 
 ### Recommended machine type
 - **e2-standard-2** (2 vCPU, 8 GB RAM) or larger
 - **OS**: Ubuntu 22.04 LTS (recommended)
-- **Boot disk**: 30 GB SSD minimum (50 GB+ if you expect media uploads)
+- **Boot disk**: 30 GB SSD minimum (50 GB+ if you expect heavy media uploads)
 - **Static external IP**: Reserve a static IP in GCP → VPC Network → IP Addresses
 
 ### Firewall rules (VPC Network → Firewall)
-
-Create or verify the following ingress rules:
 
 | Name | Protocol | Port | Source |
 |------|----------|------|--------|
 | `allow-http` | TCP | 80 | 0.0.0.0/0 |
 | `allow-https` | TCP | 443 | 0.0.0.0/0 |
-| `allow-ssh` | TCP | 22 | your IP or 0.0.0.0/0 |
+| `allow-ssh` | TCP | 22 | your IP only |
 | `allow-flower` | TCP | 5555 | your IP only |
 
-> **Do NOT expose port 5432 (Postgres) or 6379 (Redis) to the internet.**
+> **Do NOT expose port 6379 (Redis) to the internet.** PostgreSQL is on Neon — no port to open.
 
 ---
 
@@ -85,44 +85,48 @@ sudo apt-get install -y git nginx certbot python3-certbot-nginx
 
 ```bash
 cd /home/$USER
-git clone https://github.com/YOUR_GITHUB_USERNAME/daltonportfolio.git
+git clone https://github.com/jdaltonll02/gtech.git daltonportfolio
 cd daltonportfolio
 ```
 
-> Replace the URL with your actual repository URL.
+---
+
+## 5. Set up Neon database
+
+1. Go to [console.neon.tech](https://console.neon.tech) and create a project (e.g. `dalton-portfolio`).
+2. From the **Dashboard → Connection Details**, select **Pooled connection** and copy both connection strings:
+   - **Async (asyncpg)** — starts with `postgresql+asyncpg://`
+   - **Sync** — starts with `postgresql://`
+3. Neon connection strings look like:
+   ```
+   postgresql+asyncpg://user:password@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   postgresql://user:password@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+4. Keep these strings — you will paste them into `backend/.env` in the next step.
+
+> Neon's free tier includes 0.5 GB storage and auto-suspend after 5 minutes of inactivity (the first request after suspend takes ~1–2 s). Upgrade to the Launch plan ($19/mo) for always-on connections in production.
 
 ---
 
-## 5. Create environment files
+## 6. Create environment files
 
-### 5a. Root `.env` (used by docker-compose for `${POSTGRES_PASSWORD}`)
-
-```bash
-cat > /home/$USER/daltonportfolio/.env <<'EOF'
-POSTGRES_PASSWORD=CHANGE_ME_strong_db_password
-EOF
-```
-
-> This value is referenced by docker-compose.yml as `${POSTGRES_PASSWORD}`.
-
-### 5b. Backend `.env`
+### 6a. Backend `.env`
 
 ```bash
 nano /home/$USER/daltonportfolio/backend/.env
 ```
 
-Paste the following and **replace every `CHANGE_ME` / `replace_me` value**:
+Paste the following and **replace every `CHANGE_ME` / `REPLACE_ME` value**:
 
 ```dotenv
 # ── Security ──────────────────────────────────────────────────────────────────
 # Generate: python3 -c "import secrets; print(secrets.token_hex(32))"
 SECRET_KEY=CHANGE_ME_64_hex_chars
 
-# ── Database ──────────────────────────────────────────────────────────────────
-# Password must match POSTGRES_PASSWORD in the root .env above
-POSTGRES_PASSWORD=CHANGE_ME_strong_db_password
-DATABASE_URL=postgresql+asyncpg://portfolio:CHANGE_ME_strong_db_password@db:5432/portfolio_db
-DATABASE_URL_SYNC=postgresql://portfolio:CHANGE_ME_strong_db_password@db:5432/portfolio_db
+# ── Database (Neon) ───────────────────────────────────────────────────────────
+# Paste your Neon connection strings here (from Neon Dashboard → Connection Details)
+DATABASE_URL=postgresql+asyncpg://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL_SYNC=postgresql://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
 REDIS_URL=redis://redis:6379/0
@@ -147,9 +151,13 @@ MOMO_CALLBACK_URL=https://yourdomain.com/api/v1/payments/momo/callback
 MOMO_CALLBACK_SECRET=CHANGE_ME_random_secret
 
 # ── Admin seed ────────────────────────────────────────────────────────────────
-# Change this password immediately after first login
 FIRST_SUPERADMIN_EMAIL=admin@yourdomain.com
 FIRST_SUPERADMIN_PASSWORD=CHANGE_ME_strong_admin_password
+
+# ── Google OAuth (optional) ───────────────────────────────────────────────────
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://yourdomain.com/api/v1/auth/google/callback
 
 # ── Email / SMTP ──────────────────────────────────────────────────────────────
 SMTP_HOST=smtp.gmail.com
@@ -162,37 +170,26 @@ FRONTEND_URL=https://yourdomain.com
 # ── CORS ──────────────────────────────────────────────────────────────────────
 ALLOWED_ORIGINS=https://yourdomain.com
 
-# ── Tax Rate ──────────────────────────────────────────────────────────────────
+# ── Tax & rate limiting ───────────────────────────────────────────────────────
 TAX_RATE=0.08
+RATE_LIMIT_PER_MINUTE=60
+
+# ── Flower auth ───────────────────────────────────────────────────────────────
+FLOWER_USER=admin
+FLOWER_PASSWORD=CHANGE_ME_strong_flower_password
 
 ENVIRONMENT=production
 ```
 
-> The three `CHANGE_ME_strong_db_password` values must be **identical** across the root `.env` and `backend/.env`.
-
----
-
-## 6. Update docker-compose for production
-
-The frontend container currently binds to host port 80. In production Nginx on the host handles 80/443, so change the frontend's port binding to localhost only:
+### 6b. Frontend `.env`
 
 ```bash
-# Edit docker-compose.yml
-nano /home/$USER/daltonportfolio/docker-compose.yml
+nano /home/$USER/daltonportfolio/frontend/.env
 ```
 
-Change the `frontend` service ports from:
-```yaml
-    ports:
-      - "80:80"
+```dotenv
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_REPLACE_ME
 ```
-to:
-```yaml
-    ports:
-      - "127.0.0.1:3000:80"
-```
-
-This keeps the container accessible only from the host itself, not directly from the internet.
 
 ---
 
@@ -201,14 +198,13 @@ This keeps the container accessible only from the host itself, not directly from
 ```bash
 cd /home/$USER/daltonportfolio
 
-# Build all images (pass the Stripe publishable key for the frontend build)
-docker compose build \
-  --build-arg VITE_STRIPE_PUBLISHABLE_KEY=pk_live_REPLACE_ME
+# Build all images
+docker compose build
 
 # Start everything in the background
 docker compose up -d
 
-# Watch logs during first startup (migrations run automatically)
+# Watch logs during first startup (Alembic migrations run automatically against Neon)
 docker compose logs -f api
 ```
 
@@ -217,39 +213,24 @@ Wait until you see:
 api-1  | INFO:     Application startup complete.
 ```
 
-Verify all containers are healthy:
+Verify all containers are running:
 ```bash
 docker compose ps
 ```
 
-All services should show `healthy` or `running`.
+> **Note:** There is no `db` service. If you see a reference to a `db` container in logs, it means a stale `docker-compose.yml` is in use — pull the latest code.
 
 ---
 
-## 8. Set up HTTPS with Let's Encrypt
+## 8. Configure host Nginx
 
-### 8a. Obtain the certificate
-
-Point your domain's **A record** to the VM's static IP before running this.
-
-```bash
-sudo certbot certonly --nginx \
-  --non-interactive \
-  --agree-tos \
-  --email admin@yourdomain.com \
-  -d yourdomain.com \
-  -d www.yourdomain.com
-```
-
-Certificates are saved to `/etc/letsencrypt/live/yourdomain.com/`.
-
-### 8b. Configure host Nginx
+The frontend container binds to `127.0.0.1:3000`. Host Nginx handles all public traffic on 80/443 and proxies to it.
 
 ```bash
 sudo nano /etc/nginx/sites-available/portfolio
 ```
 
-Paste:
+Paste (replace `yourdomain.com`):
 
 ```nginx
 # HTTP → HTTPS redirect
@@ -273,8 +254,11 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
-    # Forward everything to the Dockerised frontend
+    client_max_body_size 25M;
+
     location / {
         proxy_pass         http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -283,12 +267,11 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_read_timeout 120s;
-        client_max_body_size 50M;
     }
 }
 ```
 
-Enable and reload:
+Enable and test:
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/portfolio /etc/nginx/sites-enabled/
@@ -296,7 +279,29 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 8c. Auto-renew certificates
+---
+
+## 9. Set up HTTPS with Let's Encrypt
+
+Point your domain's **A record** to the VM's static IP **before** running this.
+
+```bash
+sudo certbot certonly --nginx \
+  --non-interactive \
+  --agree-tos \
+  --email admin@yourdomain.com \
+  -d yourdomain.com \
+  -d www.yourdomain.com
+```
+
+Certificates are saved to `/etc/letsencrypt/live/yourdomain.com/`.
+
+Reload Nginx to pick up the new certificates:
+```bash
+sudo systemctl reload nginx
+```
+
+### Auto-renew
 
 Certbot installs a systemd timer automatically. Verify it:
 
@@ -304,20 +309,45 @@ Certbot installs a systemd timer automatically. Verify it:
 sudo systemctl status certbot.timer
 # Should show "active (waiting)"
 
-# Dry-run to confirm renewal works
 sudo certbot renew --dry-run
 ```
 
 ---
 
-## 9. Register the Stripe webhook
+## 10. Update docker-compose for production
+
+The frontend container must bind to `127.0.0.1` only (not `0.0.0.0`) so host Nginx is the only entry point:
+
+```bash
+nano /home/$USER/daltonportfolio/docker-compose.yml
+```
+
+Change the `frontend` service ports from:
+```yaml
+    ports:
+      - "80:80"
+```
+to:
+```yaml
+    ports:
+      - "127.0.0.1:3000:80"
+```
+
+Restart the frontend container to apply:
+```bash
+docker compose up -d --no-deps frontend
+```
+
+---
+
+## 11. Register the Stripe webhook
 
 1. Go to **Stripe Dashboard → Developers → Webhooks → Add endpoint**
 2. URL: `https://yourdomain.com/api/v1/payments/stripe/webhook`
 3. Events to listen for:
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
-4. Copy the **Signing secret** (`whsec_...`) and paste it into `STRIPE_WEBHOOK_SECRET` in `backend/.env`
+4. Copy the **Signing secret** (`whsec_...`) → paste it into `STRIPE_WEBHOOK_SECRET` in `backend/.env`
 5. Restart the api container:
    ```bash
    docker compose restart api
@@ -325,31 +355,101 @@ sudo certbot renew --dry-run
 
 ---
 
-## 10. Verify the deployment
+## 12. Verify the deployment
 
 ```bash
-# Site loads over HTTPS
-curl -I https://yourdomain.com
+# HTTPS redirect works
+curl -I http://yourdomain.com
+# Expected: 301 → https://yourdomain.com
 
 # API health check
 curl https://yourdomain.com/api/v1/health
+# Expected: {"status":"ok","version":"1.0.0"}
 
-# API docs
-# Open in browser: https://yourdomain.com/api/v1/docs
+# Frontend loads
+curl -I https://yourdomain.com
+# Expected: 200
 ```
 
-Expected API health response:
-```json
-{"status": "ok", "version": "1.0.0"}
-```
-
-Log in to the admin panel at `https://yourdomain.com/admin` with the credentials you set in `FIRST_SUPERADMIN_EMAIL` / `FIRST_SUPERADMIN_PASSWORD`.
+Log in to the admin panel at `https://yourdomain.com/admin` with the credentials set in `FIRST_SUPERADMIN_EMAIL` / `FIRST_SUPERADMIN_PASSWORD`.
 
 > **Change the admin password immediately** after first login via Profile → Change Password.
 
 ---
 
-## 11. Monitoring & logs
+## 13. Database backups
+
+Since PostgreSQL is hosted on **Neon**, backups are managed differently from a self-hosted instance.
+
+### Neon built-in backups (automatic)
+- Neon retains **7 days of point-in-time restore** on the Free tier, **30 days** on Launch+.
+- Restore a branch to any point via [console.neon.tech](https://console.neon.tech) → Branches → Restore.
+
+### Manual snapshot via `pg_dump` from the VM
+
+```bash
+# Install postgres client tools (one-time)
+sudo apt-get install -y postgresql-client
+
+# Dump to a local file (use your Neon DATABASE_URL_SYNC value)
+pg_dump "postgresql://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require" \
+  > backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### Automated daily backup to GCS
+
+```bash
+# Create backup directory
+mkdir -p /home/$USER/backups
+
+# Add to crontab
+crontab -e
+```
+
+Add:
+```cron
+0 3 * * * pg_dump "postgresql://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require" > /home/ubuntu/backups/db_$(date +\%Y\%m\%d).sql 2>/dev/null
+```
+
+Optionally sync to GCS:
+```bash
+gsutil mb gs://your-bucket-name-backups
+# Add after the pg_dump line in cron:
+# gsutil cp /home/ubuntu/backups/db_$(date +\%Y\%m\%d).sql gs://your-bucket-name-backups/
+```
+
+### Restore from a manual dump
+
+```bash
+psql "postgresql://user:password@ep-xxxx.region.aws.neon.tech/neondb?sslmode=require" \
+  < backup_20260101_120000.sql
+```
+
+---
+
+## 14. Media file backups
+
+Media uploads live in the Docker volume `media_data`. Sync them to GCP Cloud Storage:
+
+```bash
+# Create a GCS bucket (one-time)
+gsutil mb gs://your-bucket-name-media
+
+# Sync media volume to GCS
+docker run --rm \
+  -v daltonportfolio_media_data:/media \
+  google/cloud-sdk:alpine \
+  gsutil -m rsync -r /media gs://your-bucket-name-media
+```
+
+Add this to cron for daily syncs:
+```cron
+30 3 * * * docker run --rm -v daltonportfolio_media_data:/media google/cloud-sdk:alpine gsutil -m rsync -r /media gs://your-bucket-name-media
+```
+
+---
+
+## 15. Monitoring & logs
 
 ```bash
 # All services
@@ -359,8 +459,10 @@ docker compose logs -f
 docker compose logs -f api
 docker compose logs -f worker
 
-# Celery Flower dashboard (task monitoring)
-# Open: http://YOUR_VM_IP:5555  (only if your firewall allows your IP)
+# Celery Flower dashboard — accessible only from your IP via SSH tunnel
+ssh -L 5555:127.0.0.1:5555 ubuntu@YOUR_STATIC_IP
+# Then open http://localhost:5555 in your browser
+# Login with FLOWER_USER / FLOWER_PASSWORD from backend/.env
 
 # Container resource usage
 docker stats
@@ -368,7 +470,7 @@ docker stats
 
 ---
 
-## 12. Updating the application
+## 16. Updating the application
 
 ```bash
 cd /home/$USER/daltonportfolio
@@ -376,101 +478,54 @@ cd /home/$USER/daltonportfolio
 # Pull latest code
 git pull origin main
 
-# Rebuild and restart (zero-downtime via Docker's rolling restart)
-docker compose build \
-  --build-arg VITE_STRIPE_PUBLISHABLE_KEY=pk_live_REPLACE_ME
-
+# Rebuild changed images and restart
+docker compose build
 docker compose up -d --no-deps --build api worker beat frontend
 
-# Check migration ran
-docker compose logs api | grep "alembic"
+# Verify migrations ran
+docker compose logs api | grep -i alembic
 ```
+
+Alembic migrations run automatically on `api` container start — no manual step needed.
 
 ---
 
-## 13. Database backups
-
-### Manual backup
-
-```bash
-# Dump the database to a local file
-docker compose exec db pg_dump -U portfolio portfolio_db > backup_$(date +%Y%m%d_%H%M%S).sql
-```
-
-### Restore from backup
-
-```bash
-docker compose exec -T db psql -U portfolio portfolio_db < backup_20260101_120000.sql
-```
-
-### Automated daily backups (cron)
-
-```bash
-crontab -e
-```
-
-Add:
-```cron
-0 3 * * * cd /home/ubuntu/daltonportfolio && docker compose exec -T db pg_dump -U portfolio portfolio_db > /home/ubuntu/backups/db_$(date +\%Y\%m\%d).sql 2>/dev/null
-```
-
-Create the backup directory:
-```bash
-mkdir -p /home/$USER/backups
-```
-
----
-
-## 14. Media file backups
-
-Media uploads live in the Docker volume `media_data`. Copy them to GCP Cloud Storage:
-
-```bash
-# Install gcloud SDK (if not present)
-# https://cloud.google.com/sdk/docs/install
-
-# Create a GCS bucket (one-time)
-gsutil mb gs://your-bucket-name-media
-
-# Sync media volume to GCS (run this periodically)
-docker run --rm \
-  -v daltonportfolio_media_data:/media \
-  google/cloud-sdk:alpine \
-  gsutil -m rsync -r /media gs://your-bucket-name-media
-```
-
----
-
-## 15. Troubleshooting
+## 17. Troubleshooting
 
 ### Containers not starting
 
 ```bash
-docker compose ps            # check status
-docker compose logs db       # often the culprit is the DB health check
-docker compose logs api      # check for migration errors
+docker compose ps
+docker compose logs api
+docker compose logs worker
 ```
 
 ### API returns 502 Bad Gateway
 
-The `api` container may still be starting. Watch its logs:
+The `api` container may still be starting (health check takes up to 40 s). Watch its logs:
 ```bash
 docker compose logs -f api
 ```
 
-### Database "already exists" error on migration
+### Neon connection errors (`connection refused` / SSL errors)
+
+- Confirm `DATABASE_URL` uses `?sslmode=require` at the end.
+- Confirm you are using the **pooled** connection string from Neon (not the direct one) for better reliability.
+- Check Neon project is not suspended: log in to [console.neon.tech](https://console.neon.tech) and wake the branch.
+
+### Alembic migration errors on first boot
 
 ```bash
-docker compose exec api alembic current    # shows current revision
-docker compose exec api alembic upgrade head  # re-run migrations
+docker compose exec api alembic current     # shows current revision
+docker compose exec api alembic upgrade head  # re-run if needed
 ```
 
 ### Out of disk space
 
 ```bash
-df -h                              # check disk usage
-docker system prune -f             # remove stopped containers & dangling images
-docker volume ls                   # list volumes (don't prune data volumes)
+df -h
+docker system prune -f       # remove stopped containers & dangling images
+docker volume ls             # never prune media_data or redis volumes
 ```
 
 ### SSL certificate not renewing
@@ -480,27 +535,21 @@ sudo certbot renew --force-renewal
 sudo systemctl reload nginx
 ```
 
-### Reset everything (⚠️ destroys all data)
-
-```bash
-docker compose down -v   # removes containers AND volumes (irreversible)
-docker compose up -d
-```
-
 ---
 
-## 16. Security checklist before going live
+## 18. Security checklist before going live
 
 - [ ] `SECRET_KEY` is a random 64-character hex string
-- [ ] `POSTGRES_PASSWORD` is a strong, unique password
 - [ ] `FIRST_SUPERADMIN_PASSWORD` changed after first login
 - [ ] `STRIPE_WEBHOOK_SECRET` is the real Stripe signing secret
 - [ ] `MOMO_CALLBACK_SECRET` is a random secret string
-- [ ] Flower dashboard (`port 5555`) is **not** open to `0.0.0.0` in GCP firewall
-- [ ] PostgreSQL and Redis ports (`5432`, `6379`) are **not** exposed in GCP firewall
+- [ ] `FLOWER_USER` and `FLOWER_PASSWORD` are set to non-default values
+- [ ] Flower is accessed via SSH tunnel only — **not** open to `0.0.0.0` in GCP firewall
+- [ ] Redis port (`6379`) is **not** exposed in GCP firewall
 - [ ] `ALLOWED_ORIGINS` contains only `https://yourdomain.com`
-- [ ] SMTP credentials are app-specific passwords (not account password)
+- [ ] SMTP credentials are app-specific passwords (not your account password)
 - [ ] HTTPS redirect is working (`curl -I http://yourdomain.com` shows `301`)
+- [ ] Neon project is on a paid plan for always-on connections (no cold-start in prod)
 
 ---
 
@@ -513,7 +562,9 @@ docker compose up -d
 | Restart API | `docker compose restart api` |
 | View all logs | `docker compose logs -f` |
 | Run migrations | `docker compose exec api alembic upgrade head` |
-| Open DB shell | `docker compose exec db psql -U portfolio portfolio_db` |
-| Open API shell | `docker compose exec api python` |
-| Backup DB | `docker compose exec -T db pg_dump -U portfolio portfolio_db > backup.sql` |
+| Open API Python shell | `docker compose exec api python` |
+| Backup DB (Neon) | `pg_dump "postgresql://..." > backup.sql` |
+| Restore DB (Neon) | `psql "postgresql://..." < backup.sql` |
+| Sync media to GCS | `docker run --rm -v daltonportfolio_media_data:/media google/cloud-sdk:alpine gsutil -m rsync -r /media gs://your-bucket` |
 | Check health | `curl https://yourdomain.com/api/v1/health` |
+| Flower (SSH tunnel) | `ssh -L 5555:127.0.0.1:5555 ubuntu@YOUR_IP` |
