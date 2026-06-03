@@ -4,8 +4,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    # Port not exposed externally — only accessible inside the Docker network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -30,6 +29,12 @@ services:
       sh -c "alembic upgrade head &&
              python -m app.db.init_db &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   worker:
     build:
@@ -53,7 +58,10 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
     command: celery -A app.celery_app beat --loglevel=info
 
   flower:
@@ -64,11 +72,15 @@ services:
     env_file:
       - ./backend/.env
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     depends_on:
-      - redis
-      - worker
-    command: celery -A app.celery_app flower --port=5555
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    command: >
+      sh -c "celery -A app.celery_app flower --port=5555
+             --basic_auth=$${FLOWER_USER:-admin}:$${FLOWER_PASSWORD:-changeme}"
 
   frontend:
     build:
@@ -78,7 +90,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   media_data:

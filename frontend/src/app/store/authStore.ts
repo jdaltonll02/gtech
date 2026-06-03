@@ -38,6 +38,6 @@ export const useAuthStore = create<AuthState>()(
       },
       isAuthenticated: () => !!get().accessToken,
     }),
-    { name: 'auth-store', partialize: (s) => ({ user: s.user, accessToken: s.accessToken }) }
+    { name: 'auth-store', partialize: (s) => ({ user: s.user }) }
   )
 );

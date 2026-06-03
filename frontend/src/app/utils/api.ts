@@ -68,6 +68,7 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
       return request<T>(path, options, true);
     }
     clearStoredAuth();
+    throw new Error('Session expired. Please sign in again.');
   }
 
   if (!res.ok) {
@@ -95,6 +96,7 @@ async function requestForm<T>(path: string, body: FormData, options: RequestInit
       return requestForm<T>(path, body, options, true);
     }
     clearStoredAuth();
+    throw new Error('Session expired. Please sign in again.');
   }
 
   if (!res.ok) {

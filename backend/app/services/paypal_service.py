@@ -36,8 +36,8 @@ async def create_order(amount: Decimal, currency: str = "USD", order_id: str = "
             }
         ],
         "application_context": {
-            "return_url": f"{settings.MOMO_CALLBACK_URL.rsplit('/momo', 1)[0]}/paypal/success",
-            "cancel_url": f"{settings.MOMO_CALLBACK_URL.rsplit('/momo', 1)[0]}/paypal/cancel",
+            "return_url": f"{settings.FRONTEND_URL}/store/checkout?paypal=success",
+            "cancel_url": f"{settings.FRONTEND_URL}/store/checkout?paypal=cancel",
         },
     }
     async with httpx.AsyncClient() as client:

@@ -11,7 +11,7 @@ from app.models.courses import (
     Lesson, LessonProgress, QuizQuestion, Section,
 )
 from app.models.quiz_attempt import QuizAttempt
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.courses import (
     AssessmentCreate, AssessmentResponse, AssessmentUpdate,
     CertificateResponse, CertificatePublicResponse, ContentBlockCreate, ContentBlockResponse, ContentBlockUpdate,
@@ -731,7 +731,7 @@ async def enroll(course_id: uuid.UUID, db: DB, current_user: CurrentUser):
         raise HTTPException(status_code=409, detail="Already enrolled")
 
     # Payment gate: paid courses require a confirmed payment (admins are exempt)
-    if not course.is_free and current_user.role not in ("admin", "superadmin"):
+    if not course.is_free and current_user.role not in (UserRole.ADMIN, UserRole.SUPERADMIN):
         paid = await db.execute(
             select(CoursePayment).where(
                 CoursePayment.user_id == current_user.id,

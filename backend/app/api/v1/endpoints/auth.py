@@ -1,5 +1,4 @@
 import hashlib
-import random
 import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, status
@@ -17,6 +16,11 @@ from app.services.email_service import send_verification_email, send_welcome_ema
 import httpx
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _generate_otp() -> str:
+    """Generate a cryptographically secure 6-digit OTP."""
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 
 # ── Password Reset ────────────────────────────────────────────────────────────
@@ -91,7 +95,7 @@ class TwoFactorVerifyRequest(BaseModel):
 
 @router.post("/2fa/send-code", status_code=200)
 async def send_2fa_code_endpoint(db: DB, current_user: CurrentUser):
-    code = f"{random.randint(0, 999999):06d}"
+    code = _generate_otp()
     code_hash = hashlib.sha256(code.encode()).hexdigest()
     await cache_set(f"2fa:{current_user.id}", code_hash, ttl=600)
     from app.tasks.email_tasks import send_2fa_code_task
@@ -160,7 +164,7 @@ async def login(payload: LoginRequest, db: DB):
 
     # If 2FA is enabled, generate and send an OTP instead of returning tokens
     if user.two_factor_enabled:
-        code = f"{random.randint(0, 999999):06d}"
+        code = _generate_otp()
         code_hash = hashlib.sha256(code.encode()).hexdigest()
         await cache_set(f"2fa:{user.id}", code_hash, ttl=600)
         from app.tasks.email_tasks import send_2fa_code_task
@@ -247,6 +251,16 @@ async def resend_verification(current_user: CurrentUser, db: DB):
     return {"message": "Verification email sent"}
 
 
+@router.get("/oauth-token")
+async def exchange_oauth_state(state: str):
+    """Exchange a short-lived OAuth state key for JWT tokens. Key is single-use."""
+    data = await cache_get(f"oauth_state:{state}")
+    if not data:
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state.")
+    await cache_delete(f"oauth_state:{state}")
+    return data
+
+
 _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 _GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -311,6 +325,8 @@ async def google_callback(code: str, db: DB):
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))
     frontend_url = settings.FRONTEND_URL
-    return RedirectResponse(
-        f"{frontend_url}/login?access_token={access_token}&refresh_token={refresh_token}"
-    )
+    # Pass tokens via a short-lived Redis key instead of URL query params
+    # to avoid tokens appearing in server logs and browser history.
+    state_key = secrets.token_urlsafe(32)
+    await cache_set(f"oauth_state:{state_key}", {"access_token": access_token, "refresh_token": refresh_token}, ttl=120)
+    return RedirectResponse(f"{frontend_url}/login?oauth_state={state_key}")

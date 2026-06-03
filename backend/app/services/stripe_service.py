@@ -1,17 +1,18 @@
 from decimal import Decimal
+from typing import Optional
 import stripe
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, status
 from app.core.config import settings
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-async def create_payment_intent(amount: Decimal, currency: str = "usd", metadata: dict = {}) -> dict:
+async def create_payment_intent(amount: Decimal, currency: str = "usd", metadata: Optional[dict] = None) -> dict:
     try:
         intent = stripe.PaymentIntent.create(
             amount=int(amount * 100),  # cents
             currency=currency.lower(),
-            metadata=metadata,
+            metadata=metadata or {},
             automatic_payment_methods={"enabled": True},
         )
         return {"client_secret": intent.client_secret, "payment_intent_id": intent.id}
@@ -26,7 +27,7 @@ async def verify_webhook(payload: bytes, sig_header: str) -> stripe.Event:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Webhook error: {e}")
 
 
-async def create_refund(payment_intent_id: str, amount: Decimal | None = None) -> dict:
+async def create_refund(payment_intent_id: str, amount: Optional[Decimal] = None) -> dict:
     try:
         kwargs = {"payment_intent": payment_intent_id}
         if amount:

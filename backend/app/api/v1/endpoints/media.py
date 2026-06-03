@@ -14,6 +14,15 @@ from app.schemas.media import MediaResponse
 
 router = APIRouter(prefix="/media", tags=["media"])
 
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+ALLOWED_EXTENSIONS = {
+    "jpg", "jpeg", "png", "gif", "webp", "svg",  # images
+    "pdf", "doc", "docx",                          # documents
+    "mp4", "webm", "mov",                          # video
+    "mp3", "wav",                                  # audio
+    "zip",                                         # archives
+}
+
 # Optional bearer — does not raise 401 if token is absent
 _optional_bearer = HTTPBearer(auto_error=False)
 
@@ -44,15 +53,27 @@ async def upload_file(
     db: AsyncSession = Depends(get_db),
     uploader_id: Optional[uuid.UUID] = Depends(_optional_user_id),
 ):
+    ext = (file.filename or "file").rsplit(".", 1)[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"File type '.{ext}' is not allowed.",
+        )
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.",
+        )
+
     backend_root = Path(__file__).resolve().parents[4]
     media_dir = backend_root / "media" / folder
     os.makedirs(media_dir, exist_ok=True)
 
-    ext = (file.filename or "file").rsplit(".", 1)[-1].lower()
     unique_name = f"{uuid.uuid4()}.{ext}"
     local_path = str(media_dir / unique_name)
 
-    content = await file.read()
     with open(local_path, "wb") as f:
         f.write(content)
 
@@ -73,7 +94,7 @@ async def upload_file(
 
 
 @router.get("/", response_model=List[MediaResponse])
-async def list_media(db: DB, skip: int = 0, limit: int = 50):
+async def list_media(db: DB, _: AdminUser, skip: int = 0, limit: int = 50):
     result = await db.execute(
         select(Media).order_by(Media.created_at.desc()).offset(skip).limit(limit)
     )
