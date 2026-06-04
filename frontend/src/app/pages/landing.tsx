@@ -218,7 +218,6 @@ export function Landing() {
                   <img src={slide.image} alt={slide.eyebrow} className="h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-5 text-white">
-                    <p className="text-xs uppercase tracking-[0.18em] text-white/60 mb-2">Banner {index + 1}</p>
                     <p className="text-lg leading-snug">{slide.eyebrow}</p>
                   </div>
                 </div>

@@ -23,3 +23,7 @@ celery==5.4.0
 flower==2.0.1
 google-auth==2.29.0
 requests==2.32.3
+openai>=1.50.0
+pgvector>=0.3.6
+pypdf2>=3.0.0
+duckduckgo-search>=6.0.0

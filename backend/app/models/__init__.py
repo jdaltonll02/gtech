@@ -10,6 +10,7 @@ from app.models.ratings import Testimonial, CourseRating, ProductRating
 from app.models.blog import BlogPost
 from app.models.forms import DynamicForm, FormField, FormSubmission
 from app.models.rbac import StaffRole, UserStaffRole
+from app.models.ai import AIDocument, AIDocumentChunk, ChatSession, ChatMessage
 
 __all__ = [
     "User", "UserRole",
@@ -25,4 +26,5 @@ __all__ = [
     "BlogPost",
     "DynamicForm", "FormField", "FormSubmission",
     "StaffRole", "UserStaffRole",
+    "AIDocument", "AIDocumentChunk", "ChatSession", "ChatMessage",
 ]

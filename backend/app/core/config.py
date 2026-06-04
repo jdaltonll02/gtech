@@ -74,6 +74,14 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # AI / LLM (CMU API Gateway — OpenAI-compatible)
+    CMU_API_GATEWAY_URL: str = ""        # e.g. https://api.cmu.edu/v1
+    CMU_API_KEY: str = ""
+    CMU_LLM_MODEL: str = "gpt-4o"
+    CMU_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSIONS: int = 1536
+    SITE_URL: str = "https://localhost:5173"   # used to restrict chatbot web search
+
     @property
     def allowed_origins_list(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]

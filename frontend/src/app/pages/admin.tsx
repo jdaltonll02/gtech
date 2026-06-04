@@ -43,6 +43,10 @@ import {
   ShieldCheck,
   UserCheck,
   KeyRound,
+  Bot,
+  UploadCloud,
+  FileCheck,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
@@ -78,7 +82,7 @@ import { cn } from '../components/ui/utils';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 
-type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles';
+type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs';
 
 type AnalyticsResponse = {
   stats: {
@@ -2103,6 +2107,7 @@ export function Admin() {
     { id: 'blog' as Tab, label: 'Blog', icon: Newspaper, perms: ['manage_blog'] },
     { id: 'forms' as Tab, label: 'Forms', icon: ClipboardList, perms: ['manage_forms'] },
     { id: 'roles' as Tab, label: 'Roles & Permissions', icon: ShieldCheck, perms: ['manage_roles'] },
+    { id: 'ai_docs' as Tab, label: 'AI Knowledge Base', icon: Bot, perms: [] as string[] },
   ];
 
   // Full admins see everything; staff users see only tabs matching their permissions
@@ -4060,6 +4065,10 @@ export function Admin() {
               </motion.div>
             )}
 
+            {activeTab === 'ai_docs' && (
+              <AiDocsTab />
+            )}
+
             {activeTab === 'courses' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                 <div className="flex items-center justify-between mb-6">
@@ -4460,6 +4469,8 @@ function BlogPostEditor({
   const [form, setForm] = useState(initialForm);
   const [coverUploading, setCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const inlineImageRef = useRef<HTMLInputElement>(null);
+  const [inlineUploading, setInlineUploading] = useState(false);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -4494,7 +4505,25 @@ function BlogPostEditor({
     },
   });
 
-  const addImage = () => {
+  const handleInlineImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setInlineUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'blog');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      editor?.chain().focus().setImage({ src: res.url }).run();
+    } catch (err: any) {
+      alert(err.message || 'Image upload failed');
+    } finally {
+      setInlineUploading(false);
+      if (inlineImageRef.current) inlineImageRef.current.value = '';
+    }
+  };
+
+  const addImageByUrl = () => {
     const url = prompt('Image URL:');
     if (url) editor?.chain().focus().setImage({ src: url }).run();
   };
@@ -4540,7 +4569,8 @@ function BlogPostEditor({
               <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn(TB, editor.isActive({ textAlign: 'center' }) && TB_ON)}>↔</button>
               <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn(TB, editor.isActive({ textAlign: 'right' }) && TB_ON)}>➡</button>
               <span className="w-px h-4 bg-gray-300 mx-1" />
-              <button onClick={addImage} className={TB} title="Insert image">🖼</button>
+              <button onClick={() => inlineImageRef.current?.click()} className={TB} title="Upload image" disabled={inlineUploading}>{inlineUploading ? '⏳' : '🖼'} Upload</button>
+              <button onClick={addImageByUrl} className={TB} title="Insert image by URL">🌐 URL</button>
               <button onClick={addLink} className={cn(TB, editor.isActive('link') && TB_ON)} title="Insert link">🔗</button>
               {editor.isActive('link') && (
                 <button onClick={() => editor.chain().focus().unsetLink().run()} className={TB} title="Remove link">✕</button>
@@ -4590,6 +4620,7 @@ function BlogPostEditor({
                 </div>
               )}
               <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+              <input ref={inlineImageRef} type="file" accept="image/*" className="hidden" onChange={handleInlineImageUpload} />
             </div>
             <div>
               <Label>Category</Label>
@@ -4611,6 +4642,190 @@ function BlogPostEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── AI Knowledge Base Tab ───────────────────────────────────────────────────
+
+type AIDoc = {
+  id: string;
+  title: string;
+  description: string | null;
+  file_name: string;
+  file_size: number | null;
+  scope: 'chatbot' | 'course';
+  course_id: string | null;
+  status: 'pending' | 'processing' | 'ready' | 'error';
+  chunk_count: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+function AiDocsTab() {
+  const [docs, setDocs] = useState<AIDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', scope: 'chatbot' });
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const data = await api.get<AIDoc[]>('/admin/ai/documents');
+      setDocs(data);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleUpload = async () => {
+    if (!selectedFile || !form.title) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', selectedFile);
+      fd.append('title', form.title);
+      fd.append('description', form.description);
+      fd.append('scope', form.scope);
+      await api.postForm('/admin/ai/documents', fd);
+      setForm({ title: '', description: '', scope: 'chatbot' });
+      setSelectedFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+      load();
+    } catch (e: any) {
+      alert(e.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}" and all its indexed chunks?`)) return;
+    try {
+      await api.delete(`/admin/ai/documents/${id}`);
+      load();
+    } catch (e: any) { alert(e.message); }
+  };
+
+  const statusBadge = (status: AIDoc['status']) => {
+    const map: Record<string, string> = {
+      pending: 'bg-amber-100 text-amber-700',
+      processing: 'bg-blue-100 text-blue-700',
+      ready: 'bg-green-100 text-green-700',
+      error: 'bg-red-100 text-red-700',
+    };
+    return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${map[status] ?? ''}`}>{status}</span>;
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-4xl">AI Knowledge Base</h1>
+          <p className="text-black/50 mt-1">Upload PDFs for the chatbot and classroom assistant to use when answering questions.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load}><RefreshCw className="w-4 h-4 mr-1" />Refresh</Button>
+      </div>
+
+      {/* Upload form */}
+      <GlassCard className="p-6 mb-8">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2"><UploadCloud className="w-5 h-5 text-primary" />Upload Document (PDF)</h3>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <Label>Document Title</Label>
+            <Input className="mt-1" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. G-Tech FAQ 2026" />
+          </div>
+          <div>
+            <Label>Scope</Label>
+            <select className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background" value={form.scope} onChange={(e) => setForm((p) => ({ ...p, scope: e.target.value }))}>
+              <option value="chatbot">Chatbot (general knowledge base)</option>
+              <option value="course">Course material (attach via course)</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Description (optional)</Label>
+            <Input className="mt-1" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Brief description of the document's contents" />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>PDF File</Label>
+            <div
+              className="mt-1 border-2 border-dashed border-black/15 rounded-lg p-5 text-center cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => fileRef.current?.click()}
+            >
+              {selectedFile ? (
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <FileCheck className="w-5 h-5 text-green-600" />
+                  <span className="font-medium">{selectedFile.name}</span>
+                  <span className="text-black/40">({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                </div>
+              ) : (
+                <>
+                  <UploadCloud className="w-8 h-8 text-black/25 mx-auto mb-2" />
+                  <p className="text-sm text-black/40">Click to select a PDF (max 50 MB)</p>
+                </>
+              )}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+        </div>
+        <Button
+          className="mt-4"
+          disabled={!selectedFile || !form.title || uploading}
+          onClick={handleUpload}
+        >
+          {uploading ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin mr-2" />Uploading & Processing…</> : <><UploadCloud className="w-4 h-4 mr-2" />Upload & Index</>}
+        </Button>
+        <p className="text-xs text-black/40 mt-2">Documents are automatically parsed, chunked, and embedded after upload. Status changes to "ready" once indexing completes.</p>
+      </GlassCard>
+
+      {/* Document list */}
+      {loading ? (
+        <p className="text-black/40 text-center py-8">Loading documents…</p>
+      ) : docs.length === 0 ? (
+        <GlassCard className="p-10 text-center">
+          <Bot className="w-10 h-10 text-black/20 mx-auto mb-3" />
+          <p className="text-black/40">No documents uploaded yet. Upload a PDF above to get started.</p>
+        </GlassCard>
+      ) : (
+        <div className="space-y-3">
+          {docs.map((doc) => (
+            <GlassCard key={doc.id} className="p-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="font-medium">{doc.title}</h3>
+                    {statusBadge(doc.status)}
+                    <span className="text-xs bg-primary/8 text-primary px-2 py-0.5 rounded-full">{doc.scope}</span>
+                    {doc.chunk_count > 0 && <span className="text-xs text-black/40">{doc.chunk_count} chunks</span>}
+                  </div>
+                  {doc.description && <p className="text-sm text-black/55 mb-1">{doc.description}</p>}
+                  <p className="text-xs text-black/35">
+                    {doc.file_name}
+                    {doc.file_size ? ` · ${(doc.file_size / 1024 / 1024).toFixed(2)} MB` : ''}
+                    {' · '}Uploaded {new Date(doc.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleDelete(doc.id, doc.title)}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                </Button>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      )}
+    </motion.div>
   );
 }
 
