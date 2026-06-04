@@ -47,39 +47,7 @@ async def create_partner(payload: PartnerCreate, db: DB, _: PartnersAdminUser):
     return obj
 
 
-@router.get("/{partner_id}", response_model=PartnerResponse)
-async def get_partner(partner_id: uuid.UUID, db: DB):
-    result = await db.execute(select(Partner).where(Partner.id == partner_id))
-    obj = result.scalar_one_or_none()
-    if not obj:
-        _not_found("Partner")
-    return obj
-
-
-@router.patch("/admin/{partner_id}", response_model=PartnerResponse)
-async def update_partner(partner_id: uuid.UUID, payload: PartnerUpdate, db: DB, _: PartnersAdminUser):
-    result = await db.execute(select(Partner).where(Partner.id == partner_id))
-    obj = result.scalar_one_or_none()
-    if not obj:
-        _not_found("Partner")
-    _apply_update(obj, payload.model_dump())
-    await db.flush()
-    await cache_delete_pattern("partners:*")
-    return obj
-
-
-@router.delete("/admin/{partner_id}", status_code=204)
-async def delete_partner(partner_id: uuid.UUID, db: DB, _: PartnersAdminUser):
-    result = await db.execute(select(Partner).where(Partner.id == partner_id))
-    obj = result.scalar_one_or_none()
-    if not obj:
-        _not_found("Partner")
-    await db.delete(obj)
-    await db.flush()
-    await cache_delete_pattern("partners:*")
-
-
-# ── Businesses ────────────────────────────────────────────────────────────────
+# ── Businesses (must be before /{partner_id} wildcard) ───────────────────────
 
 @router.get("/businesses", response_model=List[BusinessResponse])
 async def list_businesses(db: DB):
@@ -131,3 +99,37 @@ async def delete_business(business_id: uuid.UUID, db: DB, _: PartnersAdminUser):
     await db.delete(obj)
     await db.flush()
     await cache_delete_pattern("businesses:*")
+
+
+# ── Partner by ID (wildcard — must stay after all fixed paths) ─────────────────
+
+@router.get("/{partner_id}", response_model=PartnerResponse)
+async def get_partner(partner_id: uuid.UUID, db: DB):
+    result = await db.execute(select(Partner).where(Partner.id == partner_id))
+    obj = result.scalar_one_or_none()
+    if not obj:
+        _not_found("Partner")
+    return obj
+
+
+@router.patch("/admin/{partner_id}", response_model=PartnerResponse)
+async def update_partner(partner_id: uuid.UUID, payload: PartnerUpdate, db: DB, _: PartnersAdminUser):
+    result = await db.execute(select(Partner).where(Partner.id == partner_id))
+    obj = result.scalar_one_or_none()
+    if not obj:
+        _not_found("Partner")
+    _apply_update(obj, payload.model_dump())
+    await db.flush()
+    await cache_delete_pattern("partners:*")
+    return obj
+
+
+@router.delete("/admin/{partner_id}", status_code=204)
+async def delete_partner(partner_id: uuid.UUID, db: DB, _: PartnersAdminUser):
+    result = await db.execute(select(Partner).where(Partner.id == partner_id))
+    obj = result.scalar_one_or_none()
+    if not obj:
+        _not_found("Partner")
+    await db.delete(obj)
+    await db.flush()
+    await cache_delete_pattern("partners:*")
