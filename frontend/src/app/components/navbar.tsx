@@ -27,7 +27,7 @@ export function Navbar() {
 
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'Portfolio', path: '/portfolio' },
+    { name: 'CEO', path: '/portfolio' },
     { name: 'Gallery', path: '/gallery' },
     { name: 'Courses', path: '/courses' },
     { name: 'Store', path: '/store' },
@@ -83,10 +83,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white text-xl">GTech</span>
-            </div>
-            <span className="text-xl hidden sm:block">Gibson Technologies</span>
+            <img src="/gtech_logo.svg" alt="G-Tech" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
