@@ -54,40 +54,43 @@ function LogoCarousel({ items, label }: { items: { id: string; name: string; log
 
 const bannerSlides = [
   {
-    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80',
-    eyebrow: 'Digital Operations',
-    title: 'Building systems that help ambitious organizations move faster.',
-    copy: 'From public-facing websites to commerce, training, and internal workflows, Gibson Technologies turns scattered tools into one reliable operating layer.',
+    // Students in a STEM/coding classroom environment
+    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=80',
+    eyebrow: 'STEM Education',
+    title: 'Structured learning pathways for the next generation of innovators.',
+    copy: 'From foundational STEM concepts to advanced applied technology, our courses are built to develop real competence — not just credentials.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80',
-    eyebrow: 'Modern Infrastructure',
-    title: 'Technology that feels clear, structured, and ready for growth.',
-    copy: 'We design digital experiences for institutions that need more than a brochure site: they need platforms, automation, and trust at scale.',
+    // Team collaborating on tech startup / entrepreneurship
+    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80',
+    eyebrow: 'Tech Entrepreneurship',
+    title: 'Turning ideas into scalable ventures through technology.',
+    copy: 'We work with founders, institutions, and innovators to build the technical foundation that makes entrepreneurship viable at a global scale.',
   },
   {
-    image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1600&q=80',
-    eyebrow: 'Human-Centered Delivery',
-    title: 'Serious platforms, designed for the people who use them every day.',
-    copy: 'Operations teams, learners, customers, and administrators all need different things. Gibson Technologies brings them into one coherent experience.',
+    // Scientific research / lab innovation
+    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1600&q=80',
+    eyebrow: 'Research & Innovation',
+    title: 'Applied research that bridges science, engineering, and market impact.',
+    copy: 'G-Tech pursues research partnerships across academia, industry, and government — translating discovery into deployable solutions.',
   },
 ];
 
 const focusAreas = [
   {
     icon: Building2,
-    title: 'Organization Platforms',
-    description: 'Unified web presence, admin systems, and service delivery tools for growing institutions.',
+    title: 'Tech Entrepreneurship',
+    description: 'We incubate ideas, build products, and partner with entrepreneurs to create tech-driven businesses with measurable real-world impact.',
   },
   {
     icon: Cpu,
-    title: 'Digital Products',
-    description: 'E-commerce, learning, and operational features that turn a simple website into a working platform.',
+    title: 'STEM Education & Research',
+    description: 'Rigorous courses, research collaborations, and learning tools designed to develop technically capable, innovation-ready talent globally.',
   },
   {
     icon: ShieldCheck,
-    title: 'Reliable Execution',
-    description: 'Structured architecture, maintainable code, and production-minded implementation from the start.',
+    title: 'Innovation & Partnerships',
+    description: 'We partner with tech companies, academic institutions, and NGOs to co-develop solutions, share resources, and advance shared missions.',
   },
 ];
 
@@ -118,16 +121,16 @@ export function Landing() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
             <p className="text-sm uppercase tracking-[0.28em] text-white/60 mb-4">G-Tech</p>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl mb-6 text-white max-w-4xl leading-tight">
-              Innovation and Research in Tech and STEM Education
+              Where Technology Meets Entrepreneurship, Education, and Innovation
             </h1>
             <p className="text-xl sm:text-2xl text-white/80 mb-5 max-w-2xl">
-              Transforming lives and impacting the community through technology, entrepreneurship, and STEM education. 
+              Advancing STEM education, applied research, and tech entrepreneurship on a global scale.
             </p>
             <p className="text-lg text-white/60 max-w-2xl mb-8">
-              G-Tech is a consolidation of tech institutions and businesses that focues on technological advancements, e-commerce, research, and STEM Education. We are happy to partner with other tech institutions for business or humanitarian purposes.
+              G-Tech is a global network of technology institutions and ventures focused on building capable talent, deployable research, and sustainable tech businesses — from foundational STEM learning to deep-tech innovation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/portfolio"><Button size="lg" className="group bg-white text-primary hover:bg-white/90">Explore our Work<ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" /></Button></Link>
+              <Link to="/courses"><Button size="lg" className="group bg-white text-primary hover:bg-white/90">Explore Courses<ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" /></Button></Link>
               <Link to="/store"><Button size="lg" variant="outline" className="border-white text-black hover:bg-white/10 hover:text-black">Browse Solutions</Button></Link>
             </div>
           </motion.div>
@@ -194,13 +197,13 @@ export function Landing() {
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-stretch">
           <GlassCard className="p-8 sm:p-10">
-            <p className="text-sm uppercase tracking-[0.22em] text-primary mb-4">Why G-Tecg</p>
-            <h2 className="text-4xl mb-5 leading-tight">We run businesses that produce jobs, design products, provide tech solutions for other businesses, and partner with institutions in tech and entrepreneurship.</h2>
+            <p className="text-sm uppercase tracking-[0.22em] text-primary mb-4">Why G-Tech</p>
+            <h2 className="text-4xl mb-5 leading-tight">A global technology group advancing STEM education, research, entrepreneurship, and innovation — simultaneously.</h2>
             <p className="text-black/70 mb-4 leading-relaxed">
-              G-Tech is built around a practical idea and innovation: our goal is to promote technology, promote education, and improve lives through technology, research, entrepreneurship, and STEM education. 
+              G-Tech was built on a singular conviction: that technology, when paired with rigorous education and entrepreneurial intent, is the most reliable engine for sustainable development. We don't separate research from business, or education from industry — they are the same mission.
             </p>
             <p className="text-black/65 leading-relaxed">
-              This platform demonstrates that shift clearly, combining public storytelling with advanced back-office functionality in one cohesive system.
+              Our ecosystem spans accredited learning programs, product ventures, consulting engagements, and research partnerships — all operating under a shared infrastructure designed for global reach and local impact.
             </p>
           </GlassCard>
 
@@ -232,11 +235,11 @@ export function Landing() {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <GlassCard className="p-12">
-            <h2 className="text-4xl mb-6">Let Gibson Technologies support the next stage of your organization.</h2>
-            <p className="text-lg text-black/70 mb-8 max-w-2xl mx-auto">Whether you need a stronger public presence, a product-ready storefront, or an internal platform that reduces friction, this system is built to scale with you.</p>
+            <h2 className="text-4xl mb-6">Ready to build, learn, or partner with G-Tech?</h2>
+            <p className="text-lg text-black/70 mb-8 max-w-2xl mx-auto">Whether you're a student pursuing STEM mastery, an entrepreneur building a tech venture, a researcher seeking collaboration, or an institution looking to partner — G-Tech has a place for you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/store"><Button size="lg">Explore Services</Button></Link>
-              <Link to="/portfolio"><Button size="lg" variant="outline">Meet the Builder</Button></Link>
+              <Link to="/courses"><Button size="lg">Start Learning</Button></Link>
+              <Link to="/contact"><Button size="lg" variant="outline">Get in Touch</Button></Link>
             </div>
           </GlassCard>
         </div>

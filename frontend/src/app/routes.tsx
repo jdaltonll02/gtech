@@ -24,6 +24,7 @@ import { CourseDetail } from './pages/courses/course-detail';
 import { CoursePlayer } from './pages/courses/course-player';
 import { MyLearning } from './pages/courses/my-learning';
 import { CertificatePage } from './pages/courses/certificate';
+import { Docs } from './pages/docs';
 import { useAuthStore } from './store/authStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -109,6 +110,7 @@ export const router = createBrowserRouter([
       // Courses — public
       { path: 'courses', Component: CourseCatalog },
       { path: 'courses/certificate/:certNumber', Component: CertificatePage },
+      { path: 'docs', Component: Docs },
       { path: 'courses/:courseId', Component: CourseDetail },
       // Courses — auth required
       {

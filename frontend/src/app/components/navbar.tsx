@@ -31,6 +31,7 @@ export function Navbar() {
     { name: 'Gallery', path: '/gallery' },
     { name: 'Courses', path: '/courses' },
     { name: 'Store', path: '/store' },
+    { name: 'Help', path: '/docs' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

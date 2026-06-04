@@ -61,7 +61,12 @@ export function Login() {
       localStorage.setItem('access_token', data.access_token);
       const me = await api.get<{ id: string; email: string; full_name: string; is_admin: boolean }>('/auth/me');
       setAuth(me, data.access_token, data.refresh_token);
-      navigate(redirectTo, { replace: true });
+      const hasChangedPassword = localStorage.getItem('password_changed');
+      if (!hasChangedPassword && redirectTo === '/') {
+        navigate('/profile?tab=security', { replace: true });
+      } else {
+        navigate(redirectTo, { replace: true });
+      }
     } catch (err: any) {
       localStorage.removeItem('access_token');
       setError(err.message || 'Invalid credentials.');

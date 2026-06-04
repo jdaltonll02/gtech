@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Developer Guide — Gibson Technologies</title>
+<style>
+  :root {
+    --primary: #6d28d9;
+    --primary-light: #ede9fe;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --sidebar-w: 260px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; display: flex; min-height: 100vh; }
+
+  nav { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; padding: 24px 0; }
+  .nav-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .nav-logo span { display: block; font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .05em; }
+  .nav-logo small { color: var(--muted); font-size: 11px; }
+  .nav-section { padding: 6px 20px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-top: 8px; }
+  nav a { display: block; padding: 6px 20px; font-size: 13.5px; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; transition: all .15s; }
+  nav a:hover { color: var(--primary); background: var(--primary-light); }
+  nav a.active { color: var(--primary); border-left-color: var(--primary); font-weight: 600; background: var(--primary-light); }
+
+  main { margin-left: var(--sidebar-w); flex: 1; max-width: 880px; padding: 48px 48px 80px; }
+  h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 40px; }
+  h2 { font-size: 1.35rem; font-weight: 700; margin: 48px 0 16px; padding-top: 16px; border-top: 1px solid var(--border); scroll-margin-top: 24px; }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 28px 0 10px; }
+  p { margin-bottom: 14px; }
+  ul, ol { padding-left: 20px; margin-bottom: 14px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--primary); }
+
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 14px 0 20px; font-size: 13px; line-height: 1.6; position: relative; }
+  code { font-family: "SF Mono", "Fira Code", monospace; font-size: .88em; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #be185d; }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  .copy-btn { position: absolute; top: 10px; right: 10px; background: #334155; border: none; color: #94a3b8; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+  .copy-btn:hover { background: #475569; color: #fff; }
+
+  .callout { border-radius: 8px; padding: 14px 18px; margin: 16px 0; border-left: 4px solid; font-size: 14px; }
+  .callout.info { background: var(--primary-light); border-color: var(--primary); }
+  .callout.warn { background: #fefce8; border-color: #fbbf24; }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13.5px; }
+  th { background: #f1f5f9; text-align: left; padding: 10px 14px; font-weight: 600; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  .file-tree { font-family: "SF Mono", "Fira Code", monospace; font-size: 13px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; line-height: 1.9; margin: 14px 0 20px; }
+  .file-tree .dir { color: var(--primary); font-weight: 600; }
+  .file-tree .comment { color: var(--muted); }
+
+  @media (max-width: 768px) { nav { display: none; } main { margin-left: 0; padding: 24px 20px 60px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <span>Gibson Technologies</span>
+    <small>Developer Guide</small>
+  </div>
+  <div class="nav-section">Getting Started</div>
+  <a href="#overview">Overview</a>
+  <a href="#local-setup">Local Setup</a>
+  <a href="#project-structure">Project Structure</a>
+  <div class="nav-section">Backend</div>
+  <a href="#backend-stack">Tech Stack</a>
+  <a href="#api-conventions">API Conventions</a>
+  <a href="#auth">Authentication</a>
+  <a href="#models">Models & Migrations</a>
+  <a href="#tasks">Celery Tasks</a>
+  <a href="#payments">Payment Flows</a>
+  <div class="nav-section">Frontend</div>
+  <a href="#frontend-stack">Tech Stack</a>
+  <a href="#state">State Management</a>
+  <a href="#api-client">API Client</a>
+  <a href="#routes">Routes & Guards</a>
+  <div class="nav-section">Testing</div>
+  <a href="#backend-tests">Backend Tests</a>
+  <a href="#frontend-tests">Frontend Tests</a>
+  <div class="nav-section">Reference</div>
+  <a href="#env-vars">Environment Variables</a>
+  <a href="#api-routes">API Routes</a>
+</nav>
+
+<main>
+  <h1>Developer Guide</h1>
+  <p class="subtitle">Gibson Technologies — Full-Stack Platform</p>
+
+  <h2 id="overview">Overview</h2>
+  <p>Gibson Technologies is a full-stack platform combining a portfolio CMS, e-commerce store, learning management system (LMS), and support ticketing system. The backend is a FastAPI REST API consumed by a React 18 SPA.</p>
+  <table>
+    <tr><th>Layer</th><th>Technology</th></tr>
+    <tr><td>Backend</td><td>FastAPI 0.115 + Uvicorn (4 workers)</td></tr>
+    <tr><td>Database</td><td>PostgreSQL 18 via Neon (managed) — SQLAlchemy 2.0 async + Alembic</td></tr>
+    <tr><td>Cache / Queue</td><td>Redis 7 (cache + Celery broker)</td></tr>
+    <tr><td>Auth</td><td>JWT (PyJWT) + bcrypt + Google OAuth</td></tr>
+    <tr><td>Payments</td><td>Stripe, PayPal, MTN MoMo</td></tr>
+    <tr><td>Frontend</td><td>React 18 + TypeScript + Vite 6</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS 4 + shadcn/ui (Radix UI)</td></tr>
+    <tr><td>State</td><td>Zustand</td></tr>
+    <tr><td>Infra</td><td>Docker Compose + host Nginx + GCP VM</td></tr>
+  </table>
+
+  <h2 id="local-setup">Local Setup</h2>
+  <h3>Prerequisites</h3>
+  <ul>
+    <li>Python 3.11+</li>
+    <li>Node.js 20+</li>
+    <li>Docker Desktop (for Redis; or install Redis locally)</li>
+    <li>A Neon project with connection strings</li>
+  </ul>
+
+  <h3>Backend</h3>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd backend
+python -m venv venv
+source venv/bin/activate       # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Copy and fill in env vars
+cp .env.example .env
+
+# Run migrations
+alembic upgrade head
+
+# Seed superadmin
+python -m app.db.init_db
+
+# Start dev server
+uvicorn app.main:app --reload --port 8000</code></pre>
+  <p>Swagger UI: <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a> (only available when <code>ENVIRONMENT != production</code>)</p>
+
+  <h3>Frontend</h3>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd frontend
+npm install
+npm run dev     # Vite dev server on http://localhost:5173</code></pre>
+  <p>The Vite dev server proxies <code>/api</code> and <code>/media</code> to <code>http://localhost:8000</code> via <code>vite.config.ts</code>.</p>
+
+  <h2 id="project-structure">Project Structure</h2>
+  <div class="file-tree">
+<span class="dir">backend/</span>
+├── <span class="dir">alembic/versions/</span>          <span class="comment"># 14 migration files</span>
+├── <span class="dir">app/</span>
+│   ├── <span class="dir">api/v1/endpoints/</span>        <span class="comment"># Route handlers</span>
+│   │   ├── auth.py
+│   │   ├── courses.py
+│   │   ├── ecommerce.py
+│   │   ├── payments.py
+│   │   ├── support.py
+│   │   ├── admin.py
+│   │   ├── portfolio.py
+│   │   ├── media.py
+│   │   └── partners.py
+│   ├── <span class="dir">core/</span>                    <span class="comment"># config.py (Pydantic settings), security.py</span>
+│   ├── <span class="dir">db/</span>                      <span class="comment"># session.py, redis.py, init_db.py</span>
+│   ├── <span class="dir">models/</span>                  <span class="comment"># SQLAlchemy ORM models</span>
+│   ├── <span class="dir">schemas/</span>                 <span class="comment"># Pydantic request/response schemas</span>
+│   ├── <span class="dir">services/</span>                <span class="comment"># stripe_service.py, paypal_service.py, momo_service.py, email_service.py</span>
+│   ├── <span class="dir">tasks/</span>                   <span class="comment"># Celery: email_tasks.py, order_tasks.py, media_tasks.py</span>
+│   ├── celery_app.py
+│   └── main.py
+├── <span class="dir">tests/</span>
+└── requirements.txt
+
+<span class="dir">frontend/src/app/</span>
+├── <span class="dir">components/</span>
+│   ├── <span class="dir">ui/</span>                      <span class="comment"># shadcn/ui primitives</span>
+│   └── <span class="dir">course/</span>                  <span class="comment"># QuizPlayer, AssignmentViewer, ContentBlockRenderer</span>
+├── <span class="dir">pages/</span>                       <span class="comment"># One file per route</span>
+├── <span class="dir">store/</span>                       <span class="comment"># authStore.ts, cartStore.ts, courseStore.ts</span>
+├── <span class="dir">utils/</span>
+│   ├── api.ts                   <span class="comment"># Fetch client with JWT refresh</span>
+│   └── renderMath.ts
+├── App.tsx
+└── routes.tsx
+  </div>
+
+  <h2 id="backend-stack">Backend — Tech Stack</h2>
+  <h3>Dependency injection</h3>
+  <p>FastAPI dependencies live in <code>app/api/deps.py</code>. Key dependencies:</p>
+  <ul>
+    <li><code>CurrentUser</code> — requires valid JWT, returns the user ORM object</li>
+    <li><code>AdminUser</code> — requires <code>is_admin=True</code>, raises 403 otherwise</li>
+    <li><code>get_db</code> — yields an async SQLAlchemy session</li>
+  </ul>
+
+  <h3>Settings</h3>
+  <p>All config is in <code>app/core/config.py</code> as a Pydantic <code>BaseSettings</code> class, cached with <code>@lru_cache</code>. Import as:</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>from app.core.config import settings
+print(settings.DATABASE_URL)</code></pre>
+
+  <h2 id="api-conventions">API Conventions</h2>
+  <ul>
+    <li>Base path: <code>/api/v1</code></li>
+    <li>All responses use Pydantic schemas — no raw ORM objects returned</li>
+    <li>Errors return <code>{"detail": "message"}</code></li>
+    <li>Rate limiting: 60 req/min per IP via SlowAPI</li>
+    <li>Swagger UI available at <code>/docs</code> (disabled in production)</li>
+  </ul>
+  <h3>Adding a new endpoint</h3>
+  <ol>
+    <li>Create or extend a file in <code>app/api/v1/endpoints/</code></li>
+    <li>Define Pydantic schemas in <code>app/schemas/</code></li>
+    <li>Register the router in <code>app/api/v1/router.py</code></li>
+  </ol>
+
+  <h2 id="auth">Authentication</h2>
+  <p>JWT access tokens (30 min) and refresh tokens (7 days). Stored in <code>localStorage</code> on the frontend.</p>
+  <table>
+    <tr><th>Endpoint</th><th>Description</th></tr>
+    <tr><td><code>POST /auth/register</code></td><td>Create account (sends verification email)</td></tr>
+    <tr><td><code>POST /auth/login</code></td><td>Returns tokens or 2FA challenge</td></tr>
+    <tr><td><code>POST /auth/refresh</code></td><td>Rotate tokens using refresh token</td></tr>
+    <tr><td><code>GET /auth/me</code></td><td>Current user info</td></tr>
+    <tr><td><code>PATCH /auth/me</code></td><td>Update profile / change password</td></tr>
+    <tr><td><code>POST /auth/2fa/enable</code></td><td>Enable email-based 2FA</td></tr>
+    <tr><td><code>POST /auth/2fa/verify</code></td><td>Verify 6-digit OTP code</td></tr>
+    <tr><td><code>GET /auth/google</code></td><td>Initiate Google OAuth flow</td></tr>
+  </table>
+  <p>Roles: <code>user</code> &lt; <code>admin</code> &lt; <code>superadmin</code>. Protect routes using the <code>AdminUser</code> dependency on the backend and <code>RequireAdmin</code> wrapper on the frontend.</p>
+
+  <h2 id="models">Models &amp; Migrations</h2>
+  <p>ORM models live in <code>app/models/</code>. All models use SQLAlchemy 2.0 declarative style with async sessions.</p>
+  <h3>Creating a migration</h3>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># After editing a model file:
+alembic revision --autogenerate -m "add_my_field"
+alembic upgrade head</code></pre>
+  <div class="callout warn"><strong>Enum columns:</strong> Always use <code>native_enum=False</code> in <code>Column(Enum(..., native_enum=False))</code> to avoid PostgreSQL enum type conflicts across migrations.</div>
+
+  <h2 id="tasks">Celery Tasks</h2>
+  <p>All async work (emails, order processing, media) is dispatched to Celery. The broker and result backend are both Redis.</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Dispatch from any endpoint
+from app.tasks.email_tasks import send_verification_email
+send_verification_email.delay(user_id, email, token)</code></pre>
+  <p>Task files: <code>app/tasks/email_tasks.py</code>, <code>app/tasks/order_tasks.py</code>, <code>app/tasks/media_tasks.py</code></p>
+
+  <h2 id="payments">Payment Flows</h2>
+  <h3>Stripe</h3>
+  <ol>
+    <li><code>POST /orders/checkout</code> → creates order</li>
+    <li><code>POST /payments/stripe/intent/{order_id}</code> → returns <code>client_secret</code></li>
+    <li>Frontend: <code>stripe.confirmCardPayment(client_secret)</code> — card never touches server</li>
+    <li>Stripe webhook <code>payment_intent.succeeded</code> → <code>POST /payments/stripe/webhook</code> → order marked paid</li>
+  </ol>
+  <p>For courses: <code>POST /courses/{id}/payment-intent</code> → confirm → <code>POST /courses/{id}/confirm-payment</code> → enrollment created.</p>
+  <h3>PayPal</h3>
+  <ol>
+    <li><code>POST /payments/paypal/intent/{order_id}</code> → <code>approval_url</code></li>
+    <li>User redirected to PayPal</li>
+    <li><code>POST /payments/paypal/capture/{paypal_order_id}</code> → order paid</li>
+  </ol>
+  <h3>MTN MoMo</h3>
+  <ol>
+    <li><code>POST /payments/momo/intent/{order_id}?phone_number=256XXXXXXXXX</code> → USSD push</li>
+    <li>User approves on phone</li>
+    <li>MoMo POSTs to <code>/payments/momo/callback?secret=XXXX</code> → HMAC verified → order paid</li>
+  </ol>
+
+  <h2 id="frontend-stack">Frontend — Tech Stack</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th></tr>
+    <tr><td>Framework</td><td>React 18 + TypeScript</td></tr>
+    <tr><td>Build</td><td>Vite 6</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS 4</td></tr>
+    <tr><td>UI components</td><td>shadcn/ui (Radix UI primitives)</td></tr>
+    <tr><td>State</td><td>Zustand</td></tr>
+    <tr><td>Routing</td><td>React Router v7</td></tr>
+    <tr><td>Animations</td><td>Motion (Framer Motion)</td></tr>
+    <tr><td>Rich text</td><td>TipTap</td></tr>
+    <tr><td>Charts</td><td>Recharts</td></tr>
+    <tr><td>Payments</td><td>@stripe/react-stripe-js</td></tr>
+  </table>
+
+  <h2 id="state">State Management</h2>
+  <p>Three Zustand stores in <code>src/app/store/</code>:</p>
+  <ul>
+    <li><code>authStore.ts</code> — user object, access token, <code>isAuthenticated()</code>, <code>setAuth()</code>, <code>logout()</code></li>
+    <li><code>cartStore.ts</code> — cart items, add/remove/clear, total calculation</li>
+    <li><code>courseStore.ts</code> — enrollments, certificates, current lesson progress</li>
+  </ul>
+
+  <h2 id="api-client">API Client</h2>
+  <p>All API calls go through <code>src/app/utils/api.ts</code>. It handles:</p>
+  <ul>
+    <li>Attaches <code>Authorization: Bearer &lt;token&gt;</code> to every request</li>
+    <li>On 401 → automatically calls <code>POST /auth/refresh</code> and retries once</li>
+    <li>On failed refresh → clears auth state and throws <code>"Session expired"</code></li>
+  </ul>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>import { api } from '../utils/api';
+
+// GET
+const profile = await api.get&lt;ProfileResponse&gt;('/portfolio/profile');
+
+// POST
+const order = await api.post&lt;Order&gt;('/orders/checkout', { items });
+
+// PATCH
+await api.patch('/auth/me', { full_name: 'New Name' });
+
+// File upload
+await api.postForm('/media/upload', formData);</code></pre>
+
+  <h2 id="routes">Routes &amp; Guards</h2>
+  <p>Routes defined in <code>src/app/routes.tsx</code>. Two guard components:</p>
+  <ul>
+    <li><code>RequireAuth</code> — redirects to <code>/login?redirect=...</code> if not authenticated</li>
+    <li><code>RequireAdmin</code> — additionally checks <code>user.is_admin</code>, redirects to <code>/</code> if false</li>
+  </ul>
+  <p>The course player (<code>/courses/:id/learn</code>) is rendered outside the main layout (no navbar/footer) for full-screen experience.</p>
+
+  <h2 id="backend-tests">Backend Tests</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd backend
+source venv/bin/activate
+pip install -r requirements-test.txt
+pytest tests/ -v</code></pre>
+  <p>Coverage: auth endpoints (register, login, refresh), payment security (MoMo secret, Stripe webhook signature, PayPal dispatch), health check.</p>
+
+  <h2 id="frontend-tests">Frontend Tests</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd frontend
+npm test</code></pre>
+  <p>Coverage: API client (auth headers, token refresh, 401 handling), authStore, cartStore, courseStore, payment flow helpers.</p>
+
+  <h2 id="env-vars">Environment Variables</h2>
+  <table>
+    <tr><th>Variable</th><th>Description</th></tr>
+    <tr><td><code>SECRET_KEY</code></td><td>64-char hex JWT secret</td></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>Async Neon URL (<code>postgresql+asyncpg://...</code>)</td></tr>
+    <tr><td><code>DATABASE_URL_SYNC</code></td><td>Sync Neon URL for Celery</td></tr>
+    <tr><td><code>REDIS_URL</code></td><td><code>redis://redis:6379/0</code></td></tr>
+    <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Stripe secret key</td></tr>
+    <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Webhook signing secret</td></tr>
+    <tr><td><code>ENVIRONMENT</code></td><td><code>production</code> disables Swagger UI</td></tr>
+    <tr><td><code>ALLOWED_ORIGINS</code></td><td>Comma-separated CORS origins</td></tr>
+    <tr><td><code>FRONTEND_URL</code></td><td>Used in email links</td></tr>
+  </table>
+
+  <h2 id="api-routes">API Routes Reference</h2>
+  <table>
+    <tr><th>Module</th><th>Prefix</th></tr>
+    <tr><td>Authentication</td><td><code>/api/v1/auth</code></td></tr>
+    <tr><td>Portfolio CMS</td><td><code>/api/v1/portfolio</code></td></tr>
+    <tr><td>Media</td><td><code>/api/v1/media</code></td></tr>
+    <tr><td>E-commerce</td><td><code>/api/v1/categories</code>, <code>/products</code>, <code>/cart</code>, <code>/orders</code></td></tr>
+    <tr><td>Payments</td><td><code>/api/v1/payments</code></td></tr>
+    <tr><td>Courses / LMS</td><td><code>/api/v1/courses</code></td></tr>
+    <tr><td>Support tickets</td><td><code>/api/v1/support</code></td></tr>
+    <tr><td>Admin</td><td><code>/api/v1/admin</code></td></tr>
+    <tr><td>Partners</td><td><code>/api/v1/partners</code></td></tr>
+  </table>
+  <p>Interactive docs (dev only): <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a></p>
+</main>
+
+<script>
+  function copyCode(btn) {
+    const code = btn.nextSibling.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+  const sections = document.querySelectorAll('h2[id]');
+  const links = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router';
+import { useNavigate, Link, useSearchParams } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   User, Lock, LayoutDashboard, BookOpen, Award, ShoppingBag,
@@ -106,7 +106,8 @@ export function Profile() {
 
   const { enrollments, certificates, setEnrollments, setCertificates } = useCourseStore();
 
-  const [tab, setTab] = useState<Tab>('overview');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>((searchParams.get('tab') as Tab) ?? 'overview');
   const [courseFilter, setCourseFilter] = useState<string>('all');
   const [courseSearch, setCourseSearch] = useState('');
 
@@ -179,6 +180,7 @@ export function Profile() {
     setPasswordLoading(true);
     try {
       await api.patch('/auth/me', { current_password: passwordForm.current_password, new_password: passwordForm.new_password });
+      localStorage.setItem('password_changed', '1');
       setPasswordMsg({ type: 'success', text: 'Password changed successfully.' });
       setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
     } catch (err: any) {
