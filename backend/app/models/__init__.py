@@ -9,6 +9,7 @@ from app.models.support import SupportTicket, TicketMessage, PasswordResetToken
 from app.models.ratings import Testimonial, CourseRating, ProductRating
 from app.models.blog import BlogPost
 from app.models.forms import DynamicForm, FormField, FormSubmission
+from app.models.rbac import StaffRole, UserStaffRole
 
 __all__ = [
     "User", "UserRole",
@@ -23,4 +24,5 @@ __all__ = [
     "Testimonial", "CourseRating", "ProductRating",
     "BlogPost",
     "DynamicForm", "FormField", "FormSubmission",
+    "StaffRole", "UserStaffRole",
 ]

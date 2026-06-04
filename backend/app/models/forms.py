@@ -19,6 +19,7 @@ class DynamicForm(Base):
     description: Mapped[Optional[str]] = mapped_column(Text)
     slug: Mapped[str] = mapped_column(String(500), unique=True, nullable=False, index=True)
     category: Mapped[str] = mapped_column(String(100), default="general", nullable=False)
+    nav_label: Mapped[Optional[str]] = mapped_column(String(100))  # label shown in navbar; falls back to title
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     requires_auth: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

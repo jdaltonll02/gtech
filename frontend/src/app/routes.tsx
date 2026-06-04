@@ -47,7 +47,9 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   }
-  if (!user?.is_admin) {
+  // Allow full admins AND staff users who have at least one permission
+  const isStaff = user?.is_admin || (user?.permissions && user.permissions.length > 0);
+  if (!isStaff) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;

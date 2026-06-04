@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select, func
-from app.api.deps import AdminUser, DB
+from app.api.deps import AdminUser, BlogAdminUser, DB
 from app.db.redis import cache_delete_pattern, cache_get, cache_set
 from app.models.blog import BlogPost
 from app.schemas.blog import BlogPostCreate, BlogPostDetailResponse, BlogPostListResponse, BlogPostUpdate
@@ -74,7 +74,7 @@ async def get_post(slug: str, db: DB):
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @router.get("/admin/all", response_model=List[BlogPostListResponse])
-async def admin_list_posts(db: DB, _: AdminUser, skip: int = 0, limit: int = 50):
+async def admin_list_posts(db: DB, _: BlogAdminUser, skip: int = 0, limit: int = 50):
     result = await db.execute(
         select(BlogPost).order_by(BlogPost.created_at.desc()).offset(skip).limit(limit)
     )
@@ -82,7 +82,7 @@ async def admin_list_posts(db: DB, _: AdminUser, skip: int = 0, limit: int = 50)
 
 
 @router.post("/admin/posts", response_model=BlogPostDetailResponse, status_code=201)
-async def create_post(payload: BlogPostCreate, db: DB, _: AdminUser):
+async def create_post(payload: BlogPostCreate, db: DB, _: BlogAdminUser):
     slug = payload.slug or _slugify(payload.title)
     existing = await db.execute(select(BlogPost).where(BlogPost.slug == slug))
     if existing.scalar_one_or_none():
@@ -106,7 +106,7 @@ async def create_post(payload: BlogPostCreate, db: DB, _: AdminUser):
 
 
 @router.patch("/admin/posts/{post_id}", response_model=BlogPostDetailResponse)
-async def update_post(post_id: uuid.UUID, payload: BlogPostUpdate, db: DB, _: AdminUser):
+async def update_post(post_id: uuid.UUID, payload: BlogPostUpdate, db: DB, _: BlogAdminUser):
     result = await db.execute(select(BlogPost).where(BlogPost.id == post_id))
     post = result.scalar_one_or_none()
     if not post:
@@ -128,7 +128,7 @@ async def update_post(post_id: uuid.UUID, payload: BlogPostUpdate, db: DB, _: Ad
 
 
 @router.delete("/admin/posts/{post_id}", status_code=204)
-async def delete_post(post_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_post(post_id: uuid.UUID, db: DB, _: BlogAdminUser):
     result = await db.execute(select(BlogPost).where(BlogPost.id == post_id))
     post = result.scalar_one_or_none()
     if not post:

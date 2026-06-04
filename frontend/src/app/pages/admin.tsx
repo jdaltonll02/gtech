@@ -40,6 +40,9 @@ import {
   ChevronUp,
   FileText,
   Globe,
+  ShieldCheck,
+  UserCheck,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
@@ -75,7 +78,7 @@ import { cn } from '../components/ui/utils';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 
-type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms';
+type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles';
 
 type AnalyticsResponse = {
   stats: {
@@ -1764,6 +1767,8 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
   const [form, setForm] = useState<BusinessForm>(blank);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -1779,16 +1784,33 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
 
   const f = <K extends keyof BusinessForm>(k: K) => (v: BusinessForm[K]) => setForm((p) => ({ ...p, [k]: v }));
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'partners');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      setForm((p) => ({ ...p, logo_url: res.url }));
+    } catch (uploadErr: any) {
+      setErr(uploadErr.message || 'Logo upload failed.');
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.name.trim()) { setErr('Name is required.'); return; }
-    if (!form.logo_url.trim()) { setErr('Logo URL is required.'); return; }
     if (!form.website_url.trim()) { setErr('Website URL is required.'); return; }
     setSaving(true); setErr('');
     try {
       await onSave({
         name: form.name.trim(),
         description: form.description.trim() || undefined,
-        logo_url: form.logo_url.trim(),
+        logo_url: form.logo_url.trim() || undefined,
         website_url: form.website_url.trim(),
       });
     } catch (e: any) { setErr(e.message || 'Save failed.'); setSaving(false); }
@@ -1801,23 +1823,41 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
           <DialogTitle>{mode === 'create' ? 'Add Business/NGO' : 'Edit Business/NGO'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <FormField label="Name">
+          <FormField label="Name *">
             <Input value={form.name} onChange={(e) => f('name')(e.target.value)} placeholder="Business/NGO name" />
           </FormField>
           <FormField label="Description">
             <Textarea value={form.description} onChange={(e) => f('description')(e.target.value)} placeholder="Description (optional)" rows={3} />
           </FormField>
-          <FormField label="Logo URL">
-            <Input value={form.logo_url} onChange={(e) => f('logo_url')(e.target.value)} placeholder="https://..." />
+          <FormField label="Website URL *">
+            <Input value={form.website_url} onChange={(e) => f('website_url')(e.target.value)} placeholder="https://example.com" />
           </FormField>
-          <FormField label="Website URL">
-            <Input value={form.website_url} onChange={(e) => f('website_url')(e.target.value)} placeholder="https://..." />
+          <FormField label="Logo">
+            <div className="space-y-2">
+              {form.logo_url ? (
+                <div className="flex items-center gap-3">
+                  <img src={form.logo_url} alt="Logo preview" className="h-12 w-12 object-contain rounded border border-black/10 bg-white p-1" />
+                  <div className="flex-1 text-xs text-black/40 truncate">{form.logo_url}</div>
+                  <Button size="sm" variant="ghost" type="button" onClick={() => setForm((p) => ({ ...p, logo_url: '' }))}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input value={form.logo_url} onChange={(e) => f('logo_url')(e.target.value)} placeholder="https://... (paste URL)" className="flex-1" />
+                  <Button size="sm" variant="outline" type="button" disabled={logoUploading} onClick={() => logoInputRef.current?.click()}>
+                    {logoUploading ? 'Uploading…' : <><Image className="w-3.5 h-3.5 mr-1" />Upload</>}
+                  </Button>
+                </div>
+              )}
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            </div>
           </FormField>
         </div>
-        {err && <p className="text-sm text-destructive">{err}</p>}
-        <DialogFooter>
+        {err && <p className="text-sm text-destructive mt-2">{err}</p>}
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+          <Button onClick={handleSubmit} disabled={saving || logoUploading}>{saving ? 'Saving…' : 'Save'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1857,14 +1897,15 @@ export function Admin() {
 
   // Forms state
   type DynamicFormField = { id: string; label: string; field_type: string; options: string[] | null; is_required: boolean; order_index: number; placeholder: string | null; helper_text: string | null };
-  type DynamicForm = { id: string; title: string; slug: string; description: string | null; category: string; is_active: boolean; is_published: boolean; requires_auth: boolean; success_message: string | null; fields?: DynamicFormField[] };
+  type DynamicForm = { id: string; title: string; slug: string; nav_label: string | null; description: string | null; category: string; is_active: boolean; is_published: boolean; requires_auth: boolean; success_message: string | null; created_at: string; fields?: DynamicFormField[] };
   type FormSubmission = { id: string; responses: Record<string, string>; submitter_name: string | null; submitter_email: string | null; submitted_at: string };
   const [dynamicForms, setDynamicForms] = useState<DynamicForm[]>([]);
   const [selectedForm, setSelectedForm] = useState<DynamicForm | null>(null);
   const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>([]);
   const [showFormEditor, setShowFormEditor] = useState(false);
   const [showSubmissions, setShowSubmissions] = useState(false);
-  const [newFormData, setNewFormData] = useState({ title: '', slug: '', description: '', category: 'general', requires_auth: false, is_published: false, success_message: '' });
+  const [editingFormMeta, setEditingFormMeta] = useState<DynamicForm | null>(null);
+  const [newFormData, setNewFormData] = useState({ title: '', slug: '', nav_label: '', description: '', category: 'general', requires_auth: false, is_published: false, success_message: '' });
   const [newField, setNewField] = useState({ label: '', field_type: 'short_text', is_required: false, placeholder: '', helper_text: '', options: '' });
   const [formSaving, setFormSaving] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -2043,23 +2084,31 @@ export function Admin() {
   }>({ open: false, mode: 'create', assessmentId: '', currentCount: 0 });
   const [confirmDialog, setConfirmDialog] = useState<ConfirmState>({ open: false, title: '', message: '', onConfirm: () => {} });
 
-  const menuItems = [
-    { id: 'dashboard' as Tab, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'profile' as Tab, label: 'Profile', icon: UserCircle },
-    { id: 'support' as Tab, label: 'Support', icon: LifeBuoy },
-    { id: 'projects' as Tab, label: 'Projects', icon: FolderKanban },
-    { id: 'experience' as Tab, label: 'Experience', icon: Briefcase },
-    { id: 'certifications' as Tab, label: 'Certifications', icon: Award },
-    { id: 'products' as Tab, label: 'Products', icon: ShoppingBag },
-    { id: 'courses' as Tab, label: 'Courses', icon: GraduationCap },
-    { id: 'skills' as Tab, label: 'Skills', icon: Wrench },
-    { id: 'gallery' as Tab, label: 'Gallery', icon: Image },
-    { id: 'partners' as Tab, label: 'Partners', icon: Users },
-    { id: 'businesses' as Tab, label: 'Businesses', icon: Building2 },
-    { id: 'testimonials' as Tab, label: 'Testimonials', icon: MessageSquare },
-    { id: 'blog' as Tab, label: 'Blog', icon: Newspaper },
-    { id: 'forms' as Tab, label: 'Forms', icon: ClipboardList },
+  const hp = useAuthStore((s) => s.hasPermission);
+
+  const ALL_MENU = [
+    { id: 'dashboard' as Tab, label: 'Dashboard', icon: LayoutDashboard, perms: [] as string[] },
+    { id: 'profile' as Tab, label: 'Profile', icon: UserCircle, perms: ['manage_portfolio'] },
+    { id: 'support' as Tab, label: 'Support', icon: LifeBuoy, perms: ['manage_tickets'] },
+    { id: 'projects' as Tab, label: 'Projects', icon: FolderKanban, perms: ['manage_portfolio'] },
+    { id: 'experience' as Tab, label: 'Experience', icon: Briefcase, perms: ['manage_portfolio'] },
+    { id: 'certifications' as Tab, label: 'Certifications', icon: Award, perms: ['manage_portfolio'] },
+    { id: 'products' as Tab, label: 'Products', icon: ShoppingBag, perms: ['manage_ecommerce'] },
+    { id: 'courses' as Tab, label: 'Courses', icon: GraduationCap, perms: ['manage_courses', 'manage_own_courses'] },
+    { id: 'skills' as Tab, label: 'Skills', icon: Wrench, perms: ['manage_portfolio'] },
+    { id: 'gallery' as Tab, label: 'Gallery', icon: Image, perms: ['manage_media'] },
+    { id: 'partners' as Tab, label: 'Partners', icon: Users, perms: ['manage_partners'] },
+    { id: 'businesses' as Tab, label: 'Businesses', icon: Building2, perms: ['manage_partners'] },
+    { id: 'testimonials' as Tab, label: 'Testimonials', icon: MessageSquare, perms: [] },
+    { id: 'blog' as Tab, label: 'Blog', icon: Newspaper, perms: ['manage_blog'] },
+    { id: 'forms' as Tab, label: 'Forms', icon: ClipboardList, perms: ['manage_forms'] },
+    { id: 'roles' as Tab, label: 'Roles & Permissions', icon: ShieldCheck, perms: ['manage_roles'] },
   ];
+
+  // Full admins see everything; staff users see only tabs matching their permissions
+  const menuItems = user?.is_admin
+    ? ALL_MENU
+    : ALL_MENU.filter((item) => item.perms.length === 0 || hp(...item.perms));
 
   const colors = useMemo(() => ['#8B0000', '#b91c1c', '#dc2626', '#ef4444', '#f87171'], []);
 
@@ -2133,12 +2182,37 @@ export function Admin() {
     try { setTestimonials(await api.get<any[]>('/portfolio/admin/testimonials')); } catch {}
   };
 
+  // RBAC state
+  type StaffRole = { id: string; name: string; slug: string; description: string | null; permissions: string[]; is_system: boolean };
+  type StaffAssignment = { id: string; user_id: string; role_id: string; role: StaffRole; is_active: boolean; role_metadata: any; user_email: string; user_name: string; assigned_at: string };
+  type PermInfo = { key: string; label: string };
+  const [staffRoles, setStaffRoles] = useState<StaffRole[]>([]);
+  const [staffAssignments, setStaffAssignments] = useState<StaffAssignment[]>([]);
+  const [allPermissions, setAllPermissions] = useState<PermInfo[]>([]);
+  const [newRoleData, setNewRoleData] = useState({ name: '', slug: '', description: '', permissions: [] as string[] });
+  const [assignData, setAssignData] = useState({ user_search: '', user_id: '', role_id: '', course_ids: '' });
+  const [assignableUsers, setAssignableUsers] = useState<{ id: string; email: string; full_name: string }[]>([]);
+  const [roleSaving, setRoleSaving] = useState(false);
+
   const loadBlogPosts = async () => {
     try { setBlogPosts(await api.get<any[]>('/blog/admin/all')); } catch {}
   };
 
   const loadDynamicForms = async () => {
     try { setDynamicForms(await api.get<any[]>('/forms/admin/all')); } catch {}
+  };
+
+  const loadRbac = async () => {
+    try {
+      const [roles, assignments, perms] = await Promise.all([
+        api.get<any[]>('/rbac/roles'),
+        api.get<any[]>('/rbac/assignments'),
+        api.get<any[]>('/rbac/permissions'),
+      ]);
+      setStaffRoles(roles);
+      setStaffAssignments(assignments);
+      setAllPermissions(perms);
+    } catch {}
   };
 
   useEffect(() => {
@@ -2161,6 +2235,7 @@ export function Admin() {
     loadTestimonials();
     loadBlogPosts();
     loadDynamicForms();
+    if (user?.is_admin) loadRbac();
     // Check system config health
     api.get<{ smtp_configured: boolean; smtp_warning: string | null }>('/admin/system-status')
       .then((s) => setSmtpWarning(s.smtp_warning))
@@ -3431,6 +3506,191 @@ export function Admin() {
             )}
 
             {/* ── Blog Tab ── */}
+            {/* ── Roles & Permissions Tab ── */}
+            {activeTab === 'roles' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-4xl">Roles &amp; Permissions</h1>
+                  <Button variant="outline" onClick={loadRbac}>Refresh</Button>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-8">
+                  {/* Left: Roles */}
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-medium">Staff Roles</h2>
+
+                    {/* Create custom role */}
+                    <GlassCard className="p-5 space-y-3">
+                      <h3 className="font-medium text-sm uppercase tracking-wider text-black/50">Create Custom Role</h3>
+                      <Input placeholder="Role name" value={newRoleData.name} onChange={(e) => setNewRoleData((p) => ({ ...p, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '_') }))} />
+                      <Input placeholder="Slug (auto-filled)" value={newRoleData.slug} onChange={(e) => setNewRoleData((p) => ({ ...p, slug: e.target.value }))} />
+                      <Input placeholder="Description" value={newRoleData.description} onChange={(e) => setNewRoleData((p) => ({ ...p, description: e.target.value }))} />
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {allPermissions.map((perm) => (
+                          <label key={perm.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="accent-primary"
+                              checked={newRoleData.permissions.includes(perm.key)}
+                              onChange={(e) => setNewRoleData((p) => ({
+                                ...p,
+                                permissions: e.target.checked
+                                  ? [...p.permissions, perm.key]
+                                  : p.permissions.filter((x) => x !== perm.key),
+                              }))}
+                            />
+                            <span>{perm.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <Button size="sm" disabled={!newRoleData.name || roleSaving} onClick={async () => {
+                        setRoleSaving(true);
+                        try {
+                          await api.post('/rbac/roles', { name: newRoleData.name, slug: newRoleData.slug, description: newRoleData.description || null, permissions: newRoleData.permissions });
+                          setNewRoleData({ name: '', slug: '', description: '', permissions: [] });
+                          loadRbac();
+                        } catch (e: any) { alert(e.message); }
+                        finally { setRoleSaving(false); }
+                      }}>
+                        <Plus className="w-4 h-4 mr-1" />{roleSaving ? 'Creating…' : 'Create Role'}
+                      </Button>
+                    </GlassCard>
+
+                    {/* Role list */}
+                    <div className="space-y-2">
+                      {staffRoles.map((role) => (
+                        <GlassCard key={role.id} className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium">{role.name}</p>
+                                {role.is_system && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">System</span>}
+                              </div>
+                              {role.description && <p className="text-xs text-black/50 mb-2">{role.description}</p>}
+                              <div className="flex flex-wrap gap-1">
+                                {role.permissions.map((p) => (
+                                  <span key={p} className="text-xs bg-black/5 text-black/60 px-1.5 py-0.5 rounded">
+                                    {allPermissions.find((pi) => pi.key === p)?.label ?? p}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            {!role.is_system && (
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                if (!confirm(`Delete role "${role.name}"?`)) return;
+                                await api.delete(`/rbac/roles/${role.id}`);
+                                loadRbac();
+                              }}>
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: Assign roles */}
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-medium">Assign Role to User</h2>
+                    <GlassCard className="p-5 space-y-3">
+                      <div>
+                        <Label>Search User (by name or email)</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Input value={assignData.user_search} onChange={(e) => setAssignData((p) => ({ ...p, user_search: e.target.value }))} placeholder="john@example.com" />
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            try {
+                              const users = await api.get<any[]>(`/rbac/users?search=${encodeURIComponent(assignData.user_search)}`);
+                              setAssignableUsers(users);
+                            } catch {}
+                          }}>Search</Button>
+                        </div>
+                        {assignableUsers.length > 0 && (
+                          <div className="mt-2 border border-black/10 rounded-lg divide-y divide-black/5 max-h-32 overflow-y-auto">
+                            {assignableUsers.map((u) => (
+                              <button key={u.id} className={`w-full text-left px-3 py-2 text-sm hover:bg-black/5 ${assignData.user_id === u.id ? 'bg-primary/10 text-primary' : ''}`}
+                                onClick={() => setAssignData((p) => ({ ...p, user_id: u.id }))}>
+                                {u.full_name} <span className="text-black/40">— {u.email}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {assignData.user_id && <p className="text-xs text-primary mt-1">Selected: {assignableUsers.find(u => u.id === assignData.user_id)?.full_name}</p>}
+                      </div>
+                      <div>
+                        <Label>Role</Label>
+                        <select className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background" value={assignData.role_id} onChange={(e) => setAssignData((p) => ({ ...p, role_id: e.target.value }))}>
+                          <option value="">Select a role…</option>
+                          {staffRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                      </div>
+                      {/* Course assignment for instructor role */}
+                      {staffRoles.find(r => r.id === assignData.role_id)?.permissions.includes('manage_own_courses') && (
+                        <div>
+                          <Label>Assigned Course IDs <span className="text-black/40 font-normal">(comma-separated UUIDs)</span></Label>
+                          <Textarea className="mt-1" rows={2} value={assignData.course_ids} onChange={(e) => setAssignData((p) => ({ ...p, course_ids: e.target.value }))} placeholder="uuid1, uuid2, …" />
+                        </div>
+                      )}
+                      <Button size="sm" disabled={!assignData.user_id || !assignData.role_id || roleSaving} onClick={async () => {
+                        setRoleSaving(true);
+                        try {
+                          const courseIds = assignData.course_ids.split(',').map(s => s.trim()).filter(Boolean);
+                          const meta = courseIds.length ? { course_ids: courseIds } : undefined;
+                          await api.post('/rbac/assignments', { user_id: assignData.user_id, role_id: assignData.role_id, role_metadata: meta });
+                          setAssignData({ user_search: '', user_id: '', role_id: '', course_ids: '' });
+                          setAssignableUsers([]);
+                          loadRbac();
+                        } catch (e: any) { alert(e.message); }
+                        finally { setRoleSaving(false); }
+                      }}>
+                        <UserCheck className="w-4 h-4 mr-1" />Assign Role
+                      </Button>
+                    </GlassCard>
+
+                    {/* Current assignments */}
+                    <h2 className="text-xl font-medium">Current Staff Assignments</h2>
+                    {staffAssignments.length === 0 && <GlassCard className="p-6 text-center text-black/40">No staff assignments yet.</GlassCard>}
+                    <div className="space-y-2">
+                      {staffAssignments.map((a) => (
+                        <GlassCard key={a.id} className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{a.user_name || a.user_email}</p>
+                              <p className="text-xs text-black/40">{a.user_email}</p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{a.role.name}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${a.is_active ? 'bg-green-100 text-green-700' : 'bg-black/5 text-black/40'}`}>
+                                  {a.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                              {a.role_metadata?.course_ids?.length > 0 && (
+                                <p className="text-xs text-black/40 mt-1">{a.role_metadata.course_ids.length} course(s) assigned</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                await api.patch(`/rbac/assignments/${a.id}?is_active=${!a.is_active}`);
+                                loadRbac();
+                              }}>
+                                {a.is_active ? 'Deactivate' : 'Activate'}
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                if (!confirm('Remove this role assignment?')) return;
+                                await api.delete(`/rbac/assignments/${a.id}`);
+                                loadRbac();
+                              }}>
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {activeTab === 'blog' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                 {showPostEditor ? (
@@ -3592,18 +3852,100 @@ export function Admin() {
                     }}
                     onBack={() => { setShowFormEditor(false); setSelectedForm(null); loadDynamicForms(); }}
                   />
+                ) : editingFormMeta ? (
+                  /* ── Edit form metadata ── */
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <Button variant="ghost" size="sm" onClick={() => setEditingFormMeta(null)}>← Back</Button>
+                      <h1 className="text-3xl flex-1">Edit Form Settings</h1>
+                    </div>
+                    <GlassCard className="p-6 max-w-2xl">
+                      <div className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label>Form Title</Label>
+                            <Input className="mt-1" value={editingFormMeta.title} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, title: e.target.value }))} />
+                          </div>
+                          <div>
+                            <Label>Navbar Label</Label>
+                            <Input className="mt-1" value={editingFormMeta.nav_label ?? ''} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, nav_label: e.target.value }))} placeholder="Shown in navbar (defaults to title)" />
+                          </div>
+                          <div>
+                            <Label>Slug (URL path)</Label>
+                            <Input className="mt-1" value={editingFormMeta.slug} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, slug: e.target.value }))} />
+                          </div>
+                          <div>
+                            <Label>Category</Label>
+                            <select className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background" value={editingFormMeta.category} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, category: e.target.value }))}>
+                              <option value="general">General</option>
+                              <option value="recruitment">Recruitment</option>
+                              <option value="event">Event</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Description</Label>
+                          <Textarea className="mt-1" rows={2} value={editingFormMeta.description ?? ''} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, description: e.target.value }))} placeholder="Shown on the Apply page" />
+                        </div>
+                        <div>
+                          <Label>Success Message</Label>
+                          <Input className="mt-1" value={editingFormMeta.success_message ?? ''} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, success_message: e.target.value }))} placeholder="Shown after submission" />
+                        </div>
+                        <div className="flex gap-6">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={editingFormMeta.is_published} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, is_published: e.target.checked }))} className="accent-primary" />
+                            Published (visible on site)
+                          </label>
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={editingFormMeta.is_active} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, is_active: e.target.checked }))} className="accent-primary" />
+                            Active (accepts submissions)
+                          </label>
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={editingFormMeta.requires_auth} onChange={(e) => setEditingFormMeta((p) => p && ({ ...p, requires_auth: e.target.checked }))} className="accent-primary" />
+                            Require sign-in
+                          </label>
+                        </div>
+                        <Button onClick={async () => {
+                          setFormSaving(true);
+                          try {
+                            await api.patch(`/forms/admin/${editingFormMeta.id}`, {
+                              title: editingFormMeta.title,
+                              slug: editingFormMeta.slug,
+                              nav_label: editingFormMeta.nav_label || null,
+                              description: editingFormMeta.description || null,
+                              category: editingFormMeta.category,
+                              is_published: editingFormMeta.is_published,
+                              is_active: editingFormMeta.is_active,
+                              requires_auth: editingFormMeta.requires_auth,
+                              success_message: editingFormMeta.success_message || null,
+                            });
+                            setEditingFormMeta(null);
+                            loadDynamicForms();
+                          } catch (e: any) { alert(e.message); }
+                          finally { setFormSaving(false); }
+                        }} disabled={formSaving}>
+                          {formSaving ? 'Saving…' : 'Save Changes'}
+                        </Button>
+                      </div>
+                    </GlassCard>
+                  </div>
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-6">
                       <h1 className="text-4xl">Dynamic Forms</h1>
                     </div>
+
                     {/* Create form */}
-                    <GlassCard className="p-6 mb-6">
-                      <h3 className="text-lg mb-4">Create New Form</h3>
+                    <GlassCard className="p-6 mb-8">
+                      <h3 className="text-lg font-medium mb-4">Create New Form</h3>
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="nf_title">Title</Label>
-                          <Input id="nf_title" className="mt-1" value={newFormData.title} onChange={(e) => setNewFormData((p) => ({ ...p, title: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }))} placeholder="e.g. Summer Internship 2026" />
+                          <Label htmlFor="nf_title">Form Title</Label>
+                          <Input id="nf_title" className="mt-1" value={newFormData.title} onChange={(e) => setNewFormData((p) => ({ ...p, title: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), nav_label: e.target.value }))} placeholder="e.g. Summer Internship 2026" />
+                        </div>
+                        <div>
+                          <Label htmlFor="nf_nav">Navbar Label <span className="text-black/40 font-normal">(shown in menu)</span></Label>
+                          <Input id="nf_nav" className="mt-1" value={newFormData.nav_label} onChange={(e) => setNewFormData((p) => ({ ...p, nav_label: e.target.value }))} placeholder="e.g. Apply Now" />
                         </div>
                         <div>
                           <Label htmlFor="nf_slug">Slug (URL)</Label>
@@ -3617,7 +3959,7 @@ export function Admin() {
                             <option value="event">Event</option>
                           </select>
                         </div>
-                        <div>
+                        <div className="sm:col-span-2">
                           <Label htmlFor="nf_desc">Description</Label>
                           <Input id="nf_desc" className="mt-1" value={newFormData.description} onChange={(e) => setNewFormData((p) => ({ ...p, description: e.target.value }))} placeholder="Short description shown to applicants" />
                         </div>
@@ -3631,8 +3973,8 @@ export function Admin() {
                       <Button className="mt-4" disabled={!newFormData.title || !newFormData.slug || formSaving} onClick={async () => {
                         setFormSaving(true);
                         try {
-                          const created = await api.post<any>('/forms/admin/create', { ...newFormData, is_active: true });
-                          setNewFormData({ title: '', slug: '', description: '', category: 'general', requires_auth: false, is_published: false, success_message: '' });
+                          const created = await api.post<any>('/forms/admin/create', { ...newFormData, nav_label: newFormData.nav_label || null, is_active: true });
+                          setNewFormData({ title: '', slug: '', nav_label: '', description: '', category: 'general', requires_auth: false, is_published: false, success_message: '' });
                           const full = await api.get<any>(`/forms/admin/${created.id}`);
                           setSelectedForm(full);
                           setShowFormEditor(true);
@@ -3644,50 +3986,75 @@ export function Admin() {
                       </Button>
                     </GlassCard>
 
-                    {/* Existing forms */}
-                    <div className="space-y-3">
-                      {dynamicForms.map((form) => (
-                        <GlassCard key={form.id} className="p-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-medium">{form.title}</h3>
-                                <span className="text-xs bg-black/5 px-2 py-0.5 rounded-full text-black/50">{form.category}</span>
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${form.is_published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                  {form.is_published ? 'Published' : 'Draft'}
-                                </span>
+                    {/* Form history */}
+                    {dynamicForms.length > 0 && (
+                      <>
+                        <h2 className="text-xl font-medium mb-3">Form History ({dynamicForms.length})</h2>
+                        <div className="space-y-3">
+                          {dynamicForms.map((form) => (
+                            <GlassCard key={form.id} className="p-4">
+                              <div className="flex items-start justify-between gap-4 flex-wrap">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                                    <h3 className="font-medium">{form.title}</h3>
+                                    {form.nav_label && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">nav: {form.nav_label}</span>}
+                                    <span className="text-xs bg-black/5 px-2 py-0.5 rounded-full text-black/50">{form.category}</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${form.is_published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                      {form.is_published ? 'Published' : 'Draft'}
+                                    </span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${form.is_active ? 'bg-blue-100 text-blue-700' : 'bg-black/5 text-black/40'}`}>
+                                      {form.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-black/40">/forms/{form.slug} · Created {new Date(form.created_at).toLocaleDateString()}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {/* Activate / Deactivate */}
+                                  <Button size="sm" variant="outline" onClick={async () => {
+                                    await api.patch(`/forms/admin/${form.id}`, { is_active: !form.is_active });
+                                    loadDynamicForms();
+                                  }}>
+                                    {form.is_active ? 'Deactivate' : 'Activate'}
+                                  </Button>
+                                  {/* Edit metadata */}
+                                  <Button size="sm" variant="outline" onClick={() => setEditingFormMeta(form)}>
+                                    <Edit className="w-3.5 h-3.5 mr-1" />Settings
+                                  </Button>
+                                  {/* Edit fields */}
+                                  <Button size="sm" variant="outline" onClick={async () => {
+                                    const full = await api.get<any>(`/forms/admin/${form.id}`);
+                                    setSelectedForm(full);
+                                    setShowFormEditor(true);
+                                  }}>
+                                    <Edit className="w-3.5 h-3.5 mr-1" />Fields
+                                  </Button>
+                                  {/* Responses */}
+                                  <Button size="sm" variant="ghost" onClick={async () => {
+                                    const [subs, full] = await Promise.all([
+                                      api.get<any[]>(`/forms/admin/${form.id}/submissions`),
+                                      api.get<any>(`/forms/admin/${form.id}`),
+                                    ]);
+                                    setSelectedForm(full);
+                                    setFormSubmissions(subs);
+                                    setShowSubmissions(true);
+                                  }}>
+                                    <FileText className="w-3.5 h-3.5 mr-1" />Responses
+                                  </Button>
+                                  {/* Delete */}
+                                  <Button size="sm" variant="ghost" onClick={async () => {
+                                    if (!confirm(`Delete "${form.title}"? This removes all submissions too.`)) return;
+                                    await api.delete(`/forms/admin/${form.id}`);
+                                    loadDynamicForms();
+                                  }}>
+                                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                                  </Button>
+                                </div>
                               </div>
-                              <p className="text-xs text-black/40 mt-0.5">/forms/{form.slug}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={async () => {
-                                const full = await api.get<any>(`/forms/admin/${form.id}`);
-                                setSelectedForm(full);
-                                setShowFormEditor(true);
-                              }}>
-                                <Edit className="w-3.5 h-3.5 mr-1" />Edit Fields
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={async () => {
-                                const subs = await api.get<any[]>(`/forms/admin/${form.id}/submissions`);
-                                const full = await api.get<any>(`/forms/admin/${form.id}`);
-                                setSelectedForm(full);
-                                setFormSubmissions(subs);
-                                setShowSubmissions(true);
-                              }}>
-                                <FileText className="w-3.5 h-3.5 mr-1" />Responses
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={async () => {
-                                if (!confirm('Delete this form?')) return;
-                                await api.delete(`/forms/admin/${form.id}`);
-                                loadDynamicForms();
-                              }}>
-                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        </GlassCard>
-                      ))}
-                    </div>
+                            </GlassCard>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </motion.div>
@@ -4091,6 +4458,26 @@ function BlogPostEditor({
   saving: boolean;
 }) {
   const [form, setForm] = useState(initialForm);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'blog');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      setForm((p: any) => ({ ...p, cover_image_url: res.url }));
+    } catch (err: any) {
+      alert(err.message || 'Upload failed');
+    } finally {
+      setCoverUploading(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
 
   const editor = useEditor({
     extensions: [
@@ -4183,9 +4570,26 @@ function BlogPostEditor({
               <Textarea className="mt-1" rows={3} value={form.excerpt} onChange={(e) => setForm((p: any) => ({ ...p, excerpt: e.target.value }))} placeholder="Short summary shown in the grid…" />
             </div>
             <div>
-              <Label>Cover Image URL</Label>
-              <Input className="mt-1" value={form.cover_image_url} onChange={(e) => setForm((p: any) => ({ ...p, cover_image_url: e.target.value }))} placeholder="https://…" />
-              {form.cover_image_url && <img src={form.cover_image_url} alt="" className="mt-2 rounded-lg w-full h-28 object-cover" />}
+              <Label>Cover Image</Label>
+              {form.cover_image_url ? (
+                <div className="mt-2 relative">
+                  <img src={form.cover_image_url} alt="" className="rounded-lg w-full h-28 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setForm((p: any) => ({ ...p, cover_image_url: '' }))}
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-black/80"
+                  >✕</button>
+                </div>
+              ) : (
+                <div
+                  className="mt-1 border-2 border-dashed border-black/15 rounded-lg p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  <Image className="w-6 h-6 text-black/30 mx-auto mb-1" />
+                  <p className="text-xs text-black/40">{coverUploading ? 'Uploading…' : 'Click to upload cover image'}</p>
+                </div>
+              )}
+              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
             </div>
             <div>
               <Label>Category</Label>

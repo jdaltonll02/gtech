@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from pydantic import BaseModel, EmailStr
 
-from app.api.deps import AdminUser, CurrentUser, DB
+from app.api.deps import AdminUser, SupportAdminUser, CurrentUser, DB
 from app.models.support import SupportTicket, TicketMessage
 from app.models.user import UserRole
 
@@ -203,7 +203,7 @@ async def reply_to_ticket(ticket_id: uuid.UUID, payload: TicketReply, db: DB, cu
 @router.get("/admin/tickets", response_model=List[TicketSummary])
 async def admin_list_tickets(
     db: DB,
-    _: AdminUser,
+    _: SupportAdminUser,
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -237,7 +237,7 @@ async def admin_list_tickets(
 
 
 @router.get("/admin/tickets/{ticket_id}", response_model=TicketOut)
-async def admin_get_ticket(ticket_id: uuid.UUID, db: DB, _: AdminUser):
+async def admin_get_ticket(ticket_id: uuid.UUID, db: DB, _: SupportAdminUser):
     result = await db.execute(
         select(SupportTicket)
         .options(selectinload(SupportTicket.messages))
@@ -250,7 +250,7 @@ async def admin_get_ticket(ticket_id: uuid.UUID, db: DB, _: AdminUser):
 
 
 @router.patch("/admin/tickets/{ticket_id}", response_model=TicketOut)
-async def admin_update_ticket(ticket_id: uuid.UUID, payload: StatusUpdate, db: DB, _: AdminUser):
+async def admin_update_ticket(ticket_id: uuid.UUID, payload: StatusUpdate, db: DB, _: SupportAdminUser):
     result = await db.execute(
         select(SupportTicket)
         .options(selectinload(SupportTicket.messages))
@@ -268,7 +268,7 @@ async def admin_update_ticket(ticket_id: uuid.UUID, payload: StatusUpdate, db: D
 
 
 @router.post("/admin/tickets/{ticket_id}/reply", response_model=TicketOut)
-async def admin_reply(ticket_id: uuid.UUID, payload: TicketReply, db: DB, current_user: AdminUser):
+async def admin_reply(ticket_id: uuid.UUID, payload: TicketReply, db: DB, current_user: SupportAdminUser):
     result = await db.execute(
         select(SupportTicket)
         .options(selectinload(SupportTicket.messages))
@@ -296,7 +296,7 @@ async def admin_reply(ticket_id: uuid.UUID, payload: TicketReply, db: DB, curren
 
 
 @router.get("/admin/stats")
-async def admin_stats(db: DB, _: AdminUser):
+async def admin_stats(db: DB, _: SupportAdminUser):
     total = await db.scalar(select(func.count(SupportTicket.id))) or 0
     open_ = await db.scalar(select(func.count(SupportTicket.id)).where(SupportTicket.status == "open")) or 0
     in_progress = await db.scalar(select(func.count(SupportTicket.id)).where(SupportTicket.status == "in_progress")) or 0

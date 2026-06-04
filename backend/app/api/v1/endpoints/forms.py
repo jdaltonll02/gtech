@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from app.api.deps import AdminUser, OptionalUser, DB
+from app.api.deps import AdminUser, FormsAdminUser, OptionalUser, DB
 from app.models.forms import DynamicForm, FormField, FormSubmission
 from app.schemas.forms import (
     DynamicFormCreate, DynamicFormUpdate, DynamicFormListResponse, DynamicFormDetailResponse,
@@ -88,18 +88,18 @@ async def submit_form(slug: str, payload: FormSubmissionCreate, db: DB, current_
 # ── Admin ─────────────────────────────────────────────────────────────────────
 
 @router.get("/admin/all", response_model=List[DynamicFormListResponse])
-async def admin_list_forms(db: DB, _: AdminUser):
+async def admin_list_forms(db: DB, _: FormsAdminUser):
     result = await db.execute(select(DynamicForm).order_by(DynamicForm.created_at.desc()))
     return result.scalars().all()
 
 
 @router.get("/admin/{form_id}", response_model=DynamicFormDetailResponse)
-async def admin_get_form(form_id: uuid.UUID, db: DB, _: AdminUser):
+async def admin_get_form(form_id: uuid.UUID, db: DB, _: FormsAdminUser):
     return await _get_form_or_404(form_id, db)
 
 
 @router.post("/admin/create", response_model=DynamicFormDetailResponse, status_code=201)
-async def create_form(payload: DynamicFormCreate, db: DB, _: AdminUser):
+async def create_form(payload: DynamicFormCreate, db: DB, _: FormsAdminUser):
     existing = await db.execute(select(DynamicForm).where(DynamicForm.slug == payload.slug))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="A form with this slug already exists.")
@@ -111,7 +111,7 @@ async def create_form(payload: DynamicFormCreate, db: DB, _: AdminUser):
 
 
 @router.patch("/admin/{form_id}", response_model=DynamicFormDetailResponse)
-async def update_form(form_id: uuid.UUID, payload: DynamicFormUpdate, db: DB, _: AdminUser):
+async def update_form(form_id: uuid.UUID, payload: DynamicFormUpdate, db: DB, _: FormsAdminUser):
     form = await _get_form_or_404(form_id, db)
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(form, k, v)
@@ -121,7 +121,7 @@ async def update_form(form_id: uuid.UUID, payload: DynamicFormUpdate, db: DB, _:
 
 
 @router.delete("/admin/{form_id}", status_code=204)
-async def delete_form(form_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_form(form_id: uuid.UUID, db: DB, _: FormsAdminUser):
     result = await db.execute(select(DynamicForm).where(DynamicForm.id == form_id))
     form = result.scalar_one_or_none()
     if not form:
@@ -133,7 +133,7 @@ async def delete_form(form_id: uuid.UUID, db: DB, _: AdminUser):
 # ── Fields ────────────────────────────────────────────────────────────────────
 
 @router.post("/admin/{form_id}/fields", response_model=FormFieldResponse, status_code=201)
-async def add_field(form_id: uuid.UUID, payload: FormFieldCreate, db: DB, _: AdminUser):
+async def add_field(form_id: uuid.UUID, payload: FormFieldCreate, db: DB, _: FormsAdminUser):
     form = await _get_form_or_404(form_id, db)
     field = FormField(form_id=form.id, **payload.model_dump())
     db.add(field)
@@ -142,7 +142,7 @@ async def add_field(form_id: uuid.UUID, payload: FormFieldCreate, db: DB, _: Adm
 
 
 @router.patch("/admin/fields/{field_id}", response_model=FormFieldResponse)
-async def update_field(field_id: uuid.UUID, payload: FormFieldUpdate, db: DB, _: AdminUser):
+async def update_field(field_id: uuid.UUID, payload: FormFieldUpdate, db: DB, _: FormsAdminUser):
     result = await db.execute(select(FormField).where(FormField.id == field_id))
     field = result.scalar_one_or_none()
     if not field:
@@ -154,7 +154,7 @@ async def update_field(field_id: uuid.UUID, payload: FormFieldUpdate, db: DB, _:
 
 
 @router.delete("/admin/fields/{field_id}", status_code=204)
-async def delete_field(field_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_field(field_id: uuid.UUID, db: DB, _: FormsAdminUser):
     result = await db.execute(select(FormField).where(FormField.id == field_id))
     field = result.scalar_one_or_none()
     if not field:
@@ -164,7 +164,7 @@ async def delete_field(field_id: uuid.UUID, db: DB, _: AdminUser):
 
 
 @router.post("/admin/{form_id}/fields/reorder", status_code=200)
-async def reorder_fields(form_id: uuid.UUID, payload: FormFieldReorder, db: DB, _: AdminUser):
+async def reorder_fields(form_id: uuid.UUID, payload: FormFieldReorder, db: DB, _: FormsAdminUser):
     for item in payload.items:
         result = await db.execute(select(FormField).where(FormField.id == item.id, FormField.form_id == form_id))
         field = result.scalar_one_or_none()
@@ -177,7 +177,7 @@ async def reorder_fields(form_id: uuid.UUID, payload: FormFieldReorder, db: DB, 
 # ── Submissions ───────────────────────────────────────────────────────────────
 
 @router.get("/admin/{form_id}/submissions", response_model=List[FormSubmissionResponse])
-async def list_submissions(form_id: uuid.UUID, db: DB, _: AdminUser, skip: int = 0, limit: int = 100):
+async def list_submissions(form_id: uuid.UUID, db: DB, _: FormsAdminUser, skip: int = 0, limit: int = 100):
     result = await db.execute(
         select(FormSubmission)
         .where(FormSubmission.form_id == form_id)
@@ -189,7 +189,7 @@ async def list_submissions(form_id: uuid.UUID, db: DB, _: AdminUser, skip: int =
 
 
 @router.delete("/admin/submissions/{submission_id}", status_code=204)
-async def delete_submission(submission_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_submission(submission_id: uuid.UUID, db: DB, _: FormsAdminUser):
     result = await db.execute(select(FormSubmission).where(FormSubmission.id == submission_id))
     sub = result.scalar_one_or_none()
     if not sub:

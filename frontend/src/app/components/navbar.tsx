@@ -8,6 +8,7 @@ import { api } from '../utils/api';
 
 type Partner = { id: string; name: string; website_url: string };
 type Business = { id: string; name: string; website_url: string };
+type NavForm = { id: string; title: string; slug: string; nav_label: string | null };
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,9 +17,12 @@ export function Navbar() {
   const [businessesOpen, setBusinessesOpen] = useState(false);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [navForms, setNavForms] = useState<NavForm[]>([]);
+  const [formsOpen, setFormsOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const partnersRef = useRef<HTMLDivElement>(null);
   const businessesRef = useRef<HTMLDivElement>(null);
+  const formsRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -31,7 +35,6 @@ export function Navbar() {
     { name: 'Courses', path: '/courses' },
     { name: 'Store', path: '/store' },
     { name: 'Blog', path: '/blog' },
-    { name: 'Apply', path: '/forms' },
     { name: 'Help', path: '/docs' },
   ];
 
@@ -44,18 +47,20 @@ export function Navbar() {
     navigate('/');
   };
 
-  // Load partners and businesses
+  // Load partners, businesses, and published forms
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [p, b] = await Promise.all([
+        const [p, b, f] = await Promise.all([
           api.get<Partner[]>('/partners'),
           api.get<Business[]>('/partners/businesses'),
+          api.get<NavForm[]>('/forms'),
         ]);
         setPartners(p);
         setBusinesses(b);
+        setNavForms(f);
       } catch (err) {
-        console.error('Failed to load partners/businesses:', err);
+        console.error('Failed to load nav data:', err);
       }
     };
     loadData();
@@ -64,15 +69,10 @@ export function Navbar() {
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-      if (partnersRef.current && !partnersRef.current.contains(e.target as Node)) {
-        setPartnersOpen(false);
-      }
-      if (businessesRef.current && !businessesRef.current.contains(e.target as Node)) {
-        setBusinessesOpen(false);
-      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+      if (partnersRef.current && !partnersRef.current.contains(e.target as Node)) setPartnersOpen(false);
+      if (businessesRef.current && !businessesRef.current.contains(e.target as Node)) setBusinessesOpen(false);
+      if (formsRef.current && !formsRef.current.contains(e.target as Node)) setFormsOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -104,6 +104,41 @@ export function Navbar() {
               </Link>
             ))}
             
+            {/* Dynamic Forms — single link or dropdown */}
+            {navForms.length === 1 && (
+              <Link
+                to={`/forms/${navForms[0].slug}`}
+                className={cn('transition-colors duration-200', isActive(`/forms/${navForms[0].slug}`) ? 'text-primary' : 'text-black/60 hover:text-black')}
+              >
+                {navForms[0].nav_label || navForms[0].title}
+              </Link>
+            )}
+            {navForms.length > 1 && (
+              <div ref={formsRef} className="relative">
+                <button
+                  onClick={() => setFormsOpen((o) => !o)}
+                  className="flex items-center space-x-1 transition-colors duration-200 text-black/60 hover:text-black"
+                >
+                  <span>Apply</span>
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', formsOpen && 'rotate-180')} />
+                </button>
+                {formsOpen && (
+                  <div className="absolute left-0 mt-2 w-52 bg-white rounded-lg shadow-lg border border-black/10 py-2 z-50">
+                    {navForms.map((form) => (
+                      <Link
+                        key={form.id}
+                        to={`/forms/${form.slug}`}
+                        onClick={() => setFormsOpen(false)}
+                        className="block px-4 py-2 text-sm text-black/70 hover:text-primary hover:bg-black/5 transition-colors"
+                      >
+                        {form.nav_label || form.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Partners Dropdown */}
             {partners.length > 0 && (
               <div ref={partnersRef} className="relative">
@@ -264,6 +299,18 @@ export function Navbar() {
               </Link>
             ))}
             
+            {/* Forms — mobile */}
+            {navForms.length > 0 && (
+              <div className="pt-2 border-t border-black/10 space-y-1">
+                <span className="text-xs text-black/40 uppercase tracking-wider">Apply</span>
+                {navForms.map((form) => (
+                  <Link key={form.id} to={`/forms/${form.slug}`} onClick={() => setIsOpen(false)} className="block text-sm text-black/60 hover:text-primary py-1 transition-colors">
+                    {form.nav_label || form.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* Partners Dropdown */}
             {partners.length > 0 && (
               <div className="flex items-center space-x-2 pt-2 border-t border-black/10">

@@ -2,7 +2,7 @@ import uuid
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
-from app.api.deps import AdminUser, DB
+from app.api.deps import AdminUser, PartnersAdminUser, DB
 from app.db.redis import cache_delete_pattern, cache_get, cache_set
 from app.models.partners import Partner, Business
 from app.schemas.partners import (
@@ -39,7 +39,7 @@ async def list_partners(db: DB):
 
 
 @router.post("/admin", response_model=PartnerResponse, status_code=201)
-async def create_partner(payload: PartnerCreate, db: DB, _: AdminUser):
+async def create_partner(payload: PartnerCreate, db: DB, _: PartnersAdminUser):
     obj = Partner(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -57,7 +57,7 @@ async def get_partner(partner_id: uuid.UUID, db: DB):
 
 
 @router.patch("/admin/{partner_id}", response_model=PartnerResponse)
-async def update_partner(partner_id: uuid.UUID, payload: PartnerUpdate, db: DB, _: AdminUser):
+async def update_partner(partner_id: uuid.UUID, payload: PartnerUpdate, db: DB, _: PartnersAdminUser):
     result = await db.execute(select(Partner).where(Partner.id == partner_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -69,7 +69,7 @@ async def update_partner(partner_id: uuid.UUID, payload: PartnerUpdate, db: DB, 
 
 
 @router.delete("/admin/{partner_id}", status_code=204)
-async def delete_partner(partner_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_partner(partner_id: uuid.UUID, db: DB, _: PartnersAdminUser):
     result = await db.execute(select(Partner).where(Partner.id == partner_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -93,7 +93,7 @@ async def list_businesses(db: DB):
 
 
 @router.post("/admin/businesses", response_model=BusinessResponse, status_code=201)
-async def create_business(payload: BusinessCreate, db: DB, _: AdminUser):
+async def create_business(payload: BusinessCreate, db: DB, _: PartnersAdminUser):
     obj = Business(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -111,7 +111,7 @@ async def get_business(business_id: uuid.UUID, db: DB):
 
 
 @router.patch("/admin/businesses/{business_id}", response_model=BusinessResponse)
-async def update_business(business_id: uuid.UUID, payload: BusinessUpdate, db: DB, _: AdminUser):
+async def update_business(business_id: uuid.UUID, payload: BusinessUpdate, db: DB, _: PartnersAdminUser):
     result = await db.execute(select(Business).where(Business.id == business_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -123,7 +123,7 @@ async def update_business(business_id: uuid.UUID, payload: BusinessUpdate, db: D
 
 
 @router.delete("/admin/businesses/{business_id}", status_code=204)
-async def delete_business(business_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_business(business_id: uuid.UUID, db: DB, _: PartnersAdminUser):
     result = await db.execute(select(Business).where(Business.id == business_id))
     obj = result.scalar_one_or_none()
     if not obj:

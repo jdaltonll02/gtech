@@ -40,6 +40,7 @@ class FormFieldResponse(BaseModel):
 class DynamicFormCreate(BaseModel):
     title: str
     slug: str
+    nav_label: Optional[str] = None
     description: Optional[str] = None
     category: str = "general"
     is_active: bool = True
@@ -51,6 +52,7 @@ class DynamicFormCreate(BaseModel):
 class DynamicFormUpdate(BaseModel):
     title: Optional[str] = None
     slug: Optional[str] = None
+    nav_label: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
     is_active: Optional[bool] = None
@@ -63,12 +65,14 @@ class DynamicFormListResponse(BaseModel):
     id: UUID
     title: str
     slug: str
+    nav_label: Optional[str]
     description: Optional[str]
     category: str
     is_active: bool
     is_published: bool
     requires_auth: bool
     created_at: datetime
+    updated_at: datetime
     model_config = {"from_attributes": True}
 
 

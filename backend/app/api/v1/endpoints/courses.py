@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
-from app.api.deps import AdminUser, CurrentUser, DB
+from app.api.deps import AdminUser, CourseAdminUser, CurrentUser, DB, get_user_assigned_course_ids
 from app.models.courses import (
     Assessment, Certificate, ContentBlock, Course, CoursePayment, CoursePaymentStatus,
     Enrollment, EnrollmentStatus,
@@ -121,7 +121,7 @@ async def list_courses(
 
 
 @router.post("/", response_model=CourseListResponse, status_code=201)
-async def create_course(payload: CourseCreate, db: DB, _: AdminUser):
+async def create_course(payload: CourseCreate, db: DB, _: CourseAdminUser):
     obj = Course(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -132,7 +132,7 @@ async def create_course(payload: CourseCreate, db: DB, _: AdminUser):
 # ── Admin routes ──────────────────────────────────────────────────────────────
 
 @router.get("/admin/all", response_model=List[CourseListResponse])
-async def list_courses_admin(db: DB, _: AdminUser, skip: int = 0, limit: int = 200):
+async def list_courses_admin(db: DB, _: CourseAdminUser, skip: int = 0, limit: int = 200):
     result = await db.execute(select(Course).offset(skip).limit(limit))
     courses = result.scalars().all()
     

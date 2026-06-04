@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
-from app.api.deps import DB, CurrentUser
+from app.api.deps import DB, CurrentUser, get_user_effective_permissions
 from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.db.redis import cache_get, cache_set, cache_delete
@@ -197,8 +197,10 @@ async def refresh(payload: RefreshRequest, db: DB):
 
 
 @router.get("/me", response_model=UserResponse)
-async def me(current_user: CurrentUser):
-    return current_user
+async def me(current_user: CurrentUser, db: DB):
+    resp = UserResponse.model_validate(current_user)
+    resp.permissions = await get_user_effective_permissions(current_user, db)
+    return resp
 
 
 @router.patch("/me", response_model=UserResponse)

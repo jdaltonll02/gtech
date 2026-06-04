@@ -50,6 +50,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_verified: bool
     two_factor_enabled: bool = False
+    permissions: list[str] = []
 
     model_config = {"from_attributes": True}
 

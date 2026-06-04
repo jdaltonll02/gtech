@@ -2,7 +2,7 @@ import uuid
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
-from app.api.deps import AdminUser, CurrentUser, DB
+from app.api.deps import AdminUser, PortfolioAdminUser, CurrentUser, DB
 from app.db.redis import cache_delete_pattern, cache_get, cache_set
 from app.models.portfolio import Certification, Education, Experience, ProfileSettings, Project, Publication, Skill
 from app.models.ratings import Testimonial
@@ -45,7 +45,7 @@ async def list_projects(db: DB):
 
 
 @router.post("/projects", response_model=ProjectResponse, status_code=201, dependencies=[])
-async def create_project(payload: ProjectCreate, db: DB, _: AdminUser):
+async def create_project(payload: ProjectCreate, db: DB, _: PortfolioAdminUser):
     obj = Project(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -63,7 +63,7 @@ async def get_project(project_id: uuid.UUID, db: DB):
 
 
 @router.patch("/projects/{project_id}", response_model=ProjectResponse)
-async def update_project(project_id: uuid.UUID, payload: ProjectUpdate, db: DB, _: AdminUser):
+async def update_project(project_id: uuid.UUID, payload: ProjectUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Project).where(Project.id == project_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -75,7 +75,7 @@ async def update_project(project_id: uuid.UUID, payload: ProjectUpdate, db: DB, 
 
 
 @router.delete("/projects/{project_id}", status_code=204)
-async def delete_project(project_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_project(project_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Project).where(Project.id == project_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -98,7 +98,7 @@ async def list_experience(db: DB):
 
 
 @router.post("/experience", response_model=ExperienceResponse, status_code=201)
-async def create_experience(payload: ExperienceCreate, db: DB, _: AdminUser):
+async def create_experience(payload: ExperienceCreate, db: DB, _: PortfolioAdminUser):
     obj = Experience(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -116,7 +116,7 @@ async def get_experience(exp_id: uuid.UUID, db: DB):
 
 
 @router.patch("/experience/{exp_id}", response_model=ExperienceResponse)
-async def update_experience(exp_id: uuid.UUID, payload: ExperienceUpdate, db: DB, _: AdminUser):
+async def update_experience(exp_id: uuid.UUID, payload: ExperienceUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Experience).where(Experience.id == exp_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -128,7 +128,7 @@ async def update_experience(exp_id: uuid.UUID, payload: ExperienceUpdate, db: DB
 
 
 @router.delete("/experience/{exp_id}", status_code=204)
-async def delete_experience(exp_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_experience(exp_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Experience).where(Experience.id == exp_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -151,7 +151,7 @@ async def list_education(db: DB):
 
 
 @router.post("/education", response_model=EducationResponse, status_code=201)
-async def create_education(payload: EducationCreate, db: DB, _: AdminUser):
+async def create_education(payload: EducationCreate, db: DB, _: PortfolioAdminUser):
     obj = Education(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -169,7 +169,7 @@ async def get_education(edu_id: uuid.UUID, db: DB):
 
 
 @router.patch("/education/{edu_id}", response_model=EducationResponse)
-async def update_education(edu_id: uuid.UUID, payload: EducationUpdate, db: DB, _: AdminUser):
+async def update_education(edu_id: uuid.UUID, payload: EducationUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Education).where(Education.id == edu_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -181,7 +181,7 @@ async def update_education(edu_id: uuid.UUID, payload: EducationUpdate, db: DB, 
 
 
 @router.delete("/education/{edu_id}", status_code=204)
-async def delete_education(edu_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_education(edu_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Education).where(Education.id == edu_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -204,7 +204,7 @@ async def list_certifications(db: DB):
 
 
 @router.post("/certifications", response_model=CertificationResponse, status_code=201)
-async def create_certification(payload: CertificationCreate, db: DB, _: AdminUser):
+async def create_certification(payload: CertificationCreate, db: DB, _: PortfolioAdminUser):
     obj = Certification(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -222,7 +222,7 @@ async def get_certification(cert_id: uuid.UUID, db: DB):
 
 
 @router.patch("/certifications/{cert_id}", response_model=CertificationResponse)
-async def update_certification(cert_id: uuid.UUID, payload: CertificationUpdate, db: DB, _: AdminUser):
+async def update_certification(cert_id: uuid.UUID, payload: CertificationUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Certification).where(Certification.id == cert_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -234,7 +234,7 @@ async def update_certification(cert_id: uuid.UUID, payload: CertificationUpdate,
 
 
 @router.delete("/certifications/{cert_id}", status_code=204)
-async def delete_certification(cert_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_certification(cert_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Certification).where(Certification.id == cert_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -257,7 +257,7 @@ async def list_publications(db: DB):
 
 
 @router.post("/publications", response_model=PublicationResponse, status_code=201)
-async def create_publication(payload: PublicationCreate, db: DB, _: AdminUser):
+async def create_publication(payload: PublicationCreate, db: DB, _: PortfolioAdminUser):
     obj = Publication(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -275,7 +275,7 @@ async def get_publication(pub_id: uuid.UUID, db: DB):
 
 
 @router.patch("/publications/{pub_id}", response_model=PublicationResponse)
-async def update_publication(pub_id: uuid.UUID, payload: PublicationUpdate, db: DB, _: AdminUser):
+async def update_publication(pub_id: uuid.UUID, payload: PublicationUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Publication).where(Publication.id == pub_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -287,7 +287,7 @@ async def update_publication(pub_id: uuid.UUID, payload: PublicationUpdate, db: 
 
 
 @router.delete("/publications/{pub_id}", status_code=204)
-async def delete_publication(pub_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_publication(pub_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Publication).where(Publication.id == pub_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -310,7 +310,7 @@ async def list_skills(db: DB):
 
 
 @router.post("/skills", response_model=SkillResponse, status_code=201)
-async def create_skill(payload: SkillCreate, db: DB, _: AdminUser):
+async def create_skill(payload: SkillCreate, db: DB, _: PortfolioAdminUser):
     obj = Skill(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -319,7 +319,7 @@ async def create_skill(payload: SkillCreate, db: DB, _: AdminUser):
 
 
 @router.patch("/skills/{skill_id}", response_model=SkillResponse)
-async def update_skill(skill_id: uuid.UUID, payload: SkillUpdate, db: DB, _: AdminUser):
+async def update_skill(skill_id: uuid.UUID, payload: SkillUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Skill).where(Skill.id == skill_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -331,7 +331,7 @@ async def update_skill(skill_id: uuid.UUID, payload: SkillUpdate, db: DB, _: Adm
 
 
 @router.delete("/skills/{skill_id}", status_code=204)
-async def delete_skill(skill_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_skill(skill_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Skill).where(Skill.id == skill_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -355,7 +355,7 @@ async def get_profile(db: DB):
 
 
 @router.patch("/profile", response_model=ProfileSettingsResponse)
-async def update_profile(payload: ProfileSettingsUpdate, db: DB, _: AdminUser):
+async def update_profile(payload: ProfileSettingsUpdate, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(ProfileSettings).where(ProfileSettings.id == _PROFILE_ID))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -401,14 +401,14 @@ async def submit_testimonial(payload: TestimonialCreate, db: DB, current_user: C
 
 
 @router.get("/admin/testimonials", response_model=List[TestimonialResponse])
-async def admin_list_testimonials(db: DB, _: AdminUser):
+async def admin_list_testimonials(db: DB, _: PortfolioAdminUser):
     """Return all testimonials including pending (admin only)."""
     result = await db.execute(select(Testimonial).order_by(Testimonial.created_at.desc()))
     return result.scalars().all()
 
 
 @router.patch("/admin/testimonials/{testimonial_id}", response_model=TestimonialResponse)
-async def admin_update_testimonial(testimonial_id: uuid.UUID, payload: TestimonialApprove, db: DB, _: AdminUser):
+async def admin_update_testimonial(testimonial_id: uuid.UUID, payload: TestimonialApprove, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Testimonial).where(Testimonial.id == testimonial_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -420,7 +420,7 @@ async def admin_update_testimonial(testimonial_id: uuid.UUID, payload: Testimoni
 
 
 @router.delete("/admin/testimonials/{testimonial_id}", status_code=204)
-async def admin_delete_testimonial(testimonial_id: uuid.UUID, db: DB, _: AdminUser):
+async def admin_delete_testimonial(testimonial_id: uuid.UUID, db: DB, _: PortfolioAdminUser):
     result = await db.execute(select(Testimonial).where(Testimonial.id == testimonial_id))
     obj = result.scalar_one_or_none()
     if not obj:

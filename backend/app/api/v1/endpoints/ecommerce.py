@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from app.api.deps import AdminUser, CurrentUser, DB
+from app.api.deps import AdminUser, EcommerceAdminUser, CurrentUser, DB
 from app.core.config import settings
 from app.models.ecommerce import CartItem, Category, Order, OrderItem, OrderStatus, PaymentStatus, Product
 from app.models.ratings import ProductRating
@@ -49,7 +49,7 @@ async def list_categories(db: DB):
 
 
 @router.post("/categories", response_model=CategoryResponse, status_code=201)
-async def create_category(payload: CategoryCreate, db: DB, _: AdminUser):
+async def create_category(payload: CategoryCreate, db: DB, _: EcommerceAdminUser):
     obj = Category(**payload.model_dump())
     db.add(obj)
     await db.flush()
@@ -57,7 +57,7 @@ async def create_category(payload: CategoryCreate, db: DB, _: AdminUser):
 
 
 @router.patch("/categories/{cat_id}", response_model=CategoryResponse)
-async def update_category(cat_id: uuid.UUID, payload: CategoryUpdate, db: DB, _: AdminUser):
+async def update_category(cat_id: uuid.UUID, payload: CategoryUpdate, db: DB, _: EcommerceAdminUser):
     result = await db.execute(select(Category).where(Category.id == cat_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -69,7 +69,7 @@ async def update_category(cat_id: uuid.UUID, payload: CategoryUpdate, db: DB, _:
 
 
 @router.delete("/categories/{cat_id}", status_code=204)
-async def delete_category(cat_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_category(cat_id: uuid.UUID, db: DB, _: EcommerceAdminUser):
     result = await db.execute(select(Category).where(Category.id == cat_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -90,7 +90,7 @@ async def list_products(db: DB, skip: int = 0, limit: int = 50, category_id: uui
 
 
 @router.post("/products", response_model=ProductResponse, status_code=201)
-async def create_product(payload: ProductCreate, db: DB, _: AdminUser):
+async def create_product(payload: ProductCreate, db: DB, _: EcommerceAdminUser):
     data = payload.model_dump()
     image_urls = data.get("image_urls") or []
     if data.get("image_url") and data["image_url"] not in image_urls:
@@ -117,7 +117,7 @@ async def get_product(product_id: uuid.UUID, db: DB):
 
 
 @router.patch("/products/{product_id}", response_model=ProductResponse)
-async def update_product(product_id: uuid.UUID, payload: ProductUpdate, db: DB, _: AdminUser):
+async def update_product(product_id: uuid.UUID, payload: ProductUpdate, db: DB, _: EcommerceAdminUser):
     result = await db.execute(select(Product).where(Product.id == product_id))
     obj = result.scalar_one_or_none()
     if not obj:
@@ -153,7 +153,7 @@ async def update_product(product_id: uuid.UUID, payload: ProductUpdate, db: DB, 
 
 
 @router.delete("/products/{product_id}", status_code=204)
-async def delete_product(product_id: uuid.UUID, db: DB, _: AdminUser):
+async def delete_product(product_id: uuid.UUID, db: DB, _: EcommerceAdminUser):
     result = await db.execute(select(Product).where(Product.id == product_id))
     obj = result.scalar_one_or_none()
     if not obj:
