@@ -2051,7 +2051,9 @@ export function Admin() {
     else failures.push(pr.reason?.message || 'Products failed');
 
     if (failures.length > 0) {
-      setError(failures[0]);
+      // Only surface the error if analytics specifically failed — other failures are non-critical
+      const analyticsFailure = a.status === 'rejected';
+      if (analyticsFailure) setError(failures[0]);
     }
 
     setLoading(false);
@@ -2685,7 +2687,7 @@ export function Admin() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setActiveTab(item.id)}
+                      onClick={() => { setActiveTab(item.id); setError(''); }}
                       className={cn(
                         'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
                         activeTab === item.id

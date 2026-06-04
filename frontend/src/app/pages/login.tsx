@@ -27,19 +27,21 @@ export function Login() {
   const [otp, setOtp] = useState('');
   const [resending, setResending] = useState(false);
 
-  // Handle Google OAuth redirect — tokens arrive as query params
+  // Handle Google OAuth redirect — backend sends a short-lived state key, exchange it for tokens
   useState(() => {
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    if (accessToken && refreshToken) {
-      localStorage.setItem('access_token', accessToken);
-      api.get<{ id: string; email: string; full_name: string; is_admin: boolean }>('/auth/me')
-        .then(me => {
-          setAuth(me, accessToken, refreshToken);
-          navigate(redirectTo, { replace: true });
-        })
-        .catch(() => setError('Google sign-in failed.'));
-    }
+    const oauthState = searchParams.get('oauth_state');
+    if (!oauthState) return;
+    api.get<{ access_token: string; refresh_token: string }>(`/auth/oauth-token?state=${oauthState}`)
+      .then(({ access_token, refresh_token }) => {
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('refresh_token', refresh_token);
+        return api.get<{ id: string; email: string; full_name: string; is_admin: boolean }>('/auth/me')
+          .then(me => {
+            setAuth(me, access_token, refresh_token);
+            navigate(redirectTo, { replace: true });
+          });
+      })
+      .catch(() => setError('Google sign-in failed. Please try again.'));
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
