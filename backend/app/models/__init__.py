@@ -6,6 +6,9 @@ from app.models.courses import Course, Section, Lesson, ContentBlock, Assessment
 from app.models.quiz_attempt import QuizAttempt
 from app.models.partners import Partner, Business
 from app.models.support import SupportTicket, TicketMessage, PasswordResetToken
+from app.models.ratings import Testimonial, CourseRating, ProductRating
+from app.models.blog import BlogPost
+from app.models.forms import DynamicForm, FormField, FormSubmission
 
 __all__ = [
     "User", "UserRole",
@@ -17,4 +20,7 @@ __all__ = [
     "CourseLevel", "LessonType", "EnrollmentStatus",
     "QuizAttempt",
     "Partner", "Business",
+    "Testimonial", "CourseRating", "ProductRating",
+    "BlogPost",
+    "DynamicForm", "FormField", "FormSubmission",
 ]

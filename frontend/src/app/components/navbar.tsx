@@ -28,9 +28,10 @@ export function Navbar() {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'CEO', path: '/portfolio' },
-    { name: 'Gallery', path: '/gallery' },
     { name: 'Courses', path: '/courses' },
     { name: 'Store', path: '/store' },
+    { name: 'Blog', path: '/blog' },
+    { name: 'Apply', path: '/forms' },
     { name: 'Help', path: '/docs' },
   ];
 

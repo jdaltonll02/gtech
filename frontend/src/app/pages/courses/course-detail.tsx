@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, BookOpen, BarChart2, CheckCircle, PlayCircle, FileText, Code2, ChevronDown, ChevronUp, Award, Lock, CreditCard, X } from 'lucide-react';
+import { Clock, BookOpen, BarChart2, CheckCircle, PlayCircle, FileText, Code2, ChevronDown, ChevronUp, Award, Lock, CreditCard, X, Star } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '../../components/ui/button';
 import { GlassCard } from '../../components/glass-card';
+import { StarRating, RatingDistribution } from '../../components/star-rating';
+import { Textarea } from '../../components/ui/textarea';
 import { useCourseStore, type Course, type Section } from '../../store/courseStore';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../utils/api';
 import { cn } from '../../components/ui/utils';
+
+type RatingSummary = { avg_rating: number; rating_count: number; distribution: Record<number, number> };
+type CourseRating = { id: string; user_id: string; author_name: string; rating: number; review: string | null; created_at: string };
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '';
 if (!STRIPE_KEY) console.warn('[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set — card element will not render.');
@@ -171,6 +176,12 @@ function CourseDetailInner() {
   const [enrolling, setEnrolling] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
+  const [ratings, setRatings] = useState<CourseRating[]>([]);
+  const [myRating, setMyRating] = useState<{ rating: number; review: string | null } | null>(null);
+  const [ratingInput, setRatingInput] = useState(0);
+  const [reviewInput, setReviewInput] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   useEffect(() => {
     if (!courseId) return;
@@ -181,7 +192,34 @@ function CourseDetailInner() {
       })
       .catch(() => setCourse(null))
       .finally(() => setLoading(false));
+    api.get<RatingSummary>(`/courses/${courseId}/ratings/summary`).then(setRatingSummary).catch(() => {});
+    api.get<CourseRating[]>(`/courses/${courseId}/ratings`).then(setRatings).catch(() => {});
   }, [courseId]);
+
+  useEffect(() => {
+    if (!courseId || !isAuthenticated) return;
+    api.get<{ rating: number; review: string | null } | null>(`/courses/${courseId}/ratings/me`)
+      .then((r) => {
+        if (r) { setMyRating(r); setRatingInput(r.rating); setReviewInput(r.review ?? ''); }
+      })
+      .catch(() => {});
+  }, [courseId, isAuthenticated]);
+
+  const handleSubmitRating = async () => {
+    if (!courseId || ratingInput === 0) return;
+    setRatingSubmitting(true);
+    try {
+      await api.post(`/courses/${courseId}/rate`, { rating: ratingInput, review: reviewInput || null });
+      setMyRating({ rating: ratingInput, review: reviewInput || null });
+      const [summary, list] = await Promise.all([
+        api.get<RatingSummary>(`/courses/${courseId}/ratings/summary`),
+        api.get<CourseRating[]>(`/courses/${courseId}/ratings`),
+      ]);
+      setRatingSummary(summary);
+      setRatings(list);
+    } catch {}
+    finally { setRatingSubmitting(false); }
+  };
 
   if (loading) return <div className="min-h-screen pt-24 flex items-center justify-center"><p className="text-black/40">Loading…</p></div>;
   if (!course) return <div className="min-h-screen pt-24 flex items-center justify-center"><p className="text-black/40">Course not found.</p></div>;
@@ -254,6 +292,13 @@ function CourseDetailInner() {
               <span className="flex items-center gap-1"><BookOpen className="w-4 h-4" />{totalLessons} lessons</span>
               <span className="flex items-center gap-1"><BarChart2 className="w-4 h-4" /><span className="capitalize">{course.level}</span></span>
               {course.instructor_name && <span>By {course.instructor_name}</span>}
+              {ratingSummary && ratingSummary.rating_count > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span className="font-medium text-black/70">{ratingSummary.avg_rating.toFixed(1)}</span>
+                  <span>({ratingSummary.rating_count} rating{ratingSummary.rating_count !== 1 ? 's' : ''})</span>
+                </span>
+              )}
             </div>
 
             {enrolled && (
@@ -330,6 +375,63 @@ function CourseDetailInner() {
                 );
               })}
             </div>
+
+            {/* ── Ratings & Reviews ── */}
+            {(ratingSummary || enrolled) && (
+              <div className="mt-10">
+                <h2 className="text-2xl mb-6">Ratings & Reviews</h2>
+                {ratingSummary && ratingSummary.rating_count > 0 && (
+                  <GlassCard className="p-6 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-8 items-start">
+                      <div className="text-center flex-shrink-0">
+                        <p className="text-6xl font-bold text-primary">{ratingSummary.avg_rating.toFixed(1)}</p>
+                        <StarRating value={Math.round(ratingSummary.avg_rating)} readOnly size="md" />
+                        <p className="text-sm text-black/50 mt-1">{ratingSummary.rating_count} rating{ratingSummary.rating_count !== 1 ? 's' : ''}</p>
+                      </div>
+                      <RatingDistribution distribution={ratingSummary.distribution} total={ratingSummary.rating_count} />
+                    </div>
+                  </GlassCard>
+                )}
+
+                {enrolled && (
+                  <GlassCard className="p-6 mb-6">
+                    <h3 className="text-lg mb-3">{myRating ? 'Update your rating' : 'Rate this course'}</h3>
+                    <StarRating value={ratingInput} onChange={setRatingInput} size="lg" />
+                    <Textarea
+                      className="mt-3"
+                      placeholder="Share your experience (optional)…"
+                      value={reviewInput}
+                      onChange={(e) => setReviewInput(e.target.value)}
+                      rows={3}
+                    />
+                    <Button
+                      className="mt-3"
+                      disabled={ratingInput === 0 || ratingSubmitting}
+                      onClick={handleSubmitRating}
+                    >
+                      {ratingSubmitting ? 'Submitting…' : myRating ? 'Update Rating' : 'Submit Rating'}
+                    </Button>
+                  </GlassCard>
+                )}
+
+                {ratings.length > 0 && (
+                  <div className="space-y-4">
+                    {ratings.map((r) => (
+                      <GlassCard key={r.id} className="p-5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-medium text-sm">{r.author_name}</p>
+                            <p className="text-xs text-black/40">{new Date(r.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <StarRating value={r.rating} readOnly size="sm" />
+                        </div>
+                        {r.review && <p className="text-black/70 text-sm leading-relaxed">{r.review}</p>}
+                      </GlassCard>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── Sidebar ── */}

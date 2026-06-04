@@ -53,7 +53,10 @@ export function Portfolio() {
   const [publications, setPublications] = useState<Publication[]>([]);
 
   useEffect(() => {
-    api.get<ProfileSettings>('/portfolio/profile').then(setProfile).catch(() => {});
+    api.get<ProfileSettings>('/portfolio/profile').then((data) => {
+      setProfile(data);
+      if (data.profile_photo_url) setPhotoError(false);
+    }).catch(() => {});
     api.get<Project[]>('/portfolio/projects').then(setProjects).catch(() => {});
     api.get<Experience[]>('/portfolio/experience').then(setExperiences).catch(() => {});
     api.get<Skill[]>('/portfolio/skills').then((data) => {

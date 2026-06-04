@@ -1,6 +1,13 @@
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TipTapUnderline from '@tiptap/extension-underline';
+import TipTapTextAlign from '@tiptap/extension-text-align';
+import TipTapPlaceholder from '@tiptap/extension-placeholder';
+import TipTapImage from '@tiptap/extension-image';
+import TipTapLink from '@tiptap/extension-link';
 import {
   LayoutDashboard,
   FolderKanban,
@@ -25,6 +32,14 @@ import {
   MessageSquare,
   Clock,
   CheckCircle,
+  Newspaper,
+  ClipboardList,
+  GripVertical,
+  Eye,
+  EyeOff,
+  ChevronUp,
+  FileText,
+  Globe,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
@@ -60,7 +75,7 @@ import { cn } from '../components/ui/utils';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 
-type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support';
+type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms';
 
 type AnalyticsResponse = {
   stats: {
@@ -1829,6 +1844,29 @@ export function Admin() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  type AdminTestimonial = { id: string; author_name: string; author_title: string | null; content: string; rating: number; is_approved: boolean; created_at: string };
+  const [testimonials, setTestimonials] = useState<AdminTestimonial[]>([]);
+
+  // Blog state
+  type BlogPost = { id: string; title: string; slug: string; excerpt: string | null; cover_image_url: string | null; author_name: string; category: string | null; tags: string | null; is_published: boolean; published_at: string | null; created_at: string; content?: string };
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [showPostEditor, setShowPostEditor] = useState(false);
+  const [postForm, setPostForm] = useState({ title: '', slug: '', excerpt: '', cover_image_url: '', author_name: 'G-Tech Team', category: '', tags: '', is_published: false, content: '' });
+  const [postSaving, setPostSaving] = useState(false);
+
+  // Forms state
+  type DynamicFormField = { id: string; label: string; field_type: string; options: string[] | null; is_required: boolean; order_index: number; placeholder: string | null; helper_text: string | null };
+  type DynamicForm = { id: string; title: string; slug: string; description: string | null; category: string; is_active: boolean; is_published: boolean; requires_auth: boolean; success_message: string | null; fields?: DynamicFormField[] };
+  type FormSubmission = { id: string; responses: Record<string, string>; submitter_name: string | null; submitter_email: string | null; submitted_at: string };
+  const [dynamicForms, setDynamicForms] = useState<DynamicForm[]>([]);
+  const [selectedForm, setSelectedForm] = useState<DynamicForm | null>(null);
+  const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>([]);
+  const [showFormEditor, setShowFormEditor] = useState(false);
+  const [showSubmissions, setShowSubmissions] = useState(false);
+  const [newFormData, setNewFormData] = useState({ title: '', slug: '', description: '', category: 'general', requires_auth: false, is_published: false, success_message: '' });
+  const [newField, setNewField] = useState({ label: '', field_type: 'short_text', is_required: false, placeholder: '', helper_text: '', options: '' });
+  const [formSaving, setFormSaving] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -2018,6 +2056,9 @@ export function Admin() {
     { id: 'gallery' as Tab, label: 'Gallery', icon: Image },
     { id: 'partners' as Tab, label: 'Partners', icon: Users },
     { id: 'businesses' as Tab, label: 'Businesses', icon: Building2 },
+    { id: 'testimonials' as Tab, label: 'Testimonials', icon: MessageSquare },
+    { id: 'blog' as Tab, label: 'Blog', icon: Newspaper },
+    { id: 'forms' as Tab, label: 'Forms', icon: ClipboardList },
   ];
 
   const colors = useMemo(() => ['#8B0000', '#b91c1c', '#dc2626', '#ef4444', '#f87171'], []);
@@ -2088,6 +2129,18 @@ export function Admin() {
     try { setBusinesses(await api.get<Business[]>('/partners/businesses')); } catch {}
   };
 
+  const loadTestimonials = async () => {
+    try { setTestimonials(await api.get<any[]>('/portfolio/admin/testimonials')); } catch {}
+  };
+
+  const loadBlogPosts = async () => {
+    try { setBlogPosts(await api.get<any[]>('/blog/admin/all')); } catch {}
+  };
+
+  const loadDynamicForms = async () => {
+    try { setDynamicForms(await api.get<any[]>('/forms/admin/all')); } catch {}
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -2105,6 +2158,9 @@ export function Admin() {
     loadCategories();
     loadPartners();
     loadBusinesses();
+    loadTestimonials();
+    loadBlogPosts();
+    loadDynamicForms();
     // Check system config health
     api.get<{ smtp_configured: boolean; smtp_warning: string | null }>('/admin/system-status')
       .then((s) => setSmtpWarning(s.smtp_warning))
@@ -3314,6 +3370,329 @@ export function Admin() {
               </motion.div>
             )}
 
+            {activeTab === 'testimonials' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-4xl">Testimonials</h1>
+                  <Button variant="outline" onClick={loadTestimonials}>Refresh</Button>
+                </div>
+
+                {testimonials.length === 0 && (
+                  <GlassCard className="p-10 text-center text-black/40">No testimonials submitted yet.</GlassCard>
+                )}
+
+                <div className="space-y-4">
+                  {testimonials.map((t) => (
+                    <GlassCard key={t.id} className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            <p className="font-medium">{t.author_name}</p>
+                            {t.author_title && <p className="text-sm text-black/50">{t.author_title}</p>}
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.is_approved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {t.is_approved ? 'Approved' : 'Pending'}
+                            </span>
+                          </div>
+                          <div className="flex gap-0.5 mb-2">
+                            {[1,2,3,4,5].map((s) => (
+                              <span key={s} className={`text-sm ${s <= t.rating ? 'text-amber-400' : 'text-black/15'}`}>★</span>
+                            ))}
+                          </div>
+                          <p className="text-black/70 text-sm leading-relaxed">"{t.content}"</p>
+                          <p className="text-xs text-black/40 mt-2">{new Date(t.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant={t.is_approved ? 'outline' : 'default'}
+                            onClick={async () => {
+                              await api.patch(`/portfolio/admin/testimonials/${t.id}`, { is_approved: !t.is_approved });
+                              loadTestimonials();
+                            }}
+                          >
+                            {t.is_approved ? 'Unpublish' : 'Approve'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              await api.delete(`/portfolio/admin/testimonials/${t.id}`);
+                              loadTestimonials();
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Blog Tab ── */}
+            {activeTab === 'blog' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                {showPostEditor ? (
+                  <BlogPostEditor
+                    post={editingPost}
+                    initialForm={postForm}
+                    onSave={async (form, content) => {
+                      setPostSaving(true);
+                      try {
+                        if (editingPost) {
+                          await api.patch(`/blog/admin/posts/${editingPost.id}`, { ...form, content });
+                        } else {
+                          await api.post('/blog/admin/posts', { ...form, content });
+                        }
+                        await loadBlogPosts();
+                        setShowPostEditor(false);
+                        setEditingPost(null);
+                      } catch (e: any) { alert(e.message); }
+                      finally { setPostSaving(false); }
+                    }}
+                    onCancel={() => { setShowPostEditor(false); setEditingPost(null); }}
+                    saving={postSaving}
+                  />
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <h1 className="text-4xl">Blog &amp; News</h1>
+                      <Button onClick={() => { setPostForm({ title: '', slug: '', excerpt: '', cover_image_url: '', author_name: 'G-Tech Team', category: '', tags: '', is_published: false, content: '' }); setEditingPost(null); setShowPostEditor(true); }}>
+                        <Plus className="w-4 h-4 mr-2" />New Post
+                      </Button>
+                    </div>
+                    {blogPosts.length === 0 && (
+                      <GlassCard className="p-10 text-center text-black/40">No blog posts yet. Create your first post.</GlassCard>
+                    )}
+                    <div className="space-y-3">
+                      {blogPosts.map((post) => (
+                        <GlassCard key={post.id} className="p-4">
+                          <div className="flex items-start gap-4">
+                            {post.cover_image_url && (
+                              <img src={post.cover_image_url} alt="" className="w-20 h-14 object-cover rounded-lg flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-medium truncate">{post.title}</h3>
+                                {post.category && <span className="text-xs bg-black/5 px-2 py-0.5 rounded-full text-black/50 flex-shrink-0">{post.category}</span>}
+                                <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${post.is_published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {post.is_published ? 'Published' : 'Draft'}
+                                </span>
+                              </div>
+                              {post.excerpt && <p className="text-sm text-black/50 line-clamp-1">{post.excerpt}</p>}
+                              <p className="text-xs text-black/35 mt-1">{new Date(post.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                const full = await api.get<any>(`/blog/admin/all`);
+                                const p = blogPosts.find((b) => b.id === post.id);
+                                if (!p) return;
+                                setEditingPost(p);
+                                setPostForm({ title: p.title, slug: p.slug, excerpt: p.excerpt ?? '', cover_image_url: p.cover_image_url ?? '', author_name: p.author_name, category: p.category ?? '', tags: p.tags ?? '', is_published: p.is_published, content: '' });
+                                setShowPostEditor(true);
+                              }}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                if (!confirm('Delete this post?')) return;
+                                await api.delete(`/blog/admin/posts/${post.id}`);
+                                loadBlogPosts();
+                              }}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── Forms Tab ── */}
+            {activeTab === 'forms' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                {showSubmissions && selectedForm ? (
+                  <div>
+                    <div className="flex items-center gap-4 mb-6">
+                      <Button variant="ghost" size="sm" onClick={() => { setShowSubmissions(false); setSelectedForm(null); }}>
+                        ← Back
+                      </Button>
+                      <h1 className="text-3xl">Submissions: {selectedForm.title}</h1>
+                    </div>
+                    {formSubmissions.length === 0 && <GlassCard className="p-10 text-center text-black/40">No submissions yet.</GlassCard>}
+                    <div className="space-y-4">
+                      {formSubmissions.map((sub) => (
+                        <GlassCard key={sub.id} className="p-5">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="font-medium text-sm">{sub.submitter_name || 'Anonymous'}</p>
+                              {sub.submitter_email && <p className="text-xs text-black/50">{sub.submitter_email}</p>}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <p className="text-xs text-black/40">{new Date(sub.submitted_at).toLocaleString()}</p>
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                if (!confirm('Delete this submission?')) return;
+                                await api.delete(`/forms/admin/submissions/${sub.id}`);
+                                const subs = await api.get<any[]>(`/forms/admin/${selectedForm.id}/submissions`);
+                                setFormSubmissions(subs);
+                              }}>
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            {selectedForm.fields?.map((field) => {
+                              const val = sub.responses[field.id];
+                              if (!val) return null;
+                              return (
+                                <div key={field.id} className="grid grid-cols-[180px_1fr] gap-2 text-sm">
+                                  <span className="text-black/50 truncate">{field.label}</span>
+                                  <span className="text-black/80 break-words">{val}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </div>
+                ) : showFormEditor && selectedForm ? (
+                  <FormFieldEditor
+                    form={selectedForm}
+                    newField={newField}
+                    setNewField={setNewField}
+                    onAddField={async () => {
+                      const opts = newField.options.split('\n').map((o) => o.trim()).filter(Boolean);
+                      await api.post(`/forms/admin/${selectedForm.id}/fields`, {
+                        label: newField.label,
+                        field_type: newField.field_type,
+                        is_required: newField.is_required,
+                        placeholder: newField.placeholder || null,
+                        helper_text: newField.helper_text || null,
+                        options: opts.length ? opts : null,
+                        order_index: (selectedForm.fields?.length ?? 0),
+                      });
+                      const updated = await api.get<any>(`/forms/admin/${selectedForm.id}`);
+                      setSelectedForm(updated);
+                      setNewField({ label: '', field_type: 'short_text', is_required: false, placeholder: '', helper_text: '', options: '' });
+                    }}
+                    onDeleteField={async (fieldId) => {
+                      await api.delete(`/forms/admin/fields/${fieldId}`);
+                      const updated = await api.get<any>(`/forms/admin/${selectedForm.id}`);
+                      setSelectedForm(updated);
+                    }}
+                    onTogglePublish={async () => {
+                      await api.patch(`/forms/admin/${selectedForm.id}`, { is_published: !selectedForm.is_published });
+                      const updated = await api.get<any>(`/forms/admin/${selectedForm.id}`);
+                      setSelectedForm(updated);
+                      loadDynamicForms();
+                    }}
+                    onBack={() => { setShowFormEditor(false); setSelectedForm(null); loadDynamicForms(); }}
+                  />
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <h1 className="text-4xl">Dynamic Forms</h1>
+                    </div>
+                    {/* Create form */}
+                    <GlassCard className="p-6 mb-6">
+                      <h3 className="text-lg mb-4">Create New Form</h3>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="nf_title">Title</Label>
+                          <Input id="nf_title" className="mt-1" value={newFormData.title} onChange={(e) => setNewFormData((p) => ({ ...p, title: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }))} placeholder="e.g. Summer Internship 2026" />
+                        </div>
+                        <div>
+                          <Label htmlFor="nf_slug">Slug (URL)</Label>
+                          <Input id="nf_slug" className="mt-1" value={newFormData.slug} onChange={(e) => setNewFormData((p) => ({ ...p, slug: e.target.value }))} placeholder="summer-internship-2026" />
+                        </div>
+                        <div>
+                          <Label htmlFor="nf_cat">Category</Label>
+                          <select id="nf_cat" className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background" value={newFormData.category} onChange={(e) => setNewFormData((p) => ({ ...p, category: e.target.value }))}>
+                            <option value="general">General</option>
+                            <option value="recruitment">Recruitment</option>
+                            <option value="event">Event</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="nf_desc">Description</Label>
+                          <Input id="nf_desc" className="mt-1" value={newFormData.description} onChange={(e) => setNewFormData((p) => ({ ...p, description: e.target.value }))} placeholder="Short description shown to applicants" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6 mt-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input type="checkbox" checked={newFormData.requires_auth} onChange={(e) => setNewFormData((p) => ({ ...p, requires_auth: e.target.checked }))} className="accent-primary" />
+                          Require sign-in
+                        </label>
+                      </div>
+                      <Button className="mt-4" disabled={!newFormData.title || !newFormData.slug || formSaving} onClick={async () => {
+                        setFormSaving(true);
+                        try {
+                          const created = await api.post<any>('/forms/admin/create', { ...newFormData, is_active: true });
+                          setNewFormData({ title: '', slug: '', description: '', category: 'general', requires_auth: false, is_published: false, success_message: '' });
+                          const full = await api.get<any>(`/forms/admin/${created.id}`);
+                          setSelectedForm(full);
+                          setShowFormEditor(true);
+                          loadDynamicForms();
+                        } catch (e: any) { alert(e.message); }
+                        finally { setFormSaving(false); }
+                      }}>
+                        <Plus className="w-4 h-4 mr-2" />{formSaving ? 'Creating…' : 'Create Form & Add Fields'}
+                      </Button>
+                    </GlassCard>
+
+                    {/* Existing forms */}
+                    <div className="space-y-3">
+                      {dynamicForms.map((form) => (
+                        <GlassCard key={form.id} className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-medium">{form.title}</h3>
+                                <span className="text-xs bg-black/5 px-2 py-0.5 rounded-full text-black/50">{form.category}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${form.is_published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {form.is_published ? 'Published' : 'Draft'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-black/40 mt-0.5">/forms/{form.slug}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={async () => {
+                                const full = await api.get<any>(`/forms/admin/${form.id}`);
+                                setSelectedForm(full);
+                                setShowFormEditor(true);
+                              }}>
+                                <Edit className="w-3.5 h-3.5 mr-1" />Edit Fields
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                const subs = await api.get<any[]>(`/forms/admin/${form.id}/submissions`);
+                                const full = await api.get<any>(`/forms/admin/${form.id}`);
+                                setSelectedForm(full);
+                                setFormSubmissions(subs);
+                                setShowSubmissions(true);
+                              }}>
+                                <FileText className="w-3.5 h-3.5 mr-1" />Responses
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={async () => {
+                                if (!confirm('Delete this form?')) return;
+                                await api.delete(`/forms/admin/${form.id}`);
+                                loadDynamicForms();
+                              }}>
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+
             {activeTab === 'courses' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                 <div className="flex items-center justify-between mb-6">
@@ -3694,5 +4073,260 @@ function SectionTable({ title, addLabel, columns, rows, onAdd, onEdit, onDelete 
         </Table>
       </GlassCard>
     </motion.div>
+  );
+}
+
+// ─── Blog Post Editor (TipTap) ────────────────────────────────────────────────
+
+const TB = 'px-2 py-1 rounded text-xs hover:bg-gray-200 transition-colors disabled:opacity-40';
+const TB_ON = 'bg-gray-200 font-semibold';
+
+function BlogPostEditor({
+  post, initialForm, onSave, onCancel, saving,
+}: {
+  post: any;
+  initialForm: any;
+  onSave: (form: any, content: string) => Promise<void>;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState(initialForm);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TipTapUnderline,
+      TipTapTextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TipTapPlaceholder.configure({ placeholder: 'Write your article here…' }),
+      TipTapImage.configure({ inline: false, allowBase64: true }),
+      TipTapLink.configure({ openOnClick: false }),
+    ],
+    content: post?.content ?? '',
+    editorProps: {
+      attributes: { class: 'prose prose-lg max-w-none min-h-[400px] px-6 py-5 focus:outline-none' },
+    },
+  });
+
+  const addImage = () => {
+    const url = prompt('Image URL:');
+    if (url) editor?.chain().focus().setImage({ src: url }).run();
+  };
+
+  const addLink = () => {
+    const url = prompt('Link URL:');
+    if (url) editor?.chain().focus().setLink({ href: url }).run();
+  };
+
+  if (!editor) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="sm" onClick={onCancel}>← Back</Button>
+        <h1 className="text-3xl flex-1">{post ? 'Edit Post' : 'New Post'}</h1>
+        <Button onClick={() => onSave(form, editor.getHTML())} disabled={saving}>
+          {saving ? 'Saving…' : post ? 'Save Changes' : 'Publish Draft'}
+        </Button>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+        {/* Editor */}
+        <div className="space-y-4">
+          <GlassCard className="overflow-hidden">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-0.5 px-3 py-1.5 border-b bg-gray-50">
+              <button onClick={() => editor.chain().focus().toggleBold().run()} className={cn(TB, editor.isActive('bold') && TB_ON)}><b>B</b></button>
+              <button onClick={() => editor.chain().focus().toggleItalic().run()} className={cn(TB, editor.isActive('italic') && TB_ON)}><i>I</i></button>
+              <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={cn(TB, editor.isActive('underline') && TB_ON)}><u>U</u></button>
+              <button onClick={() => editor.chain().focus().toggleStrike().run()} className={cn(TB, editor.isActive('strike') && TB_ON)}><s>S</s></button>
+              <span className="w-px h-4 bg-gray-300 mx-1" />
+              <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={cn(TB, editor.isActive('heading', { level: 1 }) && TB_ON)}>H1</button>
+              <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={cn(TB, editor.isActive('heading', { level: 2 }) && TB_ON)}>H2</button>
+              <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={cn(TB, editor.isActive('heading', { level: 3 }) && TB_ON)}>H3</button>
+              <span className="w-px h-4 bg-gray-300 mx-1" />
+              <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={cn(TB, editor.isActive('bulletList') && TB_ON)}>• List</button>
+              <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={cn(TB, editor.isActive('orderedList') && TB_ON)}>1. List</button>
+              <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={cn(TB, editor.isActive('blockquote') && TB_ON)}>"</button>
+              <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={cn(TB, editor.isActive('codeBlock') && TB_ON)}>{"```"}</button>
+              <span className="w-px h-4 bg-gray-300 mx-1" />
+              <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={cn(TB, editor.isActive({ textAlign: 'left' }) && TB_ON)}>⬅</button>
+              <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={cn(TB, editor.isActive({ textAlign: 'center' }) && TB_ON)}>↔</button>
+              <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={cn(TB, editor.isActive({ textAlign: 'right' }) && TB_ON)}>➡</button>
+              <span className="w-px h-4 bg-gray-300 mx-1" />
+              <button onClick={addImage} className={TB} title="Insert image">🖼</button>
+              <button onClick={addLink} className={cn(TB, editor.isActive('link') && TB_ON)} title="Insert link">🔗</button>
+              {editor.isActive('link') && (
+                <button onClick={() => editor.chain().focus().unsetLink().run()} className={TB} title="Remove link">✕</button>
+              )}
+              <span className="w-px h-4 bg-gray-300 mx-1" />
+              <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className={TB}>↩</button>
+              <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className={TB}>↪</button>
+            </div>
+            <EditorContent editor={editor} />
+          </GlassCard>
+        </div>
+
+        {/* Meta sidebar */}
+        <div className="space-y-4">
+          <GlassCard className="p-5 space-y-4">
+            <h3 className="font-medium">Post Details</h3>
+            <div>
+              <Label>Title</Label>
+              <Input className="mt-1" value={form.title} onChange={(e) => setForm((p: any) => ({ ...p, title: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }))} placeholder="Post title" />
+            </div>
+            <div>
+              <Label>Slug</Label>
+              <Input className="mt-1" value={form.slug} onChange={(e) => setForm((p: any) => ({ ...p, slug: e.target.value }))} placeholder="my-post-slug" />
+            </div>
+            <div>
+              <Label>Excerpt</Label>
+              <Textarea className="mt-1" rows={3} value={form.excerpt} onChange={(e) => setForm((p: any) => ({ ...p, excerpt: e.target.value }))} placeholder="Short summary shown in the grid…" />
+            </div>
+            <div>
+              <Label>Cover Image URL</Label>
+              <Input className="mt-1" value={form.cover_image_url} onChange={(e) => setForm((p: any) => ({ ...p, cover_image_url: e.target.value }))} placeholder="https://…" />
+              {form.cover_image_url && <img src={form.cover_image_url} alt="" className="mt-2 rounded-lg w-full h-28 object-cover" />}
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Input className="mt-1" value={form.category} onChange={(e) => setForm((p: any) => ({ ...p, category: e.target.value }))} placeholder="News, Research, Education…" />
+            </div>
+            <div>
+              <Label>Tags (comma-separated)</Label>
+              <Input className="mt-1" value={form.tags} onChange={(e) => setForm((p: any) => ({ ...p, tags: e.target.value }))} placeholder="AI, robotics, education" />
+            </div>
+            <div>
+              <Label>Author</Label>
+              <Input className="mt-1" value={form.author_name} onChange={(e) => setForm((p: any) => ({ ...p, author_name: e.target.value }))} />
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.is_published} onChange={(e) => setForm((p: any) => ({ ...p, is_published: e.target.checked }))} className="accent-primary" />
+              Publish (visible on /blog)
+            </label>
+          </GlassCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Form Field Editor ────────────────────────────────────────────────────────
+
+const FIELD_TYPES = [
+  { value: 'short_text', label: 'Short Text' },
+  { value: 'long_text', label: 'Long Text (Paragraph)' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'number', label: 'Number' },
+  { value: 'url', label: 'URL / Link' },
+  { value: 'date', label: 'Date' },
+  { value: 'dropdown', label: 'Dropdown (Select)' },
+  { value: 'radio', label: 'Radio (Single Choice)' },
+  { value: 'checkbox', label: 'Checkboxes (Multi-Choice)' },
+  { value: 'file', label: 'File Upload (instruction)' },
+  { value: 'section_header', label: 'Section Header / Divider' },
+];
+
+function FormFieldEditor({
+  form, newField, setNewField, onAddField, onDeleteField, onTogglePublish, onBack,
+}: {
+  form: any;
+  newField: any;
+  setNewField: (v: any) => void;
+  onAddField: () => Promise<void>;
+  onDeleteField: (id: string) => Promise<void>;
+  onTogglePublish: () => Promise<void>;
+  onBack: () => void;
+}) {
+  const [addingField, setAddingField] = useState(false);
+  const needsOptions = ['dropdown', 'radio', 'checkbox'].includes(newField.field_type);
+
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="sm" onClick={onBack}>← Back</Button>
+        <h1 className="text-3xl flex-1">{form.title}</h1>
+        <span className={`text-sm px-3 py-1 rounded-full ${form.is_published ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+          {form.is_published ? 'Published' : 'Draft'}
+        </span>
+        <Button variant="outline" size="sm" onClick={onTogglePublish}>
+          {form.is_published ? <><EyeOff className="w-4 h-4 mr-1" />Unpublish</> : <><Eye className="w-4 h-4 mr-1" />Publish</>}
+        </Button>
+        <a href={`/forms/${form.slug}`} target="_blank" rel="noreferrer">
+          <Button variant="ghost" size="sm"><Globe className="w-4 h-4 mr-1" />Preview</Button>
+        </a>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_340px] gap-6">
+        {/* Field list */}
+        <div>
+          <GlassCard className="p-5">
+            <h3 className="font-medium mb-4">Form Fields ({(form.fields ?? []).length})</h3>
+            {(form.fields ?? []).length === 0 && (
+              <p className="text-sm text-black/40 text-center py-8">No fields yet. Add your first field →</p>
+            )}
+            <div className="space-y-2">
+              {(form.fields ?? []).map((field: any) => (
+                <div key={field.id} className="flex items-center gap-3 p-3 border border-black/10 rounded-lg bg-white/50">
+                  <GripVertical className="w-4 h-4 text-black/25 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {field.label}
+                      {field.is_required && <span className="text-red-500 ml-0.5">*</span>}
+                    </p>
+                    <p className="text-xs text-black/40">{FIELD_TYPES.find((t) => t.value === field.field_type)?.label ?? field.field_type}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => onDeleteField(field.id)}>
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+
+        {/* Add field panel */}
+        <div>
+          <GlassCard className="p-5 space-y-4">
+            <h3 className="font-medium">Add Field</h3>
+            <div>
+              <Label>Label / Question</Label>
+              <Input className="mt-1" value={newField.label} onChange={(e) => setNewField((p: any) => ({ ...p, label: e.target.value }))} placeholder="e.g. Your full name" />
+            </div>
+            <div>
+              <Label>Field Type</Label>
+              <select className="mt-1 w-full border border-input rounded-md px-3 py-2 text-sm bg-background" value={newField.field_type} onChange={(e) => setNewField((p: any) => ({ ...p, field_type: e.target.value }))}>
+                {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            {needsOptions && (
+              <div>
+                <Label>Options (one per line)</Label>
+                <Textarea className="mt-1" rows={4} value={newField.options} onChange={(e) => setNewField((p: any) => ({ ...p, options: e.target.value }))} placeholder={"Option 1\nOption 2\nOption 3"} />
+              </div>
+            )}
+            <div>
+              <Label>Placeholder text</Label>
+              <Input className="mt-1" value={newField.placeholder} onChange={(e) => setNewField((p: any) => ({ ...p, placeholder: e.target.value }))} placeholder="Optional hint inside the field" />
+            </div>
+            <div>
+              <Label>Helper text</Label>
+              <Input className="mt-1" value={newField.helper_text} onChange={(e) => setNewField((p: any) => ({ ...p, helper_text: e.target.value }))} placeholder="Shown below the field" />
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={newField.is_required} onChange={(e) => setNewField((p: any) => ({ ...p, is_required: e.target.checked }))} className="accent-primary" />
+              Required field
+            </label>
+            <Button className="w-full" disabled={!newField.label || addingField} onClick={async () => {
+              setAddingField(true);
+              await onAddField();
+              setAddingField(false);
+            }}>
+              {addingField ? 'Adding…' : <><Plus className="w-4 h-4 mr-1" />Add Field</>}
+            </Button>
+          </GlassCard>
+        </div>
+      </div>
+    </div>
   );
 }

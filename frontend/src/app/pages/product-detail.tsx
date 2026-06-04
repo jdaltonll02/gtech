@@ -7,10 +7,15 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
+import { StarRating as StarRatingWidget, RatingDistribution } from '../components/star-rating';
+import { Textarea } from '../components/ui/textarea';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 import { cn } from '../components/ui/utils';
+
+type RatingSummary = { avg_rating: number; rating_count: number; distribution: Record<number, number> };
+type ProductRating = { id: string; author_name: string; rating: number; review: string | null; created_at: string };
 
 interface Product {
   id: string;
@@ -26,7 +31,7 @@ interface Product {
   category?: { name: string };
 }
 
-function StarRating({ value, count }: { value: number; count: number }) {
+function StarRatingDisplay({ value, count }: { value: number; count: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex">
@@ -66,6 +71,12 @@ export function ProductDetail() {
   const [adding, setAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
+  const [reviews, setReviews] = useState<ProductRating[]>([]);
+  const [myRating, setMyRating] = useState<{ rating: number; review: string | null } | null>(null);
+  const [ratingInput, setRatingInput] = useState(0);
+  const [reviewInput, setReviewInput] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   const markFailed = (url: string) =>
     setFailedImages((prev) => new Set(prev).add(url));
@@ -75,7 +86,32 @@ export function ProductDetail() {
       .then(setProduct)
       .catch(() => setError('Product not found.'))
       .finally(() => setLoading(false));
+    api.get<RatingSummary>(`/products/${id}/ratings/summary`).then(setRatingSummary).catch(() => {});
+    api.get<ProductRating[]>(`/products/${id}/ratings`).then(setReviews).catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !isAuthenticated) return;
+    api.get<{ rating: number; review: string | null } | null>(`/products/${id}/ratings/me`)
+      .then((r) => { if (r) { setMyRating(r); setRatingInput(r.rating); setReviewInput(r.review ?? ''); } })
+      .catch(() => {});
+  }, [id, isAuthenticated]);
+
+  const handleSubmitRating = async () => {
+    if (!id || ratingInput === 0) return;
+    setRatingSubmitting(true);
+    try {
+      await api.post(`/products/${id}/rate`, { rating: ratingInput, review: reviewInput || null });
+      setMyRating({ rating: ratingInput, review: reviewInput || null });
+      const [summary, list] = await Promise.all([
+        api.get<RatingSummary>(`/products/${id}/ratings/summary`),
+        api.get<ProductRating[]>(`/products/${id}/ratings`),
+      ]);
+      setRatingSummary(summary);
+      setReviews(list);
+    } catch {}
+    finally { setRatingSubmitting(false); }
+  };
 
   useEffect(() => {
     setActiveImageIndex(0);
@@ -257,7 +293,10 @@ export function ProductDetail() {
                   </span>
                 )}
                 <h1 className="text-2xl sm:text-3xl leading-snug mb-3">{product.name}</h1>
-                <StarRating value={4.5} count={128} />
+                {ratingSummary && ratingSummary.rating_count > 0
+                  ? <StarRatingDisplay value={ratingSummary.avg_rating} count={ratingSummary.rating_count} />
+                  : <span className="text-sm text-black/40">No ratings yet</span>
+                }
               </div>
 
               {/* Price */}
@@ -474,6 +513,63 @@ export function ProductDetail() {
           </div>
 
         </motion.div>
+
+        {/* ── Ratings & Reviews ── */}
+        {(ratingSummary || isAuthenticated) && (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-16">
+            <h2 className="text-2xl mb-6">Ratings & Reviews</h2>
+            {ratingSummary && ratingSummary.rating_count > 0 && (
+              <GlassCard className="p-6 mb-6">
+                <div className="flex flex-col sm:flex-row gap-8 items-start">
+                  <div className="text-center flex-shrink-0">
+                    <p className="text-6xl font-bold text-primary">{ratingSummary.avg_rating.toFixed(1)}</p>
+                    <StarRatingWidget value={Math.round(ratingSummary.avg_rating)} readOnly size="md" />
+                    <p className="text-sm text-black/50 mt-1">{ratingSummary.rating_count} rating{ratingSummary.rating_count !== 1 ? 's' : ''}</p>
+                  </div>
+                  <RatingDistribution distribution={ratingSummary.distribution} total={ratingSummary.rating_count} />
+                </div>
+              </GlassCard>
+            )}
+
+            {isAuthenticated && (
+              <GlassCard className="p-6 mb-6">
+                <h3 className="text-lg mb-3">{myRating ? 'Update your review' : 'Write a review'}</h3>
+                <StarRatingWidget value={ratingInput} onChange={setRatingInput} size="lg" />
+                <Textarea
+                  className="mt-3"
+                  placeholder="Share your thoughts about this product (optional)…"
+                  value={reviewInput}
+                  onChange={(e) => setReviewInput(e.target.value)}
+                  rows={3}
+                />
+                <Button
+                  className="mt-3"
+                  disabled={ratingInput === 0 || ratingSubmitting}
+                  onClick={handleSubmitRating}
+                >
+                  {ratingSubmitting ? 'Submitting…' : myRating ? 'Update Review' : 'Submit Review'}
+                </Button>
+              </GlassCard>
+            )}
+
+            {reviews.length > 0 && (
+              <div className="space-y-4">
+                {reviews.map((r) => (
+                  <GlassCard key={r.id} className="p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-medium text-sm">{r.author_name}</p>
+                        <p className="text-xs text-black/40">{new Date(r.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <StarRatingWidget value={r.rating} readOnly size="sm" />
+                    </div>
+                    {r.review && <p className="text-black/70 text-sm leading-relaxed">{r.review}</p>}
+                  </GlassCard>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

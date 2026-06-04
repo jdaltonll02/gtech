@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
-import { ArrowRight, Building2, Cpu, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Building2, Cpu, ShieldCheck, Quote } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
 import { AnimatedBackground } from '../components/animated-background';
+import { StarRating } from '../components/star-rating';
 import { api } from '../utils/api';
 
 type PartnerItem = { id: string; name: string; logo_url: string; website_url: string };
 type BusinessItem = { id: string; name: string; logo_url: string; website_url: string };
+type TestimonialItem = { id: string; author_name: string; author_title: string | null; content: string; rating: number };
 
 function LogoCarousel({ items, label }: { items: { id: string; name: string; logo_url: string; website_url: string }[]; label: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -98,10 +100,12 @@ export function Landing() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [partners, setPartners] = useState<PartnerItem[]>([]);
   const [businesses, setBusinesses] = useState<BusinessItem[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
 
   useEffect(() => {
     api.get<PartnerItem[]>('/partners').then(setPartners).catch(() => {});
     api.get<BusinessItem[]>('/partners/businesses').then(setBusinesses).catch(() => {});
+    api.get<TestimonialItem[]>('/portfolio/testimonials').then(setTestimonials).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -230,6 +234,38 @@ export function Landing() {
 
       {businesses.length > 0 && (
         <LogoCarousel items={businesses} label="Businesses & NGOs" />
+      )}
+
+      {testimonials.length > 0 && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <p className="text-sm uppercase tracking-[0.22em] text-primary mb-3 text-center">Testimonials</p>
+            <h2 className="text-4xl mb-10 text-center">What our community says</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.map((t, index) => (
+                <motion.div
+                  key={t.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.08 }}
+                >
+                  <GlassCard className="p-6 h-full flex flex-col">
+                    <Quote className="w-6 h-6 text-primary/40 mb-3 flex-shrink-0" />
+                    <p className="text-black/70 leading-relaxed flex-1 mb-4">"{t.content}"</p>
+                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-black/8">
+                      <div>
+                        <p className="font-medium text-sm">{t.author_name}</p>
+                        {t.author_title && <p className="text-xs text-black/50 mt-0.5">{t.author_title}</p>}
+                      </div>
+                      <StarRating value={t.rating} readOnly size="sm" />
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       <section className="py-20 px-4 sm:px-6 lg:px-8">

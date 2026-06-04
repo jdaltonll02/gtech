@@ -25,6 +25,10 @@ import { CoursePlayer } from './pages/courses/course-player';
 import { MyLearning } from './pages/courses/my-learning';
 import { CertificatePage } from './pages/courses/certificate';
 import { Docs } from './pages/docs';
+import { Blog } from './pages/blog';
+import { BlogPost } from './pages/blog-post';
+import { Forms } from './pages/forms';
+import { FormPage } from './pages/form-page';
 import { useAuthStore } from './store/authStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -107,6 +111,12 @@ export const router = createBrowserRouter([
         path: 'tickets/:id',
         element: <RequireAuth><TicketDetail /></RequireAuth>,
       },
+      // Blog
+      { path: 'blog', Component: Blog },
+      { path: 'blog/:slug', Component: BlogPost },
+      // Forms
+      { path: 'forms', Component: Forms },
+      { path: 'forms/:slug', Component: FormPage },
       // Courses — public
       { path: 'courses', Component: CourseCatalog },
       { path: 'courses/certificate/:certNumber', Component: CertificatePage },

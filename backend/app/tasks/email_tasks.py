@@ -181,6 +181,38 @@ def send_ticket_notification_task(self, ticket_number: str, subject: str, name: 
         raise self.retry(exc=exc)
 
 
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_course_completion_task")
+def send_course_completion_task(self, to: str, full_name: str, course_title: str, cert_number: str, cert_url: str) -> bool:
+    from app.core.config import settings
+    html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px">
+      <h2 style="color:#8B0000">Congratulations, {full_name}!</h2>
+      <p>You've successfully completed <strong>{course_title}</strong>.</p>
+      <p>Your certificate of completion has been issued.</p>
+      <div style="background:#fdf2f2;border:2px solid #8B0000;border-radius:8px;padding:16px 24px;margin:24px 0;text-align:center">
+        <p style="margin:0;color:#666;font-size:13px">Certificate Number</p>
+        <p style="margin:8px 0 0;font-size:20px;font-weight:bold;color:#8B0000;letter-spacing:2px">{cert_number}</p>
+      </div>
+      <a href="{cert_url}"
+         style="display:inline-block;background:#8B0000;color:#fff;padding:12px 24px;
+                border-radius:8px;text-decoration:none;margin-top:8px">
+        View Certificate
+      </a>
+      <p style="color:#666;font-size:13px;margin-top:24px">
+        Share your achievement and keep building your skills on G-Tech.
+      </p>
+    </div>
+    """
+    try:
+        result = asyncio.run(send_email(to, f"Certificate earned: {course_title}", html))
+        if not result:
+            raise RuntimeError("Email send returned False")
+        return True
+    except Exception as exc:
+        logger.warning("Course completion email failed for %s: %s", to, exc)
+        raise self.retry(exc=exc)
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_ticket_reply_task")
 def send_ticket_reply_task(self, ticket_number: str, subject: str, recipient_email: str, recipient_name: str, reply_content: str, is_admin_reply: bool) -> bool:
     from app.core.config import settings

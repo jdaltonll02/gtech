@@ -11,6 +11,7 @@ from app.models.courses import (
     Lesson, LessonProgress, QuizQuestion, Section,
 )
 from app.models.quiz_attempt import QuizAttempt
+from app.models.ratings import CourseRating
 from app.models.user import User, UserRole
 from app.schemas.courses import (
     AssessmentCreate, AssessmentResponse, AssessmentUpdate,
@@ -22,6 +23,7 @@ from app.schemas.courses import (
     ReorderItem, ReorderRequest,
     SectionCreate, SectionResponse, SectionUpdate,
 )
+from app.schemas.ratings import CourseRatingCreate, CourseRatingResponse, RatingSummary
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -1027,13 +1029,25 @@ async def update_progress(
         enrollment.completed_at = datetime.now(timezone.utc)
         cert_result = await db.execute(select(Certificate).where(Certificate.enrollment_id == enrollment.id))
         if not cert_result.scalar_one_or_none():
+            cert_num = _cert_number(current_user.id, course_id)
             cert = Certificate(
                 enrollment_id=enrollment.id,
                 user_id=current_user.id,
                 course_id=course_id,
-                certificate_number=_cert_number(current_user.id, course_id),
+                certificate_number=cert_num,
             )
             db.add(cert)
+            course_result = await db.execute(select(Course).where(Course.id == course_id))
+            course_obj = course_result.scalar_one_or_none()
+            from app.tasks.email_tasks import send_course_completion_task
+            from app.core.config import settings as _s
+            send_course_completion_task.delay(
+                to=current_user.email,
+                full_name=current_user.full_name or current_user.email,
+                course_title=course_obj.title if course_obj else "your course",
+                cert_number=cert_num,
+                cert_url=f"{_s.FRONTEND_URL}/courses/certificate/{cert_num}",
+            )
 
     await db.flush()
 
@@ -1141,3 +1155,116 @@ async def get_course(course_id: uuid.UUID, db: DB):
         enrollment_count=0,
         sections=[build_section_public(s) for s in top_sections],
     )
+
+
+# ── Course Ratings ────────────────────────────────────────────────────────────
+
+@router.get("/{course_id}/ratings/summary", response_model=RatingSummary)
+async def get_course_rating_summary(course_id: uuid.UUID, db: DB):
+    result = await db.execute(
+        select(CourseRating).where(CourseRating.course_id == course_id)
+    )
+    ratings = result.scalars().all()
+    if not ratings:
+        return RatingSummary(avg_rating=0.0, rating_count=0, distribution={})
+    avg = sum(r.rating for r in ratings) / len(ratings)
+    dist = {i: 0 for i in range(1, 6)}
+    for r in ratings:
+        dist[r.rating] = dist.get(r.rating, 0) + 1
+    return RatingSummary(avg_rating=round(avg, 1), rating_count=len(ratings), distribution=dist)
+
+
+@router.get("/{course_id}/ratings", response_model=List[CourseRatingResponse])
+async def list_course_ratings(course_id: uuid.UUID, db: DB, skip: int = 0, limit: int = 20):
+    result = await db.execute(
+        select(CourseRating)
+        .where(CourseRating.course_id == course_id)
+        .order_by(CourseRating.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+    out = []
+    for r in rows:
+        user_result = await db.execute(select(User).where(User.id == r.user_id))
+        user = user_result.scalar_one_or_none()
+        out.append(CourseRatingResponse(
+            id=r.id, user_id=r.user_id, course_id=r.course_id,
+            rating=r.rating, review=r.review,
+            author_name=user.full_name if user else "Anonymous",
+            created_at=r.created_at, updated_at=r.updated_at,
+        ))
+    return out
+
+
+@router.get("/{course_id}/ratings/me", response_model=Optional[CourseRatingResponse])
+async def get_my_course_rating(course_id: uuid.UUID, db: DB, current_user: CurrentUser):
+    result = await db.execute(
+        select(CourseRating).where(
+            CourseRating.course_id == course_id,
+            CourseRating.user_id == current_user.id,
+        )
+    )
+    r = result.scalar_one_or_none()
+    if not r:
+        return None
+    return CourseRatingResponse(
+        id=r.id, user_id=r.user_id, course_id=r.course_id,
+        rating=r.rating, review=r.review,
+        author_name=current_user.full_name,
+        created_at=r.created_at, updated_at=r.updated_at,
+    )
+
+
+@router.post("/{course_id}/rate", response_model=CourseRatingResponse)
+async def rate_course(course_id: uuid.UUID, payload: CourseRatingCreate, db: DB, current_user: CurrentUser):
+    """Submit or update a rating. User must be enrolled in the course."""
+    enroll_result = await db.execute(
+        select(Enrollment).where(
+            Enrollment.course_id == course_id,
+            Enrollment.user_id == current_user.id,
+        )
+    )
+    if not enroll_result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="You must be enrolled to rate this course.")
+
+    existing = await db.execute(
+        select(CourseRating).where(
+            CourseRating.course_id == course_id,
+            CourseRating.user_id == current_user.id,
+        )
+    )
+    rating = existing.scalar_one_or_none()
+    if rating:
+        rating.rating = payload.rating
+        rating.review = payload.review
+        rating.updated_at = datetime.now(timezone.utc)
+    else:
+        rating = CourseRating(
+            user_id=current_user.id,
+            course_id=course_id,
+            rating=payload.rating,
+            review=payload.review,
+        )
+        db.add(rating)
+    await db.flush()
+    return CourseRatingResponse(
+        id=rating.id, user_id=rating.user_id, course_id=rating.course_id,
+        rating=rating.rating, review=rating.review,
+        author_name=current_user.full_name,
+        created_at=rating.created_at, updated_at=rating.updated_at,
+    )
+
+
+@router.delete("/{course_id}/rate", status_code=204)
+async def delete_course_rating(course_id: uuid.UUID, db: DB, current_user: CurrentUser):
+    result = await db.execute(
+        select(CourseRating).where(
+            CourseRating.course_id == course_id,
+            CourseRating.user_id == current_user.id,
+        )
+    )
+    rating = result.scalar_one_or_none()
+    if rating:
+        await db.delete(rating)
+        await db.flush()

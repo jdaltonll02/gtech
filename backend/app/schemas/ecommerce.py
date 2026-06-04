@@ -130,6 +130,8 @@ class ProductResponse(BaseModel):
     weight: Optional[str] = None
     dimensions: Optional[str] = None
     condition: str = "new"
+    avg_rating: float = 0.0
+    rating_count: int = 0
     model_config = {"from_attributes": True}
 
 

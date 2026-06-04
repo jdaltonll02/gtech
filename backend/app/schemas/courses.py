@@ -263,6 +263,8 @@ class CourseListResponse(BaseModel):
     tags: Optional[str]
     instructor_name: Optional[str]
     enrollment_count: int = 0
+    avg_rating: float = 0.0
+    rating_count: int = 0
     model_config = {"from_attributes": True, "populate_by_name": True}
 
 

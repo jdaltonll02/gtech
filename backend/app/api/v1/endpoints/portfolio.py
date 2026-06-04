@@ -2,9 +2,10 @@ import uuid
 from typing import List
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
-from app.api.deps import AdminUser, DB
+from app.api.deps import AdminUser, CurrentUser, DB
 from app.db.redis import cache_delete_pattern, cache_get, cache_set
 from app.models.portfolio import Certification, Education, Experience, ProfileSettings, Project, Publication, Skill
+from app.models.ratings import Testimonial
 from app.schemas.portfolio import (
     CertificationCreate, CertificationResponse, CertificationUpdate,
     EducationCreate, EducationResponse, EducationUpdate,
@@ -14,6 +15,7 @@ from app.schemas.portfolio import (
     PublicationCreate, PublicationResponse, PublicationUpdate,
     SkillCreate, SkillResponse, SkillUpdate,
 )
+from app.schemas.ratings import TestimonialCreate, TestimonialResponse, TestimonialApprove
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
@@ -364,3 +366,65 @@ async def update_profile(payload: ProfileSettingsUpdate, db: DB, _: AdminUser):
     await db.flush()
     await cache_delete_pattern("profile:*")
     return obj
+
+
+# ── Testimonials ──────────────────────────────────────────────────────────────
+
+@router.get("/testimonials", response_model=List[TestimonialResponse])
+async def list_testimonials(db: DB):
+    """Return all approved testimonials (public)."""
+    cached = await cache_get("testimonials:approved")
+    if cached:
+        return cached
+    result = await db.execute(
+        select(Testimonial).where(Testimonial.is_approved == True).order_by(Testimonial.created_at.desc())
+    )
+    data = [TestimonialResponse.model_validate(t).model_dump(mode="json") for t in result.scalars()]
+    await cache_set("testimonials:approved", data, ttl=300)
+    return data
+
+
+@router.post("/testimonials", response_model=TestimonialResponse, status_code=201)
+async def submit_testimonial(payload: TestimonialCreate, db: DB, current_user: CurrentUser):
+    """Submit a testimonial (authenticated users). Requires admin approval before appearing publicly."""
+    obj = Testimonial(
+        user_id=current_user.id,
+        author_name=payload.author_name or current_user.full_name,
+        author_title=payload.author_title,
+        content=payload.content,
+        rating=payload.rating,
+        is_approved=False,
+    )
+    db.add(obj)
+    await db.flush()
+    return obj
+
+
+@router.get("/admin/testimonials", response_model=List[TestimonialResponse])
+async def admin_list_testimonials(db: DB, _: AdminUser):
+    """Return all testimonials including pending (admin only)."""
+    result = await db.execute(select(Testimonial).order_by(Testimonial.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.patch("/admin/testimonials/{testimonial_id}", response_model=TestimonialResponse)
+async def admin_update_testimonial(testimonial_id: uuid.UUID, payload: TestimonialApprove, db: DB, _: AdminUser):
+    result = await db.execute(select(Testimonial).where(Testimonial.id == testimonial_id))
+    obj = result.scalar_one_or_none()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Testimonial not found")
+    obj.is_approved = payload.is_approved
+    await db.flush()
+    await cache_delete_pattern("testimonials:*")
+    return obj
+
+
+@router.delete("/admin/testimonials/{testimonial_id}", status_code=204)
+async def admin_delete_testimonial(testimonial_id: uuid.UUID, db: DB, _: AdminUser):
+    result = await db.execute(select(Testimonial).where(Testimonial.id == testimonial_id))
+    obj = result.scalar_one_or_none()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Testimonial not found")
+    await db.delete(obj)
+    await db.flush()
+    await cache_delete_pattern("testimonials:*")

@@ -1,18 +1,22 @@
 import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.api.deps import AdminUser, CurrentUser, DB
 from app.core.config import settings
 from app.models.ecommerce import CartItem, Category, Order, OrderItem, OrderStatus, PaymentStatus, Product
+from app.models.ratings import ProductRating
+from app.models.user import User
 from app.schemas.ecommerce import (
     CartItemAdd, CartItemResponse, CartItemUpdate, CartResponse,
     CategoryCreate, CategoryResponse, CategoryUpdate,
     CheckoutRequest, OrderResponse,
     ProductCreate, ProductResponse, ProductUpdate,
 )
+from app.schemas.ratings import ProductRatingCreate, ProductRatingResponse, RatingSummary
 
 router = APIRouter(prefix="/ecommerce", tags=["ecommerce"])
 
@@ -309,3 +313,111 @@ async def create_order_from_cart(payload: CheckoutRequest, db: DB, current_user:
     await db.flush()
     await db.refresh(order, ["items"])
     return order
+
+
+# ── Product Ratings ───────────────────────────────────────────────────────────
+
+@router.get("/products/{product_id}/ratings/summary", response_model=RatingSummary)
+async def get_product_rating_summary(product_id: uuid.UUID, db: DB):
+    result = await db.execute(
+        select(ProductRating).where(ProductRating.product_id == product_id)
+    )
+    ratings = result.scalars().all()
+    if not ratings:
+        return RatingSummary(avg_rating=0.0, rating_count=0, distribution={})
+    avg = sum(r.rating for r in ratings) / len(ratings)
+    dist = {i: 0 for i in range(1, 6)}
+    for r in ratings:
+        dist[r.rating] = dist.get(r.rating, 0) + 1
+    return RatingSummary(avg_rating=round(avg, 1), rating_count=len(ratings), distribution=dist)
+
+
+@router.get("/products/{product_id}/ratings", response_model=List[ProductRatingResponse])
+async def list_product_ratings(product_id: uuid.UUID, db: DB, skip: int = 0, limit: int = 20):
+    result = await db.execute(
+        select(ProductRating)
+        .where(ProductRating.product_id == product_id)
+        .order_by(ProductRating.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+    out = []
+    for r in rows:
+        user_result = await db.execute(select(User).where(User.id == r.user_id))
+        user = user_result.scalar_one_or_none()
+        out.append(ProductRatingResponse(
+            id=r.id, user_id=r.user_id, product_id=r.product_id,
+            rating=r.rating, review=r.review,
+            author_name=user.full_name if user else "Anonymous",
+            created_at=r.created_at, updated_at=r.updated_at,
+        ))
+    return out
+
+
+@router.get("/products/{product_id}/ratings/me", response_model=Optional[ProductRatingResponse])
+async def get_my_product_rating(product_id: uuid.UUID, db: DB, current_user: CurrentUser):
+    result = await db.execute(
+        select(ProductRating).where(
+            ProductRating.product_id == product_id,
+            ProductRating.user_id == current_user.id,
+        )
+    )
+    r = result.scalar_one_or_none()
+    if not r:
+        return None
+    return ProductRatingResponse(
+        id=r.id, user_id=r.user_id, product_id=r.product_id,
+        rating=r.rating, review=r.review,
+        author_name=current_user.full_name,
+        created_at=r.created_at, updated_at=r.updated_at,
+    )
+
+
+@router.post("/products/{product_id}/rate", response_model=ProductRatingResponse)
+async def rate_product(product_id: uuid.UUID, payload: ProductRatingCreate, db: DB, current_user: CurrentUser):
+    """Submit or update a product rating (any authenticated user)."""
+    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    if not product_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    existing = await db.execute(
+        select(ProductRating).where(
+            ProductRating.product_id == product_id,
+            ProductRating.user_id == current_user.id,
+        )
+    )
+    rating = existing.scalar_one_or_none()
+    if rating:
+        rating.rating = payload.rating
+        rating.review = payload.review
+        rating.updated_at = datetime.now(timezone.utc)
+    else:
+        rating = ProductRating(
+            user_id=current_user.id,
+            product_id=product_id,
+            rating=payload.rating,
+            review=payload.review,
+        )
+        db.add(rating)
+    await db.flush()
+    return ProductRatingResponse(
+        id=rating.id, user_id=rating.user_id, product_id=rating.product_id,
+        rating=rating.rating, review=rating.review,
+        author_name=current_user.full_name,
+        created_at=rating.created_at, updated_at=rating.updated_at,
+    )
+
+
+@router.delete("/products/{product_id}/rate", status_code=204)
+async def delete_product_rating(product_id: uuid.UUID, db: DB, current_user: CurrentUser):
+    result = await db.execute(
+        select(ProductRating).where(
+            ProductRating.product_id == product_id,
+            ProductRating.user_id == current_user.id,
+        )
+    )
+    rating = result.scalar_one_or_none()
+    if rating:
+        await db.delete(rating)
+        await db.flush()
