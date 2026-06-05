@@ -175,6 +175,9 @@ export function CoursePlayer() {
     return () => clearInterval(saveInterval.current);
   }, [currentLesson?.id]);
 
+  // Must be declared before any early return — hooks must run unconditionally.
+  const nextLessonRef = useRef<Lesson | null>(null);
+
   // ── Video ended ───────────────────────────────────────────────────────────────
   const handleVideoEnded = useCallback(async () => {
     const secs = videoRef.current ? Math.floor(videoRef.current.currentTime) : 0;
@@ -201,8 +204,7 @@ export function CoursePlayer() {
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
-  // Keep a ref so the async handleVideoEnded always sees the latest nextLesson
-  const nextLessonRef = useRef(nextLesson);
+  // Keep ref in sync so async callbacks always see the latest value.
   nextLessonRef.current = nextLesson;
 
   const progress = getCourseProgress(course.id);

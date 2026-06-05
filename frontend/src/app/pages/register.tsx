@@ -42,7 +42,7 @@ export function Register() {
         full_name: `${form.firstName} ${form.lastName}`.trim(),
         password: form.password,
       });
-      navigate('/login?registered=1');
+      navigate(`/login?registered=1&email=${encodeURIComponent(form.email)}`);
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {

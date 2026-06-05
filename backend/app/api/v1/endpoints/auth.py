@@ -161,6 +161,11 @@ async def login(payload: LoginRequest, db: DB):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled")
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="email_not_verified",
+        )
 
     # If 2FA is enabled, generate and send an OTP instead of returning tokens
     if user.two_factor_enabled:
@@ -241,16 +246,23 @@ async def verify_email(token: str, db: DB):
     return {"message": "Email verified successfully"}
 
 
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 @router.post("/resend-verification", status_code=200)
-async def resend_verification(current_user: CurrentUser, db: DB):
-    """Resend the verification email to the currently logged-in user."""
-    if current_user.is_verified:
-        return {"message": "Email already verified"}
+async def resend_verification(payload: ResendVerificationRequest, db: DB):
+    """Resend the verification email. Public endpoint — no auth required."""
+    result = await db.execute(select(User).where(User.email == str(payload.email)))
+    user = result.scalar_one_or_none()
+    # Always return the same message to avoid leaking whether an email is registered
+    if not user or user.is_verified:
+        return {"message": "If this account exists and is unverified, a new verification email has been sent."}
     token = secrets.token_urlsafe(32)
-    current_user.verification_token = token
+    user.verification_token = token
     await db.flush()
-    await send_verification_email(current_user.email, current_user.full_name, token)
-    return {"message": "Verification email sent"}
+    await send_verification_email(user.email, user.full_name, token)
+    return {"message": "Verification email sent. Please check your inbox."}
 
 
 @router.get("/oauth-token")
@@ -323,6 +335,9 @@ async def google_callback(code: str, db: DB):
         db.add(user)
 
     await db.flush()
+
+    if not user.is_active:
+        return RedirectResponse(f"{settings.FRONTEND_URL}/login?error=account_disabled")
 
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id))

@@ -228,6 +228,7 @@ function CourseDetailInner() {
 
   const enrolled = isAuthenticated && isEnrolled(course.id);
   const progress = isAuthenticated ? getCourseProgress(course.id) : 0;
+  if (!enrolled && activeTab === 'assistant') setActiveTab('content');
   const totalLessons = course.sections?.reduce((a, s) => a + s.lessons.length, 0) ?? 0;
 
   const toggleSection = (id: string) =>
@@ -325,7 +326,7 @@ function CourseDetailInner() {
               </div>
             )}
 
-            {/* ── Tab bar ── */}
+            {/* ── Tab bar — Classroom Assistant only visible to enrolled users ── */}
             <div className="flex gap-1 mb-6 border-b border-black/10">
               <button
                 type="button"
@@ -334,16 +335,18 @@ function CourseDetailInner() {
               >
                 <BookOpen className="w-4 h-4" /> Course Content
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('assistant')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'assistant' ? 'border-primary text-primary' : 'border-transparent text-black/50 hover:text-black/70'}`}
-              >
-                <Bot className="w-4 h-4" /> Classroom Assistant
-              </button>
+              {enrolled && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('assistant')}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'assistant' ? 'border-primary text-primary' : 'border-transparent text-black/50 hover:text-black/70'}`}
+                >
+                  <Bot className="w-4 h-4" /> Classroom Assistant
+                </button>
+              )}
             </div>
 
-            {activeTab === 'assistant' && (
+            {enrolled && activeTab === 'assistant' && (
               <GlassCard className="overflow-hidden mb-8">
                 <ClassroomAssistant courseId={course.id} courseTitle={course.title} />
               </GlassCard>

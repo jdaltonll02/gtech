@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldCheck, Mail } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -14,10 +14,12 @@ export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const justRegistered = searchParams.get('registered') === '1';
+  const registeredEmail = searchParams.get('email') ?? '';
+  const oauthError = searchParams.get('error');
   const redirectTo = searchParams.get('redirect') || '/';
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: registeredEmail, password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,8 +29,12 @@ export function Login() {
   const [otp, setOtp] = useState('');
   const [resending, setResending] = useState(false);
 
+  // Unverified email state
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
   // Handle Google OAuth redirect — backend sends a short-lived state key, exchange it for tokens
-  useState(() => {
+  useEffect(() => {
     const oauthState = searchParams.get('oauth_state');
     if (!oauthState) return;
     api.get<{ access_token: string; refresh_token: string }>(`/auth/oauth-token?state=${oauthState}`)
@@ -42,7 +48,8 @@ export function Login() {
           });
       })
       .catch(() => setError('Google sign-in failed. Please try again.'));
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
@@ -51,6 +58,8 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setUnverifiedEmail('');
+    setResendStatus('idle');
     setLoading(true);
     try {
       const data = await api.post<any>('/auth/login', { email: form.email, password: form.password });
@@ -71,9 +80,24 @@ export function Login() {
       }
     } catch (err: any) {
       localStorage.removeItem('access_token');
-      setError(err.message || 'Invalid credentials.');
+      if (err.message === 'email_not_verified') {
+        setUnverifiedEmail(form.email);
+      } else {
+        setError(err.message || 'Invalid credentials.');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return;
+    setResendStatus('sending');
+    try {
+      await api.post('/auth/resend-verification', { email: unverifiedEmail });
+      setResendStatus('sent');
+    } catch {
+      setResendStatus('error');
     }
   };
 
@@ -134,9 +158,39 @@ export function Login() {
               <GlassCard className="p-8">
                 <form className="space-y-6" onSubmit={handleSubmit}>
                   {justRegistered && (
-                    <p className="text-sm text-green-600 text-center">Account created! Please sign in.</p>
+                    <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700 text-center">
+                      Account created! Check your email to verify your account before signing in.
+                    </div>
                   )}
-                  {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                  {oauthError === 'account_disabled' && (
+                    <p className="text-sm text-red-500 text-center">Your account has been disabled. Please contact support.</p>
+                  )}
+                  {unverifiedEmail ? (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-center space-y-3">
+                      <Mail className="w-8 h-8 text-amber-500 mx-auto" />
+                      <p className="text-sm font-medium text-amber-800">Email not verified</p>
+                      <p className="text-xs text-amber-700">
+                        Please check your inbox and click the verification link before signing in.
+                      </p>
+                      {resendStatus === 'sent' ? (
+                        <p className="text-xs text-green-600 font-medium">Verification email sent! Check your inbox.</p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendVerification}
+                          disabled={resendStatus === 'sending'}
+                          className="text-xs text-amber-700 underline hover:text-amber-900 disabled:opacity-50"
+                        >
+                          {resendStatus === 'sending' ? 'Sending…' : 'Resend verification email'}
+                        </button>
+                      )}
+                      {resendStatus === 'error' && (
+                        <p className="text-xs text-red-500">Failed to send. Try again later.</p>
+                      )}
+                    </div>
+                  ) : (
+                    error && <p className="text-sm text-red-500 text-center">{error}</p>
+                  )}
 
                   <div>
                     <Label htmlFor="email">Email Address</Label>
