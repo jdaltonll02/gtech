@@ -32,8 +32,24 @@ def create_access_token(subject: Any) -> str:
     return _create_token(subject, "access", timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
 
 
-def create_refresh_token(subject: Any) -> str:
-    return _create_token(subject, "refresh", timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
+def create_refresh_token(subject: Any, session_iat: Optional[float] = None) -> str:
+    """Create a refresh token.
+
+    session_iat is the Unix timestamp of the original login.  Pass it on every
+    rotation so that the absolute session ceiling is preserved across refreshes.
+    When omitted (new login) the current time is used.
+    """
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    payload = {
+        "sub": str(subject),
+        "type": "refresh",
+        "exp": expire,
+        "iat": now,
+        "jti": str(_uuid.uuid4()),
+        "session_iat": session_iat if session_iat is not None else now.timestamp(),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def decode_token(token: str, expected_type: str = "access") -> dict:

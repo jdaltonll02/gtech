@@ -9,12 +9,12 @@ import {
 import { GlassCard } from '../../components/glass-card';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
-import { useCourseStore, type Enrollment, type Certificate } from '../../store/courseStore';
+import { useCourseStore, type Enrollment, type Certificate, type Badge } from '../../store/courseStore';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../utils/api';
 import { cn } from '../../components/ui/utils';
 
-type Tab = 'all' | 'inprogress' | 'completed' | 'certificates';
+type Tab = 'all' | 'inprogress' | 'completed' | 'certificates' | 'badges';
 type SortKey = 'recent' | 'progress' | 'title';
 
 function ProgressRing({ percent, size = 48, stroke = 4 }: { percent: number; size?: number; stroke?: number }) {
@@ -196,6 +196,27 @@ function CourseCard({ enrollment }: { enrollment: Enrollment }) {
   );
 }
 
+function BadgeCard({ badge }: { badge: Badge }) {
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}>
+      <GlassCard className="p-6 border border-green-200 bg-gradient-to-br from-green-50/50 to-white flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-green-100 flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-7 h-7 text-green-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm leading-snug mb-1">{badge.title}</h3>
+            <p className="text-xs text-black/40 capitalize mb-0.5">{badge.badge_type.replace('_', ' ')}</p>
+            <p className="text-xs text-black/40">
+              Earned {new Date(badge.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+}
+
 function CertificateCard({ cert }: { cert: Certificate }) {
   const navigate = useNavigate();
   return (
@@ -233,7 +254,7 @@ export function MyLearning() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
   const user = useAuthStore((s) => s.user);
-  const { enrollments, certificates, setEnrollments, setCertificates } = useCourseStore();
+  const { enrollments, certificates, badges, setEnrollments, setCertificates, setBadges } = useCourseStore();
   const [tab, setTab] = useState<Tab>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('recent');
@@ -244,9 +265,11 @@ export function MyLearning() {
     Promise.all([
       api.get<Enrollment[]>('/courses/my/enrollments'),
       api.get<Certificate[]>('/courses/my/certificates'),
-    ]).then(([enrs, certs]) => {
+      api.get<Badge[]>('/courses/my/badges'),
+    ]).then(([enrs, certs, bdgs]) => {
       setEnrollments(enrs);
       setCertificates(certs);
+      setBadges(bdgs);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [isAuthenticated]);
 
@@ -287,6 +310,7 @@ export function MyLearning() {
     { id: 'inprogress', label: 'In Progress', count: enrollments.filter((e) => e.status !== 'completed').length },
     { id: 'completed', label: 'Completed', count: completedCount },
     { id: 'certificates', label: 'Certificates', count: certificates.length },
+    { id: 'badges', label: 'Badges', count: badges.length },
   ];
 
   return (
@@ -357,7 +381,7 @@ export function MyLearning() {
           </div>
 
           {/* ── Course tabs ── */}
-          {tab !== 'certificates' && (
+          {tab !== 'certificates' && tab !== 'badges' && (
             <>
               {/* Search + Sort */}
               <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -421,6 +445,33 @@ export function MyLearning() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {certificates.map((cert) => (
                       <CertificateCard key={cert.id} cert={cert} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+          {/* ── Badges tab ── */}
+          {tab === 'badges' && (
+            <>
+              {badges.length === 0 ? (
+                <GlassCard className="p-16 text-center">
+                  <CheckCircle className="w-14 h-14 text-black/15 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-black/40 mb-2">No badges yet</p>
+                  <p className="text-sm text-black/30 mb-6">Complete a course to earn your first achievement badge.</p>
+                  <Button onClick={() => navigate('/courses')}>Browse Catalog</Button>
+                </GlassCard>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <p className="text-sm text-green-700">
+                      You've earned <strong>{badges.length}</strong> badge{badges.length !== 1 ? 's' : ''}. Keep learning!
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {badges.map((badge) => (
+                      <BadgeCard key={badge.id} badge={badge} />
                     ))}
                   </div>
                 </>

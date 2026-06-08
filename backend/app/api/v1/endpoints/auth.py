@@ -245,9 +245,19 @@ async def refresh(payload: RefreshRequest, db: DB):
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    # Enforce absolute session ceiling — force re-login after MAX_SESSION_DAYS.
+    session_iat: float = token_data.get("session_iat") or token_data.get("iat", 0)
+    session_age_days = (datetime.now(timezone.utc).timestamp() - session_iat) / 86400
+    if session_age_days > settings.MAX_SESSION_DAYS:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired. Please sign in again.",
+        )
+
     return TokenResponse(
         access_token=create_access_token(str(user.id)),
-        refresh_token=create_refresh_token(str(user.id)),
+        refresh_token=create_refresh_token(str(user.id), session_iat=session_iat),
     )
 
 

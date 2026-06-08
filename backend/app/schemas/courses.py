@@ -312,7 +312,9 @@ class LessonProgressResponse(BaseModel):
     is_completed: bool
     watch_position_seconds: int
     completed_at: Optional[datetime]
-    progress_percent: float = 0.0  # enrollment-level progress, echoed back
+    progress_percent: float = 0.0
+    certificate_number: Optional[str] = None
+    badge_issued: bool = False
     model_config = {"from_attributes": True}
 
 
@@ -337,6 +339,19 @@ class CertificatePublicResponse(BaseModel):
     instructor_name: Optional[str] = None
     estimated_hours: Optional[float] = None
     level: Optional[str] = None
+
+
+# ── Badge ─────────────────────────────────────────────────────────────────────
+
+class BadgeResponse(BaseModel):
+    id: UUID
+    enrollment_id: UUID
+    course_id: UUID
+    badge_type: str
+    title: str
+    issued_at: datetime
+    course: CourseListResponse
+    model_config = {"from_attributes": True}
 
 
 # ── Course Payment ─────────────────────────────────────────────────────────────

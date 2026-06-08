@@ -256,6 +256,22 @@ class Certificate(Base):
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
 
 
+class Badge(Base):
+    __tablename__ = "badges"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    enrollment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("enrollments.id", ondelete="CASCADE"), unique=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"))
+    badge_type: Mapped[str] = mapped_column(String(50), nullable=False, default="course_completion")
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    enrollment: Mapped["Enrollment"] = relationship("Enrollment")
+    course: Mapped["Course"] = relationship("Course")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+
 class CoursePaymentStatus(str, PyEnum):
     PENDING = "pending"
     PAID = "paid"

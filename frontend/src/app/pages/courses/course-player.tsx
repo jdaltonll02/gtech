@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, ChevronRight, CheckCircle, Circle, PlayCircle, FileText,
-  Code2, ChevronDown, ChevronUp, Menu, X, Award, BookOpen, Bot,
+  Code2, ChevronDown, ChevronUp, Menu, X, Award, BookOpen, Bot, Download, Share2,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { ContentBlockRenderer } from '../../components/course/ContentBlockRenderer';
@@ -52,6 +52,7 @@ export function CoursePlayer() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
+  const [completionModal, setCompletionModal] = useState<{ certNumber: string; courseTitle: string; badgeIssued: boolean } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const saveInterval = useRef<ReturnType<typeof setInterval>>();
 
@@ -119,20 +120,32 @@ export function CoursePlayer() {
   const postProgress = useCallback(async (isCompleted: boolean, watchSeconds = 0) => {
     if (!courseId || !currentLesson) return;
     try {
-      const res = await api.post<{ is_completed: boolean; progress_percent: number }>(
+      const res = await api.post<{
+        is_completed: boolean;
+        progress_percent: number;
+        certificate_number?: string;
+        badge_issued?: boolean;
+      }>(
         `/courses/${courseId}/lessons/${currentLesson.id}/progress`,
         { watch_position_seconds: watchSeconds, is_completed: isCompleted },
       );
       if (res.is_completed) markLessonComplete(courseId, currentLesson.id);
-      // Sync the server-calculated progress_percent back into the enrollment store
-      // so the progress ring in the sidebar updates immediately.
       setEnrollments(
         useCourseStore.getState().enrollments.map((e) =>
-          e.course_id === courseId ? { ...e, progress_percent: res.progress_percent } : e,
+          e.course_id === courseId
+            ? { ...e, progress_percent: res.progress_percent, status: res.progress_percent >= 100 ? 'completed' : e.status }
+            : e,
         ),
       );
+      if (res.certificate_number && currentCourse) {
+        setCompletionModal({
+          certNumber: res.certificate_number,
+          courseTitle: currentCourse.title,
+          badgeIssued: res.badge_issued ?? false,
+        });
+      }
     } catch { /* non-blocking — silently ignore */ }
-  }, [courseId, currentLesson]);
+  }, [courseId, currentLesson, currentCourse]);
 
   // ── Auto-complete text / code / document lessons after 15 s on page ─────────
   useEffect(() => {
@@ -162,16 +175,22 @@ export function CoursePlayer() {
 
       // Only send is_completed=true when we've actually crossed 70%; otherwise
       // just save the position so the backend can track watch time.
-      api.post<{ is_completed: boolean; progress_percent: number }>(
+      api.post<{ is_completed: boolean; progress_percent: number; certificate_number?: string; badge_issued?: boolean }>(
         `/courses/${courseId}/lessons/${currentLesson.id}/progress`,
         { watch_position_seconds: pos, is_completed: reached70 },
       ).then((res) => {
         if (res.is_completed) markLessonComplete(courseId, currentLesson.id);
         setEnrollments(
           useCourseStore.getState().enrollments.map((e) =>
-            e.course_id === courseId ? { ...e, progress_percent: res.progress_percent } : e,
+            e.course_id === courseId
+              ? { ...e, progress_percent: res.progress_percent, status: res.progress_percent >= 100 ? 'completed' : e.status }
+              : e,
           ),
         );
+        if (res.certificate_number) {
+          const course = useCourseStore.getState().currentCourse;
+          if (course) setCompletionModal({ certNumber: res.certificate_number, courseTitle: course.title, badgeIssued: res.badge_issued ?? false });
+        }
       }).catch(() => {});
     }, 5000);
     return () => clearInterval(saveInterval.current);
@@ -483,6 +502,128 @@ export function CoursePlayer() {
           >
             <ClassroomAssistant courseId={course.id} courseTitle={course.title} />
           </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* ── Course Completion Modal ── */}
+      <AnimatePresence>
+        {completionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+            onClick={() => setCompletionModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-10 text-center relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-4 text-black/30 hover:text-black transition-colors"
+                onClick={() => setCompletionModal(null)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Medal icon */}
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center shadow-lg">
+                    <Award className="w-12 h-12 text-white" />
+                  </div>
+                  <motion.div
+                    className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: 'spring' }}
+                  >
+                    <CheckCircle className="w-4 h-4 text-white" />
+                  </motion.div>
+                </div>
+              </div>
+
+              <p className="text-sm uppercase tracking-widest text-black/40 mb-2">Congratulations!</p>
+              <h2 className="text-2xl font-bold mb-2">Course Complete</h2>
+              <p className="text-black/60 mb-6">
+                You've successfully completed<br />
+                <span className="font-semibold text-black">{completionModal.courseTitle}</span>
+              </p>
+
+              {/* Certificate info */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Award className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-amber-800">Certificate Issued</p>
+                    <p className="text-xs font-mono text-amber-600">#{completionModal.certNumber}</p>
+                  </div>
+                </div>
+              </div>
+
+              {completionModal.badgeIssued && (
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-green-800">Achievement Badge Earned</p>
+                      <p className="text-xs text-green-600">Course Completion Badge</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setCompletionModal(null);
+                    navigate(`/courses/certificate/${completionModal.certNumber}`);
+                  }}
+                >
+                  <Award className="w-4 h-4 mr-2" /> View Certificate
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'Course Certificate',
+                          url: `${window.location.origin}/courses/certificate/${completionModal.certNumber}`,
+                        });
+                      } else {
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/courses/certificate/${completionModal.certNumber}`,
+                        );
+                      }
+                    }}
+                  >
+                    <Share2 className="w-4 h-4 mr-1" /> Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setCompletionModal(null);
+                      navigate('/courses/my-learning');
+                    }}
+                  >
+                    My Learning
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

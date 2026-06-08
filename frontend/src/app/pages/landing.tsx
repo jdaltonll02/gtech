@@ -56,25 +56,22 @@ function LogoCarousel({ items, label }: { items: { id: string; name: string; log
 
 const bannerSlides = [
   {
-    // Students in a STEM/coding classroom environment
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=80',
+    image: '/img/stem_education.png',
     eyebrow: 'STEM Education',
     title: 'Structured learning pathways for the next generation of innovators.',
     copy: 'From foundational STEM concepts to advanced applied technology, our courses are built to develop real competence — not just credentials.',
   },
   {
-    // Team collaborating on tech startup / entrepreneurship
-    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80',
-    eyebrow: 'Tech Entrepreneurship',
-    title: 'Turning ideas into scalable ventures through technology.',
-    copy: 'We work with founders, institutions, and innovators to build the technical foundation that makes entrepreneurship viable at a global scale.',
-  },
-  {
-    // Scientific research / lab innovation
-    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1600&q=80',
+    image: '/img/research_and_innovation.png',
     eyebrow: 'Research & Innovation',
     title: 'Applied research that bridges science, engineering, and market impact.',
     copy: 'G-Tech pursues research partnerships across academia, industry, and government — translating discovery into deployable solutions.',
+  },
+  {
+    image: '/img/tech_entrepreneurship.png',
+    eyebrow: 'Tech Entrepreneurship',
+    title: 'Turning ideas into scalable ventures through technology.',
+    copy: 'We work with founders, institutions, and innovators to build the technical foundation that makes entrepreneurship viable at a global scale.',
   },
 ];
 

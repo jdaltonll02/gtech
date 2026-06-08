@@ -6,7 +6,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from app.api.deps import AdminUser, CourseAdminUser, CurrentUser, DB, get_user_assigned_course_ids
 from app.models.courses import (
-    Assessment, Certificate, ContentBlock, Course, CoursePayment, CoursePaymentStatus,
+    Assessment, Badge, Certificate, ContentBlock, Course, CoursePayment, CoursePaymentStatus,
     Enrollment, EnrollmentStatus,
     Lesson, LessonProgress, QuizQuestion, Section,
 )
@@ -15,6 +15,7 @@ from app.models.ratings import CourseRating
 from app.models.user import User, UserRole
 from app.schemas.courses import (
     AssessmentCreate, AssessmentResponse, AssessmentUpdate,
+    BadgeResponse,
     CertificateResponse, CertificatePublicResponse, ContentBlockCreate, ContentBlockResponse, ContentBlockUpdate,
     ConfirmCoursePaymentRequest, CourseCreate, CourseDetailResponse, CourseListResponse, CoursePaymentIntentResponse, CourseUpdate,
     EnrollmentResponse, EnrollmentAdminResponse, LessonCreate, LessonDetailResponse, LessonProgressResponse,
@@ -335,6 +336,29 @@ async def my_certificates(db: DB, current_user: CurrentUser):
             course=CourseListResponse(**_add_enrollment_count(c.course, 0)),
         )
         for c in certs
+    ]
+
+
+@router.get("/my/badges", response_model=List[BadgeResponse])
+async def my_badges(db: DB, current_user: CurrentUser):
+    result = await db.execute(
+        select(Badge)
+        .options(selectinload(Badge.course))
+        .where(Badge.user_id == current_user.id)
+        .order_by(Badge.issued_at.desc())
+    )
+    badges = result.scalars().all()
+    return [
+        BadgeResponse(
+            id=b.id,
+            enrollment_id=b.enrollment_id,
+            course_id=b.course_id,
+            badge_type=b.badge_type,
+            title=b.title,
+            issued_at=b.issued_at,
+            course=CourseListResponse(**_add_enrollment_count(b.course, 0)),
+        )
+        for b in badges
     ]
 
 
@@ -1023,12 +1047,18 @@ async def update_progress(
     # Recalculate overall progress
     enrollment.progress_percent = await _recalculate_progress(enrollment, db)
 
-    # Auto-complete enrollment and issue certificate when all lessons done
+    # Auto-complete enrollment, issue certificate + badge when all lessons done
+    issued_cert_number: Optional[str] = None
+    badge_issued = False
     if enrollment.progress_percent >= 100.0 and enrollment.status == EnrollmentStatus.ACTIVE:
         enrollment.status = EnrollmentStatus.COMPLETED
         enrollment.completed_at = datetime.now(timezone.utc)
+
         cert_result = await db.execute(select(Certificate).where(Certificate.enrollment_id == enrollment.id))
-        if not cert_result.scalar_one_or_none():
+        existing_cert = cert_result.scalar_one_or_none()
+        if not existing_cert:
+            course_result = await db.execute(select(Course).where(Course.id == course_id))
+            course_obj = course_result.scalar_one_or_none()
             cert_num = _cert_number(current_user.id, course_id)
             cert = Certificate(
                 enrollment_id=enrollment.id,
@@ -1037,8 +1067,20 @@ async def update_progress(
                 certificate_number=cert_num,
             )
             db.add(cert)
-            course_result = await db.execute(select(Course).where(Course.id == course_id))
-            course_obj = course_result.scalar_one_or_none()
+            issued_cert_number = cert_num
+
+            badge_result = await db.execute(select(Badge).where(Badge.enrollment_id == enrollment.id))
+            if not badge_result.scalar_one_or_none():
+                badge = Badge(
+                    enrollment_id=enrollment.id,
+                    user_id=current_user.id,
+                    course_id=course_id,
+                    badge_type="course_completion",
+                    title=f"Completed: {course_obj.title if course_obj else 'Course'}",
+                )
+                db.add(badge)
+                badge_issued = True
+
             from app.tasks.email_tasks import send_course_completion_task
             from app.core.config import settings as _s
             send_course_completion_task.delay(
@@ -1048,6 +1090,8 @@ async def update_progress(
                 cert_number=cert_num,
                 cert_url=f"{_s.FRONTEND_URL}/courses/certificate/{cert_num}",
             )
+        else:
+            issued_cert_number = existing_cert.certificate_number
 
     await db.flush()
 
@@ -1057,6 +1101,8 @@ async def update_progress(
         watch_position_seconds=progress.watch_position_seconds,
         completed_at=progress.completed_at,
         progress_percent=enrollment.progress_percent,
+        certificate_number=issued_cert_number,
+        badge_issued=badge_issued,
     )
 
 

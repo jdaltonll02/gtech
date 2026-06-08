@@ -112,6 +112,16 @@ export interface Certificate {
   course: Course;
 }
 
+export interface Badge {
+  id: string;
+  enrollment_id: string;
+  course_id: string;
+  badge_type: string;
+  title: string;
+  issued_at: string;
+  course: Course;
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 interface CourseState {
@@ -122,6 +132,7 @@ interface CourseState {
   // User data
   enrollments: Enrollment[];
   certificates: Certificate[];
+  badges: Badge[];
 
   // Progress: keyed by course_id → lesson_id → LessonProgress
   progress: Record<string, Record<string, LessonProgress>>;
@@ -138,6 +149,7 @@ interface CourseState {
   setCurrentCourse: (course: Course | null) => void;
   setEnrollments: (enrollments: Enrollment[]) => void;
   setCertificates: (certs: Certificate[]) => void;
+  setBadges: (badges: Badge[]) => void;
   addEnrollment: (enrollment: Enrollment) => void;
   setActiveLessonId: (id: string | null) => void;
   setLoading: (v: boolean) => void;
@@ -155,6 +167,7 @@ interface CourseState {
   getCourseProgress: (courseId: string) => number;
   isEnrolled: (courseId: string) => boolean;
   hasCertificate: (courseId: string) => boolean;
+  hasBadge: (courseId: string) => boolean;
 }
 
 export const useCourseStore = create<CourseState>()(
@@ -164,6 +177,7 @@ export const useCourseStore = create<CourseState>()(
       currentCourse: null,
       enrollments: [],
       certificates: [],
+      badges: [],
       progress: {},
       activeLessonId: null,
       loading: false,
@@ -173,12 +187,13 @@ export const useCourseStore = create<CourseState>()(
       setCurrentCourse: (course) => set({ currentCourse: course }),
       setEnrollments: (enrollments) => set({ enrollments }),
       setCertificates: (certs) => set({ certificates: certs }),
+      setBadges: (badges) => set({ badges }),
       addEnrollment: (enrollment) =>
         set((s) => ({ enrollments: [enrollment, ...s.enrollments.filter((e) => e.course_id !== enrollment.course_id)] })),
       setActiveLessonId: (id) => set({ activeLessonId: id }),
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
-      clearUserData: () => set({ enrollments: [], certificates: [], progress: {}, activeLessonId: null }),
+      clearUserData: () => set({ enrollments: [], certificates: [], badges: [], progress: {}, activeLessonId: null }),
 
       updateLessonProgress: (courseId, lessonId, progress) =>
         set((s) => ({
@@ -228,10 +243,12 @@ export const useCourseStore = create<CourseState>()(
       isEnrolled: (courseId) => get().enrollments.some((e) => e.course_id === courseId && e.status !== 'dropped'),
 
       hasCertificate: (courseId) => get().certificates.some((c) => c.course_id === courseId),
+
+      hasBadge: (courseId) => get().badges.some((b) => b.course_id === courseId),
     }),
     {
       name: 'course-store',
-      partialize: (s) => ({ enrollments: s.enrollments, progress: s.progress, certificates: s.certificates }),
+      partialize: (s) => ({ enrollments: s.enrollments, progress: s.progress, certificates: s.certificates, badges: s.badges }),
     }
   )
 );
