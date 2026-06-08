@@ -81,8 +81,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn } from '../components/ui/utils';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { TeamAdminTab } from '../components/admin-team-tab';
 
-type Tab = 'dashboard' | 'projects' | 'experience' | 'certifications' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs';
+type Tab = 'dashboard' | 'projects' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs' | 'team';
 
 type AnalyticsResponse = {
   stats: {
@@ -114,6 +115,17 @@ type Experience = {
   location: string;
   description: string;
   achievements: string[];
+};
+
+type Education = {
+  id: string;
+  institution: string;
+  degree: string;
+  field_of_study: string;
+  start_year: string;
+  end_year?: string;
+  gpa?: string;
+  description?: string;
 };
 
 type Certification = {
@@ -475,6 +487,99 @@ function ExperienceDialog({ open, mode, initialData, onSave, onClose }: {
           </FormField>
         </div>
         {err && <p className="text-sm text-destructive">{err}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Education dialog ─────────────────────────────────────────────────────────
+type EducationForm = { institution: string; degree: string; field_of_study: string; start_year: string; end_year: string; gpa: string; description: string };
+
+function EducationDialog({ open, mode, initialData, onSave, onClose }: {
+  open: boolean; mode: 'create' | 'edit';
+  initialData: Partial<Education>;
+  onSave: (data: Partial<Education>) => Promise<void>;
+  onClose: () => void;
+}) {
+  const blank: EducationForm = { institution: '', degree: '', field_of_study: '', start_year: '', end_year: '', gpa: '', description: '' };
+  const [form, setForm] = useState<EducationForm>(blank);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        institution: initialData.institution || '',
+        degree: initialData.degree || '',
+        field_of_study: initialData.field_of_study || '',
+        start_year: initialData.start_year || '',
+        end_year: initialData.end_year || '',
+        gpa: initialData.gpa || '',
+        description: initialData.description || '',
+      });
+      setErr('');
+    }
+  }, [open]);
+
+  const f = <K extends keyof EducationForm>(k: K) => (v: EducationForm[K]) => setForm((p) => ({ ...p, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!form.institution.trim()) { setErr('Institution is required.'); return; }
+    if (!form.degree.trim()) { setErr('Degree is required.'); return; }
+    if (!form.field_of_study.trim()) { setErr('Field of study is required.'); return; }
+    if (!form.start_year.trim()) { setErr('Start year is required.'); return; }
+    setSaving(true); setErr('');
+    try {
+      await onSave({
+        institution: form.institution.trim(),
+        degree: form.degree.trim(),
+        field_of_study: form.field_of_study.trim(),
+        start_year: form.start_year.trim(),
+        end_year: form.end_year.trim() || undefined,
+        gpa: form.gpa.trim() || undefined,
+        description: form.description.trim() || undefined,
+      });
+    } catch (e: any) { setErr(e.message || 'Save failed.'); setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{mode === 'create' ? 'Add Education' : 'Edit Education'}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <FormField label="Institution *">
+            <Input value={form.institution} onChange={(e) => f('institution')(e.target.value)} placeholder="Carnegie Mellon University" />
+          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Degree *">
+              <Input value={form.degree} onChange={(e) => f('degree')(e.target.value)} placeholder="B.S., M.S., Ph.D." />
+            </FormField>
+            <FormField label="Field of Study *">
+              <Input value={form.field_of_study} onChange={(e) => f('field_of_study')(e.target.value)} placeholder="Computer Science" />
+            </FormField>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <FormField label="Start Year *">
+              <Input value={form.start_year} onChange={(e) => f('start_year')(e.target.value)} placeholder="2020" />
+            </FormField>
+            <FormField label="End Year">
+              <Input value={form.end_year} onChange={(e) => f('end_year')(e.target.value)} placeholder="2024 or blank" />
+            </FormField>
+            <FormField label="GPA">
+              <Input value={form.gpa} onChange={(e) => f('gpa')(e.target.value)} placeholder="3.9 / 4.0" />
+            </FormField>
+          </div>
+          <FormField label="Description">
+            <Textarea rows={3} value={form.description} onChange={(e) => f('description')(e.target.value)} placeholder="Notable coursework, thesis, activities…" />
+          </FormField>
+          {err && <p className="text-sm text-red-500">{err}</p>}
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
@@ -1883,6 +1988,7 @@ export function Admin() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [educations, setEducations] = useState<Education[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -2046,6 +2152,7 @@ export function Admin() {
   const closedModal = { open: false, mode: 'create' as const, data: {} };
   const [projectModal, setProjectModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: Partial<Project> }>(closedModal);
   const [expModal, setExpModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: Partial<Experience> }>(closedModal);
+  const [eduModal, setEduModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: Partial<Education> }>(closedModal);
   const [certModal, setCertModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: Partial<Certification> }>(closedModal);
   const [productModal, setProductModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: Partial<Product> }>(closedModal);
   const [courseModal, setCourseModal] = useState<{ open: boolean; mode: 'create' | 'edit'; data: Partial<Course> }>(closedModal);
@@ -2095,8 +2202,6 @@ export function Admin() {
     { id: 'profile' as Tab, label: 'Profile', icon: UserCircle, perms: ['manage_portfolio'] },
     { id: 'support' as Tab, label: 'Support', icon: LifeBuoy, perms: ['manage_tickets'] },
     { id: 'projects' as Tab, label: 'Projects', icon: FolderKanban, perms: ['manage_portfolio'] },
-    { id: 'experience' as Tab, label: 'Experience', icon: Briefcase, perms: ['manage_portfolio'] },
-    { id: 'certifications' as Tab, label: 'Certifications', icon: Award, perms: ['manage_portfolio'] },
     { id: 'products' as Tab, label: 'Products', icon: ShoppingBag, perms: ['manage_ecommerce'] },
     { id: 'courses' as Tab, label: 'Courses', icon: GraduationCap, perms: ['manage_courses', 'manage_own_courses'] },
     { id: 'skills' as Tab, label: 'Skills', icon: Wrench, perms: ['manage_portfolio'] },
@@ -2108,6 +2213,7 @@ export function Admin() {
     { id: 'forms' as Tab, label: 'Forms', icon: ClipboardList, perms: ['manage_forms'] },
     { id: 'roles' as Tab, label: 'Roles & Permissions', icon: ShieldCheck, perms: ['manage_roles'] },
     { id: 'ai_docs' as Tab, label: 'AI Knowledge Base', icon: Bot, perms: [] as string[] },
+    { id: 'team' as Tab, label: 'Our Team', icon: Users, perms: ['manage_portfolio'] },
   ];
 
   // Full admins see everything; staff users see only tabs matching their permissions
@@ -2120,10 +2226,11 @@ export function Admin() {
   const loadAdminData = async () => {
     setLoading(true);
     setError('');
-    const [a, p, e, c, pr] = await Promise.allSettled([
+    const [a, p, e, edu, c, pr] = await Promise.allSettled([
       api.get<AnalyticsResponse>('/admin/analytics'),
       api.get<Project[]>('/portfolio/projects'),
       api.get<Experience[]>('/portfolio/experience'),
+      api.get<Education[]>('/portfolio/education'),
       api.get<Certification[]>('/portfolio/certifications'),
       api.get<Product[]>('/products?limit=200'),
     ]);
@@ -2138,6 +2245,9 @@ export function Admin() {
 
     if (e.status === 'fulfilled') setExperiences(e.value);
     else failures.push(e.reason?.message || 'Experience failed');
+
+    if (edu.status === 'fulfilled') setEducations(edu.value);
+    else failures.push(edu.reason?.message || 'Education failed');
 
     if (c.status === 'fulfilled') setCertifications(c.value);
     else failures.push(c.reason?.message || 'Certifications failed');
@@ -2315,6 +2425,24 @@ export function Admin() {
       await api.patch(`/portfolio/experience/${(expModal.data as Experience).id}`, data);
     }
     setExpModal(closedModal);
+    await loadAdminData();
+  };
+
+  // ── Education handlers ────────────────────────────────────────────────────
+  const handleCreateEducation = () => setEduModal({ open: true, mode: 'create', data: {} });
+  const handleEditEducation = (edu: Education) => setEduModal({ open: true, mode: 'edit', data: edu });
+  const handleDeleteEducation = (id: string) => setConfirmDialog({
+    open: true, title: 'Delete Education',
+    message: 'This education entry will be permanently deleted.',
+    onConfirm: () => { api.delete(`/portfolio/education/${id}`).then(() => loadAdminData()); },
+  });
+  const handleSaveEducation = async (data: Partial<Education>) => {
+    if (eduModal.mode === 'create') {
+      await api.post('/portfolio/education', { ...data, order_index: educations.length });
+    } else {
+      await api.patch(`/portfolio/education/${(eduModal.data as Education).id}`, data);
+    }
+    setEduModal(closedModal);
     await loadAdminData();
   };
 
@@ -2907,30 +3035,6 @@ export function Admin() {
               />
             )}
 
-            {activeTab === 'experience' && (
-              <SectionTable
-                title="Experience"
-                addLabel="Add Experience"
-                onAdd={handleCreateExperience}
-                columns={['Position', 'Company', 'Duration', 'Location']}
-                rows={experiences.map((e) => [e.position, e.company, e.duration, e.location])}
-                onEdit={(idx) => handleEditExperience(experiences[idx])}
-                onDelete={(idx) => handleDeleteExperience(experiences[idx].id)}
-              />
-            )}
-
-            {activeTab === 'certifications' && (
-              <SectionTable
-                title="Certifications"
-                addLabel="Add Certification"
-                onAdd={handleCreateCertification}
-                columns={['Title', 'Issuer', 'Date']}
-                rows={certifications.map((c) => [c.title, c.issuer, c.date])}
-                onEdit={(idx) => handleEditCertification(certifications[idx])}
-                onDelete={(idx) => handleDeleteCertification(certifications[idx].id)}
-              />
-            )}
-
             {activeTab === 'products' && (
               <SectionTable
                 title="Products"
@@ -3292,11 +3396,132 @@ export function Admin() {
                   </GlassCard>
                 </div>
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end mb-10">
                   <Button onClick={handleSaveProfile} disabled={profileSaving} size="lg">
                     <Save className="w-4 h-4 mr-2" />
                     {profileSaving ? 'Saving…' : profileSaved ? 'Saved ✓' : 'Save Changes'}
                   </Button>
+                </div>
+
+                {/* ── Work Experience ── */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-semibold flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-primary" /> Work Experience
+                    </h2>
+                    <Button onClick={handleCreateExperience}><Plus className="w-4 h-4 mr-1" />Add Experience</Button>
+                  </div>
+                  <GlassCard className="overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Position</TableHead>
+                          <TableHead>Company</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {experiences.length === 0 ? (
+                          <TableRow><TableCell colSpan={5} className="text-center text-black/40 py-6">No experience entries yet.</TableCell></TableRow>
+                        ) : experiences.map((exp, idx) => (
+                          <TableRow key={exp.id}>
+                            <TableCell>{exp.position}</TableCell>
+                            <TableCell>{exp.company}</TableCell>
+                            <TableCell>{exp.duration}</TableCell>
+                            <TableCell>{exp.location}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button aria-label="Edit" variant="ghost" size="icon" onClick={() => handleEditExperience(experiences[idx])}><Edit className="w-4 h-4" /></Button>
+                                <Button aria-label="Delete" variant="ghost" size="icon" onClick={() => handleDeleteExperience(exp.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </GlassCard>
+                </div>
+
+                {/* ── Education ── */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-semibold flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-primary" /> Education
+                    </h2>
+                    <Button onClick={handleCreateEducation}><Plus className="w-4 h-4 mr-1" />Add Education</Button>
+                  </div>
+                  <GlassCard className="overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Institution</TableHead>
+                          <TableHead>Degree</TableHead>
+                          <TableHead>Field of Study</TableHead>
+                          <TableHead>Years</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {educations.length === 0 ? (
+                          <TableRow><TableCell colSpan={5} className="text-center text-black/40 py-6">No education entries yet.</TableCell></TableRow>
+                        ) : educations.map((edu, idx) => (
+                          <TableRow key={edu.id}>
+                            <TableCell>{edu.institution}</TableCell>
+                            <TableCell>{edu.degree}</TableCell>
+                            <TableCell>{edu.field_of_study}</TableCell>
+                            <TableCell>{edu.start_year} – {edu.end_year || 'Present'}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button aria-label="Edit" variant="ghost" size="icon" onClick={() => handleEditEducation(educations[idx])}><Edit className="w-4 h-4" /></Button>
+                                <Button aria-label="Delete" variant="ghost" size="icon" onClick={() => handleDeleteEducation(edu.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </GlassCard>
+                </div>
+
+                {/* ── Certifications ── */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-semibold flex items-center gap-2">
+                      <Award className="w-5 h-5 text-primary" /> Certifications
+                    </h2>
+                    <Button onClick={handleCreateCertification}><Plus className="w-4 h-4 mr-1" />Add Certification</Button>
+                  </div>
+                  <GlassCard className="overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Issuer</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {certifications.length === 0 ? (
+                          <TableRow><TableCell colSpan={4} className="text-center text-black/40 py-6">No certifications yet.</TableCell></TableRow>
+                        ) : certifications.map((cert, idx) => (
+                          <TableRow key={cert.id}>
+                            <TableCell>{cert.title}</TableCell>
+                            <TableCell>{cert.issuer}</TableCell>
+                            <TableCell>{cert.date}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button aria-label="Edit" variant="ghost" size="icon" onClick={() => handleEditCertification(certifications[idx])}><Edit className="w-4 h-4" /></Button>
+                                <Button aria-label="Delete" variant="ghost" size="icon" onClick={() => handleDeleteCertification(cert.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </GlassCard>
                 </div>
               </motion.div>
             )}
@@ -4069,6 +4294,10 @@ export function Admin() {
               <AiDocsTab />
             )}
 
+            {activeTab === 'team' && (
+              <TeamAdminTab />
+            )}
+
             {activeTab === 'courses' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                 <div className="flex items-center justify-between mb-6">
@@ -4323,6 +4552,13 @@ export function Admin() {
         initialData={expModal.data}
         onSave={handleSaveExperience}
         onClose={() => setExpModal(closedModal)}
+      />
+      <EducationDialog
+        open={eduModal.open}
+        mode={eduModal.mode}
+        initialData={eduModal.data}
+        onSave={handleSaveEducation}
+        onClose={() => setEduModal(closedModal)}
       />
       <CertificationDialog
         open={certModal.open}

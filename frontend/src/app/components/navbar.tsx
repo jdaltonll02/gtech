@@ -31,7 +31,7 @@ export function Navbar() {
 
   const navItems = [
     { name: 'Home', path: '/' },
-    { name: 'CEO', path: '/portfolio' },
+    { name: 'Our Team', path: '/team' },
     { name: 'Courses', path: '/courses' },
     { name: 'Store', path: '/store' },
     { name: 'Blog', path: '/blog' },

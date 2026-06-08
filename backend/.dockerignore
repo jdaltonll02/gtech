@@ -1,0 +1,24 @@
+# Never bake uploaded media into the image — it lives in the media_data Docker volume
+media/
+
+# Python cache / bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local env files
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

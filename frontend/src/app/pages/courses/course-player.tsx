@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, ChevronRight, CheckCircle, Circle, PlayCircle, FileText,
-  Code2, ChevronDown, ChevronUp, Menu, X, Award, BookOpen,
+  Code2, ChevronDown, ChevronUp, Menu, X, Award, BookOpen, Bot,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { ContentBlockRenderer } from '../../components/course/ContentBlockRenderer';
 import { QuizPlayer } from '../../components/course/QuizPlayer';
 import { AssignmentViewer } from '../../components/course/AssignmentViewer';
+import { ClassroomAssistant } from '../../components/classroom-assistant';
 import { useCourseStore, type Course, type Lesson } from '../../store/courseStore';
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../utils/api';
@@ -47,6 +48,7 @@ export function CoursePlayer() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
@@ -132,16 +134,16 @@ export function CoursePlayer() {
     } catch { /* non-blocking — silently ignore */ }
   }, [courseId, currentLesson]);
 
-  // ── Auto-complete text / code / document lessons on load ─────────────────────
+  // ── Auto-complete text / code / document lessons after 15 s on page ─────────
   useEffect(() => {
     if (!currentLesson || !courseId) return;
     if (!AUTO_COMPLETE_TYPES.has(currentLesson.lesson_type)) return;
     const lp = getLessonProgress(courseId, currentLesson.id);
-    if (lp?.is_completed) return; // already done — nothing to do
-    // Only auto-complete if there are no mandatory assessments
-    // (for mixed lessons the backend will still gate on quiz passes server-side)
+    if (lp?.is_completed) return;
     const hasMandatory = (currentLesson.assessments ?? []).some((a) => a.is_mandatory);
-    if (!hasMandatory) postProgress(true, 0);
+    if (hasMandatory) return;
+    const timer = setTimeout(() => postProgress(true, 0), 15_000);
+    return () => clearTimeout(timer);
   }, [currentLesson?.id]);
 
   // ── Video: save position every 5 s and check 70% completion ──────────────────
@@ -307,10 +309,30 @@ export function CoursePlayer() {
       </AnimatePresence>
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={cn('flex flex-col overflow-hidden transition-all', assistantOpen ? 'flex-1 min-w-0' : 'flex-1')}>
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-black/10 flex-shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="p-1.5 rounded hover:bg-black/5 text-black/40 hover:text-black/70 transition-colors"
+              title="Home"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75v-4.5h-4.5V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V9.75z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/courses/my-learning')}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded hover:bg-black/5 text-xs text-black/50 hover:text-black/80 transition-colors"
+              title="My Learning"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              My Learning
+            </button>
+            <div className="w-px h-5 bg-black/10 mx-1" />
             <button
               type="button"
               onClick={() => setSidebarOpen((v) => !v)}
@@ -318,7 +340,7 @@ export function CoursePlayer() {
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <span className="text-sm text-black/50 hidden sm:block truncate max-w-xs">
+            <span className="text-sm text-black/50 hidden md:block truncate max-w-xs">
               {currentLesson?.title}
             </span>
           </div>
@@ -333,6 +355,16 @@ export function CoursePlayer() {
             </Button>
             <Button size="sm" variant="outline" disabled={!nextLesson} onClick={() => nextLesson && goToLesson(nextLesson)}>
               <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant={assistantOpen ? 'default' : 'outline'}
+              onClick={() => setAssistantOpen((v) => !v)}
+              className="flex items-center gap-1.5"
+              title="Classroom Assistant"
+            >
+              <Bot className="w-4 h-4" />
+              <span className="hidden sm:inline">Assistant</span>
             </Button>
           </div>
         </div>
@@ -438,6 +470,21 @@ export function CoursePlayer() {
           )}
         </div>
       </div>
+
+      {/* ── Right panel: Classroom Assistant ── */}
+      <AnimatePresence>
+        {assistantOpen && (
+          <motion.aside
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 380, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-shrink-0 border-l border-black/10 flex flex-col overflow-hidden bg-white"
+          >
+            <ClassroomAssistant courseId={course.id} courseTitle={course.title} />
+          </motion.aside>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
