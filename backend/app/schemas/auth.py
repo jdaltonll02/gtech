@@ -51,6 +51,19 @@ class UserResponse(BaseModel):
     is_verified: bool
     two_factor_enabled: bool = False
     permissions: list[str] = []
+    bio: str | None = None
+    headline: str | None = None
+    job_title: str | None = None
+    company: str | None = None
+    school: str | None = None
+    phone: str | None = None
+    website: str | None = None
+    city: str | None = None
+    country: str | None = None
+    address: str | None = None
+    linkedin_url: str | None = None
+    twitter_url: str | None = None
+    github_url: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -69,6 +82,19 @@ class UpdateProfileRequest(BaseModel):
     email: EmailStr | None = None
     current_password: str | None = None
     new_password: str | None = None
+    bio: str | None = None
+    headline: str | None = None
+    job_title: str | None = None
+    company: str | None = None
+    school: str | None = None
+    phone: str | None = None
+    website: str | None = None
+    city: str | None = None
+    country: str | None = None
+    address: str | None = None
+    linkedin_url: str | None = None
+    twitter_url: str | None = None
+    github_url: str | None = None
 
     @field_validator("full_name")
     @classmethod

@@ -1,20 +1,24 @@
 import os
+import re
 import shutil
 import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import AdminUser, DB
+
+from app.api.deps import AdminUser, CurrentUser, DB
 from app.db.session import get_db
 from app.models.media import Media
+from app.models.user import UserRole
 from app.schemas.media import MediaResponse
 
 router = APIRouter(prefix="/media", tags=["media"])
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+
 ALLOWED_EXTENSIONS = {
     "jpg", "jpeg", "png", "gif", "webp", "svg",  # images
     "pdf", "doc", "docx",                          # documents
@@ -23,36 +27,57 @@ ALLOWED_EXTENSIONS = {
     "zip",                                         # archives
 }
 
-# Optional bearer — does not raise 401 if token is absent
-_optional_bearer = HTTPBearer(auto_error=False)
+# Folders any authenticated user may write to
+_USER_FOLDERS = frozenset({"uploads", "profile", "resumes"})
+# Folders restricted to admin/superadmin
+_ADMIN_FOLDERS = frozenset({"courses", "team", "gallery", "products", "course-content", "blog"})
+
+# Only these exact values are accepted for the `folder` query param
+_AllowedFolder = Literal[
+    "uploads", "profile", "courses", "resumes", "team",
+    "gallery", "products", "course-content", "blog",
+]
+
+# Magic-byte signatures for common binary types
+_MAGIC = {
+    "jpg":  b"\xff\xd8\xff",
+    "jpeg": b"\xff\xd8\xff",
+    "png":  b"\x89PNG",
+    "gif":  b"GIF8",
+    "pdf":  b"%PDF",
+}
 
 
-async def _optional_user_id(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_optional_bearer),
-    db: AsyncSession = Depends(get_db),
-) -> Optional[uuid.UUID]:
-    """Return the current user's UUID if a valid token is provided, else None."""
-    if not credentials:
-        return None
-    try:
-        from app.core.security import decode_token
-        from app.models.user import User
-        payload = decode_token(credentials.credentials, expected_type="access")
-        user_id = uuid.UUID(payload["sub"])
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-        return user.id if user and user.is_active else None
-    except Exception:
-        return None
+def _validate_content(ext: str, content: bytes) -> bytes:
+    """Validate magic bytes and sanitize SVGs. Returns (possibly modified) content."""
+    sig = _MAGIC.get(ext)
+    if sig and not content.startswith(sig):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="File content does not match its declared extension.",
+        )
+    if ext == "svg":
+        # Strip <script> blocks and event-handler attributes
+        content = re.sub(rb"<script[^>]*>.*?</script>", b"", content, flags=re.DOTALL | re.IGNORECASE)
+        content = re.sub(rb"\s+on\w+\s*=\s*[\"'][^\"']*[\"']", b"", content, flags=re.IGNORECASE)
+        content = re.sub(rb"\s+on\w+\s*=\s*\S+", b"", content, flags=re.IGNORECASE)
+    return content
 
 
 @router.post("/upload", response_model=MediaResponse, status_code=201)
 async def upload_file(
+    current_user: CurrentUser,
     file: UploadFile = File(...),
-    folder: str = "uploads",
+    folder: _AllowedFolder = "uploads",
     db: AsyncSession = Depends(get_db),
-    uploader_id: Optional[uuid.UUID] = Depends(_optional_user_id),
 ):
+    # Enforce per-folder permission: only admins may write to content/team folders
+    if folder in _ADMIN_FOLDERS and current_user.role not in (UserRole.ADMIN, UserRole.SUPERADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required for this folder.",
+        )
+
     ext = (file.filename or "file").rsplit(".", 1)[-1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -66,6 +91,8 @@ async def upload_file(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"File exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit.",
         )
+
+    content = _validate_content(ext, content)
 
     backend_root = Path(__file__).resolve().parents[4]
     media_dir = backend_root / "media" / folder
@@ -86,7 +113,7 @@ async def upload_file(
         local_path=local_path,
         url=url,
         folder=folder,
-        uploaded_by=uploader_id,
+        uploaded_by=current_user.id,
     )
     db.add(media)
     await db.flush()

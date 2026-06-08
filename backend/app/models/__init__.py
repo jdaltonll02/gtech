@@ -11,6 +11,7 @@ from app.models.blog import BlogPost
 from app.models.forms import DynamicForm, FormField, FormSubmission
 from app.models.rbac import StaffRole, UserStaffRole
 from app.models.ai import AIDocument, AIDocumentChunk, ChatSession, ChatMessage
+from app.models.team import TeamMember, TeamMemberExperience, TeamMemberEducation, TeamMemberProject, TeamMemberCertification
 
 __all__ = [
     "User", "UserRole",
@@ -27,4 +28,5 @@ __all__ = [
     "DynamicForm", "FormField", "FormSubmission",
     "StaffRole", "UserStaffRole",
     "AIDocument", "AIDocumentChunk", "ChatSession", "ChatMessage",
+    "TeamMember", "TeamMemberExperience", "TeamMemberEducation", "TeamMemberProject", "TeamMemberCertification",
 ]

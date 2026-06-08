@@ -29,6 +29,9 @@ import { Blog } from './pages/blog';
 import { BlogPost } from './pages/blog-post';
 import { Forms } from './pages/forms';
 import { FormPage } from './pages/form-page';
+import { Team } from './pages/team';
+import { TeamMember } from './pages/team-member';
+import { Resume } from './pages/resume';
 import { useAuthStore } from './store/authStore';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -113,6 +116,9 @@ export const router = createBrowserRouter([
         path: 'tickets/:id',
         element: <RequireAuth><TicketDetail /></RequireAuth>,
       },
+      // Team
+      { path: 'team', Component: Team },
+      { path: 'team/:slug', Component: TeamMember },
       // Blog
       { path: 'blog', Component: Blog },
       { path: 'blog/:slug', Component: BlogPost },
@@ -133,6 +139,8 @@ export const router = createBrowserRouter([
       { path: '*', Component: NotFound },
     ],
   },
+  // Resume — standalone (no navbar) so print output is clean
+  { path: '/resume', Component: Resume },
   // Course player is full-screen (no navbar/footer) — auth required
   {
     path: '/courses/:courseId/learn',

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.core.security import decode_token
+from app.db.redis import is_token_revoked, was_issued_before_pw_change
 from app.db.session import get_db
 from app.models.user import User, UserRole
 
@@ -17,8 +18,22 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     payload = decode_token(credentials.credentials, expected_type="access")
     user_id = payload.get("sub")
+    jti = payload.get("jti")
+    iat = payload.get("iat", 0)
+
+    # Reject revoked tokens (logout) and tokens issued before a password change
+    if jti and await is_token_revoked(jti):
+        raise credentials_exception
+    if user_id and await was_issued_before_pw_change(user_id, float(iat)):
+        raise credentials_exception
+
     result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:

@@ -1,3 +1,4 @@
+import uuid as _uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from jose import JWTError, jwt
@@ -16,7 +17,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def _create_token(subject: Any, token_type: str, expires_delta: timedelta) -> str:
     expire = datetime.now(timezone.utc) + expires_delta
-    payload = {"sub": str(subject), "type": token_type, "exp": expire, "iat": datetime.now(timezone.utc)}
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(subject),
+        "type": token_type,
+        "exp": expire,
+        "iat": now,
+        "jti": str(_uuid.uuid4()),
+    }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

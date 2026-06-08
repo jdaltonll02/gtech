@@ -5,11 +5,13 @@ import {
   User, Lock, LayoutDashboard, BookOpen, Award, ShoppingBag,
   Save, ShieldCheck, ShieldOff, Clock, ChevronRight,
   CheckCircle, PlayCircle, XCircle, Search,
+  Briefcase, GraduationCap, MapPin, Phone, Globe, Linkedin, Twitter, Github, FileText,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { GlassCard } from '../components/glass-card';
+import { Textarea } from '../components/ui/textarea';
 import { Switch } from '../components/ui/switch';
 import { useAuthStore } from '../store/authStore';
 import { useCourseStore, type Enrollment } from '../store/courseStore';
@@ -21,7 +23,19 @@ type Tab = 'overview' | 'profile' | 'security' | 'courses';
 interface UserResponse {
   id: string; email: string; full_name: string;
   role: string; is_active: boolean; is_verified: boolean; is_admin: boolean;
+  bio?: string; headline?: string; job_title?: string; company?: string;
+  school?: string; phone?: string; website?: string;
+  city?: string; country?: string; address?: string;
+  linkedin_url?: string; twitter_url?: string; github_url?: string;
 }
+
+type ProfileForm = {
+  full_name: string; email: string;
+  bio: string; headline: string;
+  job_title: string; company: string; school: string;
+  phone: string; website: string; city: string; country: string; address: string;
+  linkedin_url: string; twitter_url: string; github_url: string;
+};
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   completed: { label: 'Completed',  color: 'bg-green-100 text-green-700',  icon: CheckCircle },
@@ -111,7 +125,13 @@ export function Profile() {
   const [courseFilter, setCourseFilter] = useState<string>('all');
   const [courseSearch, setCourseSearch] = useState('');
 
-  const [profileForm, setProfileForm] = useState({ full_name: '', email: '' });
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    full_name: '', email: '',
+    bio: '', headline: '',
+    job_title: '', company: '', school: '',
+    phone: '', website: '', city: '', country: '', address: '',
+    linkedin_url: '', twitter_url: '', github_url: '',
+  });
   const [passwordForm, setPasswordForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
 
   const [profileLoading, setProfileLoading] = useState(false);
@@ -125,15 +145,31 @@ export function Profile() {
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    setProfileForm({ full_name: user.full_name, email: user.email });
     Promise.all([
       api.get<Enrollment[]>('/courses/my/enrollments'),
       api.get<any[]>('/courses/my/certificates'),
-      api.get<any>('/auth/me'),
+      api.get<UserResponse>('/auth/me'),
     ]).then(([enrs, certs, me]) => {
       setEnrollments(enrs);
       setCertificates(certs);
-      if (typeof me.two_factor_enabled === 'boolean') setTwoFaEnabled(me.two_factor_enabled);
+      if (typeof me.two_factor_enabled === 'boolean') setTwoFaEnabled((me as any).two_factor_enabled);
+      setProfileForm({
+        full_name: me.full_name ?? '',
+        email: me.email ?? '',
+        bio: me.bio ?? '',
+        headline: me.headline ?? '',
+        job_title: me.job_title ?? '',
+        company: me.company ?? '',
+        school: me.school ?? '',
+        phone: me.phone ?? '',
+        website: me.website ?? '',
+        city: me.city ?? '',
+        country: me.country ?? '',
+        address: me.address ?? '',
+        linkedin_url: me.linkedin_url ?? '',
+        twitter_url: me.twitter_url ?? '',
+        github_url: me.github_url ?? '',
+      });
     }).catch(() => {});
   }, []);
 
@@ -169,6 +205,9 @@ export function Profile() {
       setProfileLoading(false);
     }
   };
+
+  const setField = (field: keyof ProfileForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setProfileForm((p) => ({ ...p, [field]: e.target.value }));
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,41 +354,150 @@ export function Profile() {
 
                   {/* ── Profile ── */}
                   {tab === 'profile' && (
-                    <GlassCard className="p-6">
-                      <div className="flex items-center gap-2 mb-5">
-                        <User className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-semibold">Profile Information</h2>
-                      </div>
-                      <form onSubmit={handleProfileSubmit} className="space-y-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="full_name">Full Name</Label>
-                          <Input
-                            id="full_name"
-                            value={profileForm.full_name}
-                            onChange={(e) => setProfileForm((p) => ({ ...p, full_name: e.target.value }))}
-                            required
-                          />
+                    <form onSubmit={handleProfileSubmit} className="space-y-5">
+
+                      {/* Basic info */}
+                      <GlassCard className="p-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <User className="w-4 h-4 text-primary" />
+                          <h2 className="font-semibold">Basic Information</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="full_name">Full Name *</Label>
+                            <Input id="full_name" value={profileForm.full_name} onChange={setField('full_name')} required />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="email">Email Address *</Label>
+                            <Input id="email" type="email" value={profileForm.email} onChange={setField('email')} required />
+                          </div>
+                        </div>
+                        <div className="mt-4 space-y-1.5">
+                          <Label htmlFor="headline">Headline</Label>
+                          <Input id="headline" placeholder="e.g. Software Engineer · Lifelong Learner" value={profileForm.headline} onChange={setField('headline')} maxLength={120} />
+                          <p className="text-xs text-black/40">A short tagline shown on your profile.</p>
+                        </div>
+                        <div className="mt-4 space-y-1.5">
+                          <Label htmlFor="bio">About Me</Label>
+                          <Textarea id="bio" placeholder="Tell people a bit about yourself…" rows={3} value={profileForm.bio} onChange={setField('bio')} maxLength={600} />
+                          <p className="text-xs text-black/40">{profileForm.bio.length}/600</p>
+                        </div>
+                      </GlassCard>
+
+                      {/* Work */}
+                      <GlassCard className="p-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <Briefcase className="w-4 h-4 text-primary" />
+                          <h2 className="font-semibold">Work</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="job_title">Job Title</Label>
+                            <Input id="job_title" placeholder="e.g. Software Engineer" value={profileForm.job_title} onChange={setField('job_title')} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="company">Company / Organization</Label>
+                            <Input id="company" placeholder="e.g. Google" value={profileForm.company} onChange={setField('company')} />
+                          </div>
+                        </div>
+                      </GlassCard>
+
+                      {/* Education */}
+                      <GlassCard className="p-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <GraduationCap className="w-4 h-4 text-primary" />
+                          <h2 className="font-semibold">Education</h2>
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="email">Email Address</Label>
-                          <Input
-                            id="email" type="email"
-                            value={profileForm.email}
-                            onChange={(e) => setProfileForm((p) => ({ ...p, email: e.target.value }))}
-                            required
-                          />
+                          <Label htmlFor="school">School / Institution</Label>
+                          <Input id="school" placeholder="e.g. Carnegie Mellon University" value={profileForm.school} onChange={setField('school')} />
                         </div>
-                        {profileMsg && (
-                          <p className={cn('text-sm rounded p-2', profileMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                            {profileMsg.text}
-                          </p>
-                        )}
-                        <Button type="submit" disabled={profileLoading} className="w-full">
-                          <Save className="w-4 h-4 mr-2" />
-                          {profileLoading ? 'Saving…' : 'Save Changes'}
-                        </Button>
-                      </form>
-                    </GlassCard>
+                      </GlassCard>
+
+                      {/* Location */}
+                      <GlassCard className="p-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          <h2 className="font-semibold">Location</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="city">City</Label>
+                            <Input id="city" placeholder="e.g. Pittsburgh" value={profileForm.city} onChange={setField('city')} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="country">Country</Label>
+                            <Input id="country" placeholder="e.g. United States" value={profileForm.country} onChange={setField('country')} />
+                          </div>
+                        </div>
+                        <div className="mt-4 space-y-1.5">
+                          <Label htmlFor="address">Street Address <span className="text-xs text-black/40">(private)</span></Label>
+                          <Input id="address" placeholder="e.g. 123 Main St" value={profileForm.address} onChange={setField('address')} />
+                        </div>
+                      </GlassCard>
+
+                      {/* Contact & Web */}
+                      <GlassCard className="p-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <Phone className="w-4 h-4 text-primary" />
+                          <h2 className="font-semibold">Contact & Web</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <Input id="phone" type="tel" placeholder="+1 412 000 0000" value={profileForm.phone} onChange={setField('phone')} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="website">Website</Label>
+                            <div className="relative">
+                              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
+                              <Input id="website" type="url" placeholder="https://yoursite.com" className="pl-8" value={profileForm.website} onChange={setField('website')} />
+                            </div>
+                          </div>
+                        </div>
+                      </GlassCard>
+
+                      {/* Social */}
+                      <GlassCard className="p-6">
+                        <div className="flex items-center gap-2 mb-5">
+                          <FileText className="w-4 h-4 text-primary" />
+                          <h2 className="font-semibold">Social Links</h2>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="linkedin_url">LinkedIn</Label>
+                            <div className="relative">
+                              <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
+                              <Input id="linkedin_url" type="url" placeholder="https://linkedin.com/in/yourname" className="pl-8" value={profileForm.linkedin_url} onChange={setField('linkedin_url')} />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="twitter_url">X / Twitter</Label>
+                            <div className="relative">
+                              <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
+                              <Input id="twitter_url" type="url" placeholder="https://x.com/yourhandle" className="pl-8" value={profileForm.twitter_url} onChange={setField('twitter_url')} />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="github_url">GitHub</Label>
+                            <div className="relative">
+                              <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
+                              <Input id="github_url" type="url" placeholder="https://github.com/yourname" className="pl-8" value={profileForm.github_url} onChange={setField('github_url')} />
+                            </div>
+                          </div>
+                        </div>
+                      </GlassCard>
+
+                      {profileMsg && (
+                        <p className={cn('text-sm rounded-lg px-4 py-3', profileMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
+                          {profileMsg.text}
+                        </p>
+                      )}
+                      <Button type="submit" disabled={profileLoading} size="lg" className="w-full">
+                        <Save className="w-4 h-4 mr-2" />
+                        {profileLoading ? 'Saving…' : 'Save Changes'}
+                      </Button>
+                    </form>
                   )}
 
                   {/* ── Security ── */}

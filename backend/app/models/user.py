@@ -27,6 +27,22 @@ class User(Base):
     verification_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     google_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True, index=True)
     two_factor_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Extended profile fields
+    bio: Mapped[Optional[str]] = mapped_column(String(600), nullable=True)
+    headline: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    job_title: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    company: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    school: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    linkedin_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    twitter_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    github_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

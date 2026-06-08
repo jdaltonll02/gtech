@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, BookOpen, BarChart2, CheckCircle, PlayCircle, FileText, Code2, ChevronDown, ChevronUp, Award, Lock, CreditCard, X, Star, Bot } from 'lucide-react';
-import { ClassroomAssistant } from '../../components/classroom-assistant';
+import { Clock, BookOpen, BarChart2, CheckCircle, PlayCircle, FileText, Code2, ChevronDown, ChevronUp, Award, Lock, CreditCard, X, Star } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '../../components/ui/button';
@@ -183,7 +182,6 @@ function CourseDetailInner() {
   const [ratingInput, setRatingInput] = useState(0);
   const [reviewInput, setReviewInput] = useState('');
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'content' | 'assistant'>('content');
 
   useEffect(() => {
     if (!courseId) return;
@@ -228,7 +226,6 @@ function CourseDetailInner() {
 
   const enrolled = isAuthenticated && isEnrolled(course.id);
   const progress = isAuthenticated ? getCourseProgress(course.id) : 0;
-  if (!enrolled && activeTab === 'assistant') setActiveTab('content');
   const totalLessons = course.sections?.reduce((a, s) => a + s.lessons.length, 0) ?? 0;
 
   const toggleSection = (id: string) =>
@@ -326,33 +323,6 @@ function CourseDetailInner() {
               </div>
             )}
 
-            {/* ── Tab bar — Classroom Assistant only visible to enrolled users ── */}
-            <div className="flex gap-1 mb-6 border-b border-black/10">
-              <button
-                type="button"
-                onClick={() => setActiveTab('content')}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'content' ? 'border-primary text-primary' : 'border-transparent text-black/50 hover:text-black/70'}`}
-              >
-                <BookOpen className="w-4 h-4" /> Course Content
-              </button>
-              {enrolled && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('assistant')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'assistant' ? 'border-primary text-primary' : 'border-transparent text-black/50 hover:text-black/70'}`}
-                >
-                  <Bot className="w-4 h-4" /> Classroom Assistant
-                </button>
-              )}
-            </div>
-
-            {enrolled && activeTab === 'assistant' && (
-              <GlassCard className="overflow-hidden mb-8">
-                <ClassroomAssistant courseId={course.id} courseTitle={course.title} />
-              </GlassCard>
-            )}
-
-            {activeTab === 'content' && (
             <div className="space-y-3">
               {course.sections?.map((section, si) => {
                 const isOpen = expandedSections.has(section.id);
@@ -405,10 +375,8 @@ function CourseDetailInner() {
               })}
             </div>
 
-            )} {/* end activeTab === 'content' sections list */}
-
             {/* ── Ratings & Reviews ── */}
-            {activeTab === 'content' && (ratingSummary || enrolled) && (
+            {(ratingSummary || enrolled) && (
               <div className="mt-10">
                 <h2 className="text-2xl mb-6">Ratings & Reviews</h2>
                 {ratingSummary && ratingSummary.rating_count > 0 && (
