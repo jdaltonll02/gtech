@@ -14,11 +14,11 @@ from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.db.redis import (
     cache_get, cache_set, cache_delete,
-    get_redis, revoke_token, set_pw_changed,
+    get_redis, is_token_revoked, revoke_token, set_pw_changed,
 )
 from app.models.user import User
 from app.models.support import PasswordResetToken
-from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UpdateProfileRequest, UserResponse
+from app.schemas.auth import LoginRequest, LogoutRequest, RefreshRequest, RegisterRequest, TokenResponse, UpdateProfileRequest, UserResponse
 from app.services.email_service import send_verification_email, send_welcome_email
 import httpx
 
@@ -228,13 +228,28 @@ async def login(request: Request, payload: LoginRequest, db: DB):
 async def logout(
     current_user: CurrentUser,
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
+    payload: LogoutRequest | None = None,
 ):
-    payload = decode_token(credentials.credentials, expected_type="access")
-    jti = payload.get("jti")
+    access_payload = decode_token(credentials.credentials, expected_type="access")
+    jti = access_payload.get("jti")
     if jti:
-        exp = payload.get("exp", 0)
+        exp = access_payload.get("exp", 0)
         ttl = max(1, int(exp - datetime.now(timezone.utc).timestamp()))
         await revoke_token(jti, ttl)
+
+    # Also revoke the refresh token so the session can't be extended after logout.
+    if payload and payload.refresh_token:
+        try:
+            refresh_payload = decode_token(payload.refresh_token, expected_type="refresh")
+        except HTTPException:
+            refresh_payload = None
+        if refresh_payload:
+            r_jti = refresh_payload.get("jti")
+            if r_jti:
+                r_exp = refresh_payload.get("exp", 0)
+                r_ttl = max(1, int(r_exp - datetime.now(timezone.utc).timestamp()))
+                await revoke_token(r_jti, r_ttl)
+
     return {"message": "Logged out successfully."}
 
 
@@ -246,6 +261,10 @@ async def refresh(payload: RefreshRequest, db: DB):
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
+    jti = token_data.get("jti")
+    if jti and await is_token_revoked(jti):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token already used")
+
     # Enforce absolute session ceiling — force re-login after MAX_SESSION_DAYS.
     session_iat: float = token_data.get("session_iat") or token_data.get("iat", 0)
     session_age_days = (datetime.now(timezone.utc).timestamp() - session_iat) / 86400
@@ -254,6 +273,12 @@ async def refresh(payload: RefreshRequest, db: DB):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired. Please sign in again.",
         )
+
+    # Rotate: this refresh token is single-use — revoke it so it can't be replayed.
+    if jti:
+        r_exp = token_data.get("exp", 0)
+        r_ttl = max(1, int(r_exp - datetime.now(timezone.utc).timestamp()))
+        await revoke_token(jti, r_ttl)
 
     return TokenResponse(
         access_token=create_access_token(str(user.id)),
@@ -270,20 +295,28 @@ async def me(current_user: CurrentUser, db: DB):
 
 @router.patch("/me", response_model=UserResponse)
 async def update_me(payload: UpdateProfileRequest, current_user: CurrentUser, db: DB):
+    email_changing = bool(payload.email and payload.email != current_user.email)
     password_changed = False
-    if payload.new_password:
+
+    if payload.new_password or email_changing:
         if not payload.current_password:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="current_password is required to set a new password")
+            detail = "current_password is required to set a new password" if payload.new_password else "current_password is required to change email"
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
         if not verify_password(payload.current_password, current_user.hashed_password):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    if payload.new_password:
         current_user.hashed_password = hash_password(payload.new_password)
         password_changed = True
 
-    if payload.email and payload.email != current_user.email:
+    if email_changing:
         existing = await db.execute(select(User).where(User.email == payload.email))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already in use")
         current_user.email = payload.email
+        current_user.is_verified = False
+        current_user.verification_token = secrets.token_urlsafe(32)
+        await send_verification_email(current_user.email, current_user.full_name, current_user.verification_token)
 
     if payload.full_name:
         current_user.full_name = payload.full_name

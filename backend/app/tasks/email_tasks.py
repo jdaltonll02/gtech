@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 from app.celery_app import celery_app
 from app.services.email_service import send_email, send_verification_email, send_welcome_email
@@ -132,6 +133,13 @@ def send_2fa_code_task(self, to: str, full_name: str, code: str) -> bool:
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_ticket_notification_task")
 def send_ticket_notification_task(self, ticket_number: str, subject: str, name: str, email: str, category: str, message: str) -> bool:
     from app.core.config import settings
+    # These fields come straight from the public, unauthenticated ticket form —
+    # escape before interpolating into HTML email bodies.
+    subject = html.escape(subject)
+    name = html.escape(name)
+    email = html.escape(email)
+    category = html.escape(category)
+    message = html.escape(message)
     # 1. Confirmation to user
     user_html = f"""
     <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px">
@@ -216,6 +224,9 @@ def send_course_completion_task(self, to: str, full_name: str, course_title: str
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_ticket_reply_task")
 def send_ticket_reply_task(self, ticket_number: str, subject: str, recipient_email: str, recipient_name: str, reply_content: str, is_admin_reply: bool) -> bool:
     from app.core.config import settings
+    subject = html.escape(subject)
+    recipient_name = html.escape(recipient_name)
+    reply_content = html.escape(reply_content)
     sender = "Support Team" if is_admin_reply else recipient_name
     heading = "You have a reply from our support team" if is_admin_reply else "Your customer replied"
     html = f"""

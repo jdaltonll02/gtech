@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.api.deps import AdminUser, SupportAdminUser, CurrentUser, DB
 from app.models.support import SupportTicket, TicketMessage
@@ -16,16 +16,16 @@ router = APIRouter(prefix="/support", tags=["support"])
 # ── Schemas (inline for simplicity) ──────────────────────────────────────────
 
 class TicketCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=255)
     email: EmailStr
-    subject: str
+    subject: str = Field(min_length=1, max_length=500)
     category: str = "general"
     priority: str = "medium"
-    message: str
+    message: str = Field(min_length=1, max_length=5000)
 
 
 class TicketReply(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=5000)
 
 
 class StatusUpdate(BaseModel):

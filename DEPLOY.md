@@ -161,7 +161,7 @@ Paste and **replace all `CHANGE_ME` / `REPLACE_ME` values**:
 ```dotenv
 # ── Security ──────────────────────────────────────────────────────────────────
 # Generate: python3 -c "import secrets; print(secrets.token_hex(32))"
-SECRET_KEY=13b918bd37c57cd63f04da42d34f3715dd336c49683d0ec6a0001fa34ae0c315
+SECRET_KEY=CHANGE_ME_64_HEX_CHARS
 
 # ── Database (Neon) ───────────────────────────────────────────────────────────
 # Paste your Neon connection strings from Step 6
@@ -189,22 +189,22 @@ MOMO_ENVIRONMENT=production
 MOMO_CALLBACK_URL=https://gibtechs.com/api/v1/payments/momo/callback
 
 # ── Admin seed (CHANGE IMMEDIATELY AFTER FIRST LOGIN) ─────────────────────────
-FIRST_SUPERADMIN_EMAIL=dalton.edu02@gmail.com
-FIRST_SUPERADMIN_PASSWORD=DJ@gtech02
+FIRST_SUPERADMIN_EMAIL=admin@yourdomain.com
+FIRST_SUPERADMIN_PASSWORD=CHANGE_ME_STRONG_ADMIN_PASSWORD
 
 # ── Google OAuth (optional) ───────────────────────────────────────────────────
 # Get from: https://console.cloud.google.com/apis/credentials
-GOOGLE_CLIENT_ID=1034772606793-0a603vc32qgt49j5c3v1ptmshkfsg87a.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_ID=REPLACE_ME
+GOOGLE_CLIENT_SECRET=REPLACE_ME
 GOOGLE_REDIRECT_URI=https://gibtechs.com/api/v1/auth/google/callback
 
 # ── Email / SMTP ──────────────────────────────────────────────────────────────
 # Gmail: use app-specific password, not your account password
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=rabiakalimat02@gmail.com
-SMTP_PASSWORD=cvgjbxrwqnsaqqgh
-SMTP_FROM=rabiakalimat02@gmail.com
+SMTP_USER=notifications@yourdomain.com
+SMTP_PASSWORD=REPLACE_ME_SMTP_APP_PASSWORD
+SMTP_FROM=notifications@yourdomain.com
 FRONTEND_URL=https://gibtechs.com
 
 # ── CORS (comma-separated list of allowed origins) ───────────────────────────

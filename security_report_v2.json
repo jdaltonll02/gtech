@@ -1,0 +1,162 @@
+[
+  {
+    "name": "File upload path traversal",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "All traversal payloads were blocked or sanitized (folder confined under media root)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Malicious file type upload",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "Server accepted: xss.svg (mime=image/svg+xml) -> /media/uploads/d15437c6-1d65-46ff-88c6-ea87d8e144f6.svg",
+    "recommendation": "Validate magic bytes server-side; strip <script> from SVG; block .html/.php regardless of declared mimetype",
+    "note": ""
+  },
+  {
+    "name": "IDOR on orders",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "Own order list returned 0 orders; 5 random UUIDs all returned non-200 (correctly scoped to user_id)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Privilege escalation to admin",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "All tested admin endpoints correctly returned 401/403/404 for a regular verified user",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Mass assignment privilege escalation",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "role/is_admin fields ignored by UpdateProfileRequest schema (HTTP 200, role unchanged)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "SQL injection",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "search (ILIKE) and category_id (UUID-typed) params rejected/neutralized all payloads (ORM parameterization + Pydantic UUID typing)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "MoMo callback secret bypass",
+    "severity": "CRITICAL",
+    "status": "VULNERABLE",
+    "evidence": "No secret and a wrong secret both got HTTP 502 (not 401/403) - confirmed by source: MOMO_CALLBACK_SECRET is unset in backend/.env, so the guard `if settings.MOMO_CALLBACK_SECRET and secret != secret` short-circuits and never runs.",
+    "recommendation": "Set MOMO_CALLBACK_SECRET in production .env and change the check to always compare (constant-time) rather than skipping when unset; reject with 401 if the setting is empty.",
+    "note": ""
+  },
+  {
+    "name": "Stripe webhook signature bypass",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Missing signature -> 400; forged signature -> 400 (both rejected before any DB write)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Course payment confirmation bypass",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Bogus payment_intent_id rejected (HTTP 400) - server verifies against Stripe before enrolling",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Video completion bypass when duration_seconds unset",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "app/api/v1/endpoints/courses.py update_progress(): for lesson_type=='video', if lesson.duration_seconds is falsy, the code falls back to `can_complete = payload.is_completed` - a fully client-controlled boolean - instead of enforcing the 70% watch-time rule. Current DB state: 0 video lesson(s) total, 0 missing duration_seconds (currently 0 exploitable instances - no video content published yet).",
+    "recommendation": "Require duration_seconds to be set (validate at lesson-creation time) before a video lesson can be published; if it's ever missing, deny completion rather than trusting the client flag.",
+    "note": "Verified via source + live DB query, not via a live progress-endpoint call, because the only published course currently has zero video lessons to exercise this path against."
+  },
+  {
+    "name": "Refresh token replay",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "The same refresh token was successfully exchanged for new access/refresh tokens twice in a row",
+    "recommendation": "Rotate refresh tokens on use: revoke the old jti and issue a new one; reject reuse of an already-exchanged refresh token",
+    "note": ""
+  },
+  {
+    "name": "Session not fully terminated on logout",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "Access token correctly revoked (HTTP 401 on /auth/me), but the refresh token obtained before logout still minted a brand-new access token afterward (HTTP 200)",
+    "recommendation": "Logout should also revoke the refresh token's jti (client must send it), not just the access token",
+    "note": ""
+  },
+  {
+    "name": "JWT type confusion (refresh used as access)",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Refresh token rejected on protected endpoint (HTTP 401)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Account takeover via unverified email change",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "PATCH /auth/me changed the account email to an attacker-chosen address with NO current_password required and NO re-verification triggered (is_verified after change: True). Any stolen/XSS'd access token (valid up to 30 min) is enough to hijack the account's email, after which 'forgot password' completes the takeover.",
+    "recommendation": "Require current_password to change email; set is_verified=False and re-send a verification email to the new address; don't trust the account until it's confirmed",
+    "note": ""
+  },
+  {
+    "name": "IDOR on support tickets",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "Cross-user ticket access correctly denied (HTTP 404) - matched by ticket.email == current_user.email",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Support ticket free-text field validation",
+    "severity": "MEDIUM",
+    "status": "WARNING",
+    "evidence": "POST /support/tickets returned HTTP 201 for a payload containing an unescaped <script> tag and a long message, with no length limit or sanitization applied by the API (TicketCreate has no max_length/sanitizer on name/subject/message). email_tasks.py builds the notification email HTML via an f-string interpolating these fields directly (no html.escape) before sending to the admin inbox and the submitter's address.",
+    "recommendation": "Add max_length to TicketCreate fields; html.escape() name/subject/message before interpolating into the email f-strings in email_tasks.py; render ticket content as text in the admin UI, not raw HTML",
+    "note": "Only ONE ticket was submitted for this probe (deliberately, since ticket creation triggers 2 real emails via the live SMTP account - one to the submitter address, one admin alert to the real inbox)."
+  },
+  {
+    "name": "API docs exposed in production",
+    "severity": "LOW",
+    "status": "PROTECTED",
+    "evidence": "docs_url/redoc_url/openapi_url correctly disabled (all returned 404)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Global rate limit enforcement",
+    "severity": "LOW",
+    "status": "PROTECTED",
+    "evidence": "429 returned after 56 requests to a public endpoint (SlowAPI default limit active)",
+    "recommendation": "",
+    "note": ""
+  },
+  {
+    "name": "Rate-limit bypass via X-Forwarded-For",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "6 requests with a different spoofed X-Forwarded-For each time: [200, 200, 200, 200, 200, 200] - limiter never triggered, suggesting it keys on the spoofable header rather than the real peer address",
+    "recommendation": "Use SlowAPI's get_remote_address only behind a trusted proxy that sets X-Forwarded-For itself, and configure Starlette/uvicorn --proxy-headers with a trusted host list - never trust a client-supplied XFF directly",
+    "note": ""
+  },
+  {
+    "name": "Server header discloses stack details",
+    "severity": "LOW",
+    "status": "WARNING",
+    "evidence": "Server header: 'uvicorn'",
+    "recommendation": "Strip/override the Server header at the Nginx layer so backend framework/version isn't disclosed",
+    "note": ""
+  }
+]

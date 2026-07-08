@@ -11,6 +11,19 @@ function getRefreshToken() {
 
 let refreshInFlight: Promise<string | null> | null = null;
 
+function shouldAttemptRefresh(path: string): boolean {
+  return ![
+    '/auth/login',
+    '/auth/refresh',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+    '/auth/2fa/verify',
+    '/auth/2fa/send-code',
+    '/auth/oauth-token',
+  ].some((authPath) => path.startsWith(authPath));
+}
+
 async function refreshAccessToken(): Promise<string | null> {
   if (refreshInFlight) return refreshInFlight;
 
@@ -62,7 +75,7 @@ async function request<T>(path: string, options: RequestInit = {}, retried = fal
     },
   });
 
-  if (res.status === 401 && !retried) {
+  if (res.status === 401 && !retried && shouldAttemptRefresh(path)) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       return request<T>(path, options, true);
@@ -90,7 +103,7 @@ async function requestForm<T>(path: string, body: FormData, options: RequestInit
     },
   });
 
-  if (res.status === 401 && !retried) {
+  if (res.status === 401 && !retried && shouldAttemptRefresh(path)) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       return requestForm<T>(path, body, options, true);

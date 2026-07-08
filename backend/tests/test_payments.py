@@ -73,8 +73,8 @@ async def test_momo_callback_accepts_correct_secret(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_momo_callback_no_secret_configured_accepts_all(monkeypatch):
-    """When MOMO_CALLBACK_SECRET is empty, the secret check is skipped."""
+async def test_momo_callback_no_secret_configured_rejects_all(monkeypatch):
+    """When MOMO_CALLBACK_SECRET is empty, the callback must fail closed (not skip the check)."""
     monkeypatch.setattr(settings, "MOMO_CALLBACK_SECRET", "")
 
     db = AsyncMock()
@@ -93,12 +93,12 @@ async def test_momo_callback_no_secret_configured_accepts_all(monkeypatch):
             )
 
     app.dependency_overrides.clear()
-    assert r.status_code == 200
+    assert r.status_code == 403
 
 
 @pytest.mark.asyncio
 async def test_momo_callback_marks_order_paid_on_successful_status(monkeypatch):
-    monkeypatch.setattr(settings, "MOMO_CALLBACK_SECRET", "")
+    monkeypatch.setattr(settings, "MOMO_CALLBACK_SECRET", "correct-secret")
 
     order = _make_order(payment_reference="ref-success")
     db = AsyncMock()
@@ -112,7 +112,7 @@ async def test_momo_callback_marks_order_paid_on_successful_status(monkeypatch):
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             r = await c.post(
-                "/api/v1/payments/momo/callback",
+                "/api/v1/payments/momo/callback?secret=correct-secret",
                 json={"externalId": "ref-success"},
             )
 

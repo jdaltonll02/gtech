@@ -133,6 +133,8 @@ export function Profile() {
     linkedin_url: '', twitter_url: '', github_url: '',
   });
   const [passwordForm, setPasswordForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [emailChangePassword, setEmailChangePassword] = useState('');
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -153,6 +155,7 @@ export function Profile() {
       setEnrollments(enrs);
       setCertificates(certs);
       if (typeof me.two_factor_enabled === 'boolean') setTwoFaEnabled((me as any).two_factor_enabled);
+      setOriginalEmail(me.email ?? '');
       setProfileForm({
         full_name: me.full_name ?? '',
         email: me.email ?? '',
@@ -189,16 +192,31 @@ export function Profile() {
 
   if (!user) return null;
 
+  const emailChanged = profileForm.email !== originalEmail;
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMsg(null);
+    if (emailChanged && !emailChangePassword) {
+      setProfileMsg({ type: 'error', text: 'Enter your current password to change your email address.' });
+      return;
+    }
     setProfileLoading(true);
     try {
-      const updated = await api.patch<UserResponse>('/auth/me', profileForm);
+      const body: Record<string, unknown> = { ...profileForm };
+      if (emailChanged) body.current_password = emailChangePassword;
+      const updated = await api.patch<UserResponse>('/auth/me', body);
       const at = localStorage.getItem('access_token') ?? '';
       const rt = localStorage.getItem('refresh_token') ?? '';
       setAuth({ id: updated.id, email: updated.email, full_name: updated.full_name, is_admin: updated.is_admin }, at, rt);
-      setProfileMsg({ type: 'success', text: 'Profile updated successfully.' });
+      setOriginalEmail(updated.email);
+      setEmailChangePassword('');
+      setProfileMsg({
+        type: 'success',
+        text: emailChanged
+          ? 'Profile updated. We sent a verification link to your new email address — you\'ll need to confirm it before your next sign-in.'
+          : 'Profile updated successfully.',
+      });
     } catch (err: any) {
       setProfileMsg({ type: 'error', text: err.message || 'Update failed.' });
     } finally {
@@ -372,6 +390,19 @@ export function Profile() {
                             <Input id="email" type="email" value={profileForm.email} onChange={setField('email')} required />
                           </div>
                         </div>
+                        {emailChanged && (
+                          <div className="mt-4 space-y-1.5">
+                            <Label htmlFor="email_change_password">Current Password *</Label>
+                            <Input
+                              id="email_change_password"
+                              type="password"
+                              value={emailChangePassword}
+                              onChange={(e) => setEmailChangePassword(e.target.value)}
+                              required
+                            />
+                            <p className="text-xs text-black/40">Required to confirm this is you. You'll need to verify the new address before signing in again.</p>
+                          </div>
+                        )}
                         <div className="mt-4 space-y-1.5">
                           <Label htmlFor="headline">Headline</Label>
                           <Input id="headline" placeholder="e.g. Software Engineer · Lifelong Learner" value={profileForm.headline} onChange={setField('headline')} maxLength={120} />

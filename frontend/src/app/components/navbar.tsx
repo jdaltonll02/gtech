@@ -40,7 +40,13 @@ export function Navbar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const refresh_token = localStorage.getItem('refresh_token');
+    try {
+      await api.post('/auth/logout', refresh_token ? { refresh_token } : {});
+    } catch {
+      // Best-effort — still clear the local session even if the request fails.
+    }
     clearAuth();
     setUserMenuOpen(false);
     setIsOpen(false);

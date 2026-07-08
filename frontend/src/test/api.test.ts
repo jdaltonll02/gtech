@@ -81,6 +81,29 @@ describe('api utility', () => {
     await expect(api.get('/missing')).rejects.toThrow('Not found');
   });
 
+  it('does not attempt token refresh for login failures', async () => {
+    localStorage.setItem('refresh_token', 'stale-refresh');
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ detail: 'Invalid credentials' }),
+    });
+    global.fetch = mockFetch;
+
+    const { api } = await import('../app/utils/api');
+    await expect(api.post('/auth/login', {
+      email: 'test@example.com',
+      password: 'wrong-password',
+    })).rejects.toThrow('Invalid credentials');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalledWith(
+      '/api/v1/auth/refresh',
+      expect.anything()
+    );
+  });
+
   it('retries with refreshed token on 401', async () => {
     localStorage.setItem('access_token', 'expired-token');
     localStorage.setItem('refresh_token', 'valid-refresh');

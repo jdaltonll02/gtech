@@ -1,0 +1,100 @@
+[
+  {
+    "name": "Brute-force login protection",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "Blocked after 10 attempts (HTTP 429)",
+    "recommendation": ""
+  },
+  {
+    "name": "2FA brute-force protection",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "Blocked after 6 attempts (HTTP 429)",
+    "recommendation": ""
+  },
+  {
+    "name": "User enumeration via forgot-password timing",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "Timing gap only 132.2ms \u2014 not exploitable",
+    "recommendation": ""
+  },
+  {
+    "name": "Forgot-password rate limiting",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "Rate limit enforced on /forgot-password",
+    "recommendation": ""
+  },
+  {
+    "name": "Unauthenticated file upload",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "Upload rejected without auth (HTTP 401)",
+    "recommendation": ""
+  },
+  {
+    "name": "JWT algorithm=none attack",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Forged alg=none token rejected (HTTP 401)",
+    "recommendation": ""
+  },
+  {
+    "name": "JWT empty secret",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Empty-secret JWT rejected (HTTP 401)",
+    "recommendation": ""
+  },
+  {
+    "name": "Missing HTTP security headers",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "Missing: x-xss-protection",
+    "recommendation": "Add SecurityHeadersMiddleware returning X-Frame-Options, HSTS, CSP, etc."
+  },
+  {
+    "name": "CORS misconfiguration",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "CORS only allows whitelisted origins",
+    "recommendation": ""
+  },
+  {
+    "name": "Open redirect",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "No unvalidated redirect to external domains detected",
+    "recommendation": ""
+  },
+  {
+    "name": "Sensitive data in error responses",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "Error responses contain no stack traces or internal paths",
+    "recommendation": ""
+  },
+  {
+    "name": "Password strength on reset",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "Server validates password length only, not complexity",
+    "recommendation": "Require uppercase + digit in reset password same as registration"
+  },
+  {
+    "name": "Email verification brute-force",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "15 random token guesses on /verify-email \u2014 never throttled (no 429)",
+    "recommendation": "Rate-limit /verify-email to 5 attempts per IP per hour"
+  },
+  {
+    "name": "Media directory listing",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "GET /media/ returned HTTP 404 \u2014 no directory listing",
+    "recommendation": ""
+  }
+]

@@ -1003,14 +1003,14 @@ async def update_progress(
         can_complete = False
 
         if lesson.lesson_type == "video":
-            # Need duration on lesson; fall back to requiring 70% of watch_position
-            # compared to duration_seconds if set, otherwise accept client flag
+            # Completion requires proof of watch-time. If duration_seconds isn't set on
+            # the lesson, there's no basis to verify 70% watched, so deny rather than
+            # trust the client's is_completed flag.
             if lesson.duration_seconds and lesson.duration_seconds > 0:
                 watched_pct = (payload.watch_position_seconds / lesson.duration_seconds) * 100
                 can_complete = watched_pct >= 70.0
             else:
-                # No duration set — trust client-sent is_completed (video onEnded)
-                can_complete = payload.is_completed
+                can_complete = False
 
         elif lesson.lesson_type in ("text", "document", "code"):
             # Auto-complete on visit — client sends is_completed=true once scrolled/viewed
