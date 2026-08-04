@@ -110,20 +110,27 @@ async def get_user_effective_permissions(user: User, db: AsyncSession) -> list[s
     return list(perms)
 
 
-async def get_user_assigned_course_ids(user_id: uuid.UUID, db: AsyncSession) -> Optional[list[str]]:
+async def get_user_assigned_course_ids(current_user: User, db: AsyncSession) -> Optional[list[uuid.UUID]]:
     """
-    For instructors: return list of course IDs they're assigned to.
-    Returns None if user has full course access (manage_courses).
-    Returns empty list if they have manage_own_courses but no courses assigned.
+    Returns None if the user has full course access — either the primary
+    ADMIN/SUPERADMIN role, or the manage_courses RBAC permission. The primary
+    superadmin typically has no UserStaffRole rows at all (RBAC assignments
+    are for staff/instructor accounts, not the seeded superadmin), so the role
+    check must happen here rather than being left to each caller.
+    Returns a list of course IDs for instructors (manage_own_courses), scoped
+    via the CourseInstructor table — empty if none are assigned yet.
     """
+    if current_user.role in (UserRole.ADMIN, UserRole.SUPERADMIN):
+        return None
     from app.models.rbac import UserStaffRole
+    from app.models.courses import CourseInstructor
     result = await db.execute(
         select(UserStaffRole)
         .options(selectinload(UserStaffRole.role))
-        .where(UserStaffRole.user_id == user_id, UserStaffRole.is_active == True)
+        .where(UserStaffRole.user_id == current_user.id, UserStaffRole.is_active == True)
     )
     assignments = result.scalars().all()
-    course_ids: list[str] = []
+    has_own_courses_perm = False
     for a in assignments:
         if not a.role:
             continue
@@ -131,9 +138,25 @@ async def get_user_assigned_course_ids(user_id: uuid.UUID, db: AsyncSession) -> 
         if "manage_courses" in perms:
             return None  # Full access
         if "manage_own_courses" in perms:
-            assigned = (a.role_metadata or {}).get("course_ids", [])
-            course_ids.extend(assigned)
-    return course_ids
+            has_own_courses_perm = True
+    if not has_own_courses_perm:
+        return []
+    result = await db.execute(select(CourseInstructor.course_id).where(CourseInstructor.user_id == current_user.id))
+    return list(result.scalars().all())
+
+
+async def ensure_course_access(course_id: uuid.UUID, current_user: User, db: AsyncSession) -> None:
+    """Raise 403 if current_user can't manage this specific course.
+
+    ADMIN/SUPERADMIN and manage_courses holders (get_user_assigned_course_ids
+    returns None) always pass. manage_own_courses holders (instructors) only
+    pass if the course is in their assigned list.
+    """
+    assigned = await get_user_assigned_course_ids(current_user, db)
+    if assigned is None:
+        return
+    if course_id not in assigned:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course")
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

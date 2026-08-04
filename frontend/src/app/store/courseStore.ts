@@ -42,6 +42,7 @@ export interface Assessment {
   is_mandatory: boolean;
   passing_score?: number;
   time_limit_minutes?: number;
+  time_per_question_seconds?: number;
   order_index: number;
   questions: QuizQuestion[];
 }

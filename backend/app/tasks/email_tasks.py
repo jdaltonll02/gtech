@@ -249,3 +249,35 @@ def send_ticket_reply_task(self, ticket_number: str, subject: str, recipient_ema
     except Exception as exc:
         logger.warning("Ticket reply email failed: %s", exc)
         raise self.retry(exc=exc)
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_lesson_reply_notification_task")
+def send_lesson_reply_notification_task(
+    self, recipient_email: str, recipient_name: str, lesson_title: str,
+    reply_author_name: str, reply_content: str, course_id: str, lesson_id: str,
+) -> bool:
+    from app.core.config import settings
+    recipient_name = html.escape(recipient_name)
+    lesson_title = html.escape(lesson_title)
+    reply_author_name = html.escape(reply_author_name)
+    reply_content = html.escape(reply_content)
+    email_html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px">
+      <h2 style="color:#8B0000">New reply in "{lesson_title}"</h2>
+      <p>Hi {recipient_name}, {reply_author_name} replied to your comment:</p>
+      <blockquote style="border-left:3px solid #8B0000;margin:12px 0;padding:8px 16px;color:#444;font-size:14px">{reply_content}</blockquote>
+      <a href="{settings.FRONTEND_URL}/courses/{course_id}/learn?lesson={lesson_id}"
+         style="display:inline-block;background:#8B0000;color:#fff;padding:12px 24px;
+                border-radius:8px;text-decoration:none;margin-top:24px">
+        View Discussion
+      </a>
+    </div>
+    """
+    try:
+        result = asyncio.run(send_email(recipient_email, f"New reply in \"{lesson_title}\"", email_html))
+        if not result:
+            raise RuntimeError("Email send returned False")
+        return True
+    except Exception as exc:
+        logger.warning("Lesson reply notification email failed: %s", exc)
+        raise self.retry(exc=exc)

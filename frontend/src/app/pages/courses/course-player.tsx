@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button';
 import { ContentBlockRenderer } from '../../components/course/ContentBlockRenderer';
 import { QuizPlayer } from '../../components/course/QuizPlayer';
 import { AssignmentViewer } from '../../components/course/AssignmentViewer';
+import { LessonDiscussion } from '../../components/course/LessonDiscussion';
 import { ClassroomAssistant } from '../../components/classroom-assistant';
 import { useCourseStore, type Course, type Lesson } from '../../store/courseStore';
 import { useAuthStore } from '../../store/authStore';
@@ -485,6 +486,8 @@ export function CoursePlayer() {
                   Next <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
+
+              <LessonDiscussion courseId={course.id} lessonId={currentLesson.id} />
             </div>
           )}
         </div>

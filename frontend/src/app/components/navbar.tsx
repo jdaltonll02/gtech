@@ -186,15 +186,14 @@ export function Navbar() {
                 {businessesOpen && (
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-black/10 py-2 z-50">
                     {businesses.map((business) => (
-                      <a
+                      <Link
                         key={business.id}
-                        href={business.website_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        to={`/businesses/${business.id}`}
+                        onClick={() => setBusinessesOpen(false)}
                         className="block px-4 py-2 text-sm text-black/70 hover:text-primary hover:bg-black/5 transition-colors"
                       >
                         {business.name}
-                      </a>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -341,15 +340,14 @@ export function Navbar() {
               <div className="flex items-center space-x-2 pt-2 border-t border-black/10">
                 <span className="text-sm text-black/40">Businesses:</span>
                 {businesses.slice(0, 3).map((business) => (
-                  <a
+                  <Link
                     key={business.id}
-                    href={business.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    to={`/businesses/${business.id}`}
+                    onClick={() => setIsOpen(false)}
                     className="text-sm text-primary hover:underline"
                   >
                     {business.name}
-                  </a>
+                  </Link>
                 ))}
                 {businesses.length > 3 && <span className="text-sm text-black/40">+{businesses.length - 3} more</span>}
               </div>

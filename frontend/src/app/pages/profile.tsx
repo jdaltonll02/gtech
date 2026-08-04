@@ -145,15 +145,19 @@ export function Profile() {
   const [twoFaLoading, setTwoFaLoading] = useState(false);
   const [twoFaMsg, setTwoFaMsg] = useState('');
 
+  const [badges, setBadges] = useState<{ id: string; badge_type: string; title: string; issued_at: string; course: { title: string } }[]>([]);
+
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     Promise.all([
       api.get<Enrollment[]>('/courses/my/enrollments'),
       api.get<any[]>('/courses/my/certificates'),
       api.get<UserResponse>('/auth/me'),
-    ]).then(([enrs, certs, me]) => {
+      api.get<any[]>('/courses/my/badges').catch(() => []),
+    ]).then(([enrs, certs, me, myBadges]) => {
       setEnrollments(enrs);
       setCertificates(certs);
+      setBadges(myBadges);
       if (typeof me.two_factor_enabled === 'boolean') setTwoFaEnabled((me as any).two_factor_enabled);
       setOriginalEmail(me.email ?? '');
       setProfileForm({
@@ -345,6 +349,26 @@ export function Profile() {
                           </div>
                         )}
                       </GlassCard>
+
+                      {/* Badges */}
+                      {badges.length > 0 && (
+                        <GlassCard className="p-5">
+                          <h2 className="font-semibold mb-4">Badges</h2>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {badges.map((b) => (
+                              <div key={b.id} className="flex flex-col items-center text-center gap-2 p-3 rounded-lg bg-black/[0.03]">
+                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center flex-shrink-0">
+                                  <Award className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium leading-tight">{b.title}</p>
+                                  <p className="text-[10px] text-black/40 mt-0.5">{new Date(b.issued_at).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </GlassCard>
+                      )}
 
                       {/* Quick links */}
                       <div className="grid grid-cols-2 gap-3">

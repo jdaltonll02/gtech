@@ -50,13 +50,16 @@ def cleanup_orphaned_media() -> dict:
                 removed_records += 1
         db.commit()
 
-        # Find files on disk with no DB record
-        media_root = settings.LOCAL_MEDIA_ROOT
+        # Find files on disk with no DB record. local_path is stored as an
+        # absolute path, so media_root must be resolved to absolute too —
+        # otherwise every real file's relative os.walk() path fails to match
+        # the absolute db_paths and gets wrongly deleted as "orphaned".
+        media_root = os.path.abspath(settings.LOCAL_MEDIA_ROOT)
         if os.path.isdir(media_root):
-            db_paths = {m.local_path for m in db.execute(select(Media)).scalars().all()}
+            db_paths = {os.path.abspath(m.local_path) for m in db.execute(select(Media)).scalars().all()}
             for dirpath, _, filenames in os.walk(media_root):
                 for fname in filenames:
-                    full_path = os.path.join(dirpath, fname)
+                    full_path = os.path.abspath(os.path.join(dirpath, fname))
                     if full_path not in db_paths:
                         try:
                             os.remove(full_path)

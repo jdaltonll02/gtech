@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { Link } from 'react-router';
 import { ArrowRight, ExternalLink, Award, BookOpen, Code, Download, Github, GraduationCap, Briefcase, FolderKanban, FileText, Layers, Database, Cloud, Wrench, Brain, Server, Palette, Globe2 } from 'lucide-react';
 import { GlassCard } from '../components/glass-card';
 import { Button } from '../components/ui/button';
@@ -314,27 +315,34 @@ export function Portfolio() {
                   {projects.map((project, index) => (
                     <motion.div key={project.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: index * 0.1 }}>
                       <GlassCard className="overflow-hidden h-full flex flex-col" hover>
-                        <div className="h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
-                          <Code className="w-16 h-16 text-primary/50" />
-                          {project.featured && (
-                            <span className="absolute top-3 right-3 text-xs px-2 py-0.5 bg-primary text-white rounded-full">Featured</span>
-                          )}
-                        </div>
+                        <Link to={`/portfolio/project/${project.id}`} className="block">
+                          <div className="h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center relative">
+                            <Code className="w-16 h-16 text-primary/50" />
+                            {project.featured && (
+                              <span className="absolute top-3 right-3 text-xs px-2 py-0.5 bg-primary text-white rounded-full">Featured</span>
+                            )}
+                          </div>
+                        </Link>
                         <div className="p-6 flex-1 flex flex-col">
-                          <h3 className="text-xl mb-2">{project.title}</h3>
+                          <Link to={`/portfolio/project/${project.id}`} className="hover:text-primary transition-colors">
+                            <h3 className="text-xl mb-2">{project.title}</h3>
+                          </Link>
                           <p className="text-sm text-primary mb-3">{project.category}</p>
                           <p className="text-black/60 mb-4 flex-1">{project.description}</p>
                           <div className="flex flex-wrap gap-2 mb-4">
                             {project.tags.map((tag) => (<span key={tag} className="px-2 py-1 text-xs bg-black/5 border border-black/10 rounded">{tag}</span>))}
                           </div>
-                          <div className="flex gap-4">
+                          <div className="flex items-center gap-4">
+                            <Link to={`/portfolio/project/${project.id}`} className="text-primary hover:underline text-sm flex items-center font-medium">
+                              View Details<ArrowRight className="ml-1 w-4 h-4" />
+                            </Link>
                             {project.github_url && (
-                              <a href={project.github_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center">
+                              <a href={project.github_url} target="_blank" rel="noopener noreferrer" className="text-black/50 hover:text-primary text-sm flex items-center">
                                 GitHub<ExternalLink className="ml-1 w-4 h-4" />
                               </a>
                             )}
                             {project.live_url && (
-                              <a href={project.live_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center">
+                              <a href={project.live_url} target="_blank" rel="noopener noreferrer" className="text-black/50 hover:text-primary text-sm flex items-center">
                                 Live<ExternalLink className="ml-1 w-4 h-4" />
                               </a>
                             )}

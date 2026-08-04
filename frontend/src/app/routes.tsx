@@ -31,6 +31,8 @@ import { Forms } from './pages/forms';
 import { FormPage } from './pages/form-page';
 import { Team } from './pages/team';
 import { TeamMember } from './pages/team-member';
+import { BusinessDetail } from './pages/business-detail';
+import { ProjectDetail } from './pages/project-detail';
 import { Resume } from './pages/resume';
 import { useAuthStore } from './store/authStore';
 
@@ -119,6 +121,9 @@ export const router = createBrowserRouter([
       // Team
       { path: 'team', Component: Team },
       { path: 'team/:slug', Component: TeamMember },
+      // Businesses / Projects — pitch-deck detail pages
+      { path: 'businesses/:id', Component: BusinessDetail },
+      { path: 'portfolio/project/:id', Component: ProjectDetail },
       // Blog
       { path: 'blog', Component: Blog },
       { path: 'blog/:slug', Component: BlogPost },

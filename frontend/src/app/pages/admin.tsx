@@ -83,7 +83,7 @@ import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { TeamAdminTab } from '../components/admin-team-tab';
 
-type Tab = 'dashboard' | 'projects' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs' | 'team';
+type Tab = 'dashboard' | 'projects' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs' | 'team' | 'users';
 
 type AnalyticsResponse = {
   stats: {
@@ -97,6 +97,8 @@ type AnalyticsResponse = {
   product_sales: { name: string; value: number }[];
 };
 
+type ProjectCollaborator = { name: string; role?: string; url?: string };
+
 type Project = {
   id: string;
   title: string;
@@ -105,6 +107,16 @@ type Project = {
   tags: string[];
   featured: boolean;
   github_url?: string;
+  live_url?: string;
+  image_url?: string;
+  tagline?: string;
+  status?: string;
+  pitch_summary?: string;
+  problem_statement?: string;
+  solution?: string;
+  collaborators?: ProjectCollaborator[];
+  gallery_urls?: string[];
+  looking_for?: string;
 };
 
 type Experience = {
@@ -178,6 +190,18 @@ type Business = {
   logo_url: string;
   website_url: string;
   order_index: number;
+  tagline?: string;
+  industry?: string;
+  stage?: string;
+  founded_year?: string;
+  location?: string;
+  pitch_summary?: string;
+  problem_statement?: string;
+  solution?: string;
+  gallery_urls?: string[];
+  contact_email?: string;
+  is_seeking_investment?: boolean;
+  investment_ask?: string;
 };
 
 type LessonType = 'video' | 'text' | 'code' | 'document' | 'mixed';
@@ -191,6 +215,8 @@ type QuizQuestion = {
   question_text: string;
   options: string[];
   correct_answer_index: number;
+  correct_answer_indices?: number[];
+  is_multi_select?: boolean;
   explanation?: string;
   order_index: number;
 };
@@ -205,6 +231,7 @@ type Assessment = {
   is_mandatory: boolean;
   passing_score?: number;
   time_limit_minutes?: number;
+  time_per_question_seconds?: number;
   order_index: number;
   questions: QuizQuestion[];
 };
@@ -260,10 +287,17 @@ type Course = {
   price: number;
   is_free: boolean;
   is_published: boolean;
+  is_private?: boolean;
   tags?: string;
   instructor_name?: string;
   enrollment_count?: number;
   sections?: Section[];
+};
+
+type Coupon = {
+  id: string; code: string; discount_type: string; discount_value: number;
+  course_id: string | null; max_uses: number | null; max_uses_per_user: number;
+  expires_at: string | null; is_active: boolean; created_at: string; use_count: number;
 };
 
 function parseList(raw: string) {
@@ -325,8 +359,20 @@ function ConfirmDialog({ state, onClose }: { state: ConfirmState; onClose: () =>
 // ─── Project dialog ───────────────────────────────────────────────────────────
 type ProjectForm = {
   title: string; description: string; category: string;
-  tags: string; github_url: string; featured: boolean;
+  tags: string; github_url: string; live_url: string; image_url: string; featured: boolean;
+  tagline: string; status: string; pitch_summary: string; problem_statement: string;
+  solution: string; gallery_urls: string; looking_for: string;
 };
+
+const PROJECT_STATUS_OPTIONS = [
+  { value: 'concept', label: 'Concept' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'mvp', label: 'MVP' },
+  { value: 'launched', label: 'Launched' },
+  { value: 'seeking_collaborators', label: 'Seeking Collaborators' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'on_hold', label: 'On Hold' },
+];
 
 function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
   open: boolean; mode: 'create' | 'edit';
@@ -334,8 +380,12 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
   onSave: (data: Partial<Project>) => Promise<void>;
   onClose: () => void;
 }) {
-  const blank: ProjectForm = { title: '', description: '', category: '', tags: '', github_url: '', featured: false };
+  const blank: ProjectForm = {
+    title: '', description: '', category: '', tags: '', github_url: '', live_url: '', image_url: '', featured: false,
+    tagline: '', status: 'in_progress', pitch_summary: '', problem_statement: '', solution: '', gallery_urls: '', looking_for: '',
+  };
   const [form, setForm] = useState<ProjectForm>(blank);
+  const [collaborators, setCollaborators] = useState<ProjectCollaborator[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
@@ -347,13 +397,28 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
         category: initialData.category || '',
         tags: (initialData.tags || []).join(', '),
         github_url: initialData.github_url || '',
+        live_url: initialData.live_url || '',
+        image_url: initialData.image_url || '',
         featured: initialData.featured || false,
+        tagline: initialData.tagline || '',
+        status: initialData.status || 'in_progress',
+        pitch_summary: initialData.pitch_summary || '',
+        problem_statement: initialData.problem_statement || '',
+        solution: initialData.solution || '',
+        gallery_urls: (initialData.gallery_urls || []).join(', '),
+        looking_for: initialData.looking_for || '',
       });
+      setCollaborators(initialData.collaborators || []);
       setErr('');
     }
   }, [open]);
 
   const f = <K extends keyof ProjectForm>(k: K) => (v: ProjectForm[K]) => setForm((p) => ({ ...p, [k]: v }));
+
+  const addCollaboratorRow = () => setCollaborators((p) => [...p, { name: '', role: '', url: '' }]);
+  const updateCollaborator = (idx: number, key: keyof ProjectCollaborator, value: string) =>
+    setCollaborators((p) => p.map((c, i) => (i === idx ? { ...c, [key]: value } : c)));
+  const removeCollaboratorRow = (idx: number) => setCollaborators((p) => p.filter((_, i) => i !== idx));
 
   const handleSubmit = async () => {
     if (!form.title.trim()) { setErr('Title is required.'); return; }
@@ -365,14 +430,26 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
         category: form.category.trim() || 'General',
         tags: parseList(form.tags),
         github_url: form.github_url.trim() || undefined,
+        live_url: form.live_url.trim() || undefined,
+        image_url: form.image_url.trim() || undefined,
         featured: form.featured,
+        tagline: form.tagline.trim() || undefined,
+        status: form.status,
+        pitch_summary: form.pitch_summary.trim() || undefined,
+        problem_statement: form.problem_statement.trim() || undefined,
+        solution: form.solution.trim() || undefined,
+        collaborators: collaborators.filter((c) => c.name.trim()).map((c) => ({
+          name: c.name.trim(), role: c.role?.trim() || undefined, url: c.url?.trim() || undefined,
+        })),
+        gallery_urls: parseList(form.gallery_urls),
+        looking_for: form.looking_for.trim() || undefined,
       });
     } catch (e: any) { setErr(e.message || 'Save failed.'); setSaving(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'New Project' : 'Edit Project'}</DialogTitle>
         </DialogHeader>
@@ -380,18 +457,85 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
           <FormField label="Title *">
             <Input value={form.title} onChange={(e) => f('title')(e.target.value)} placeholder="Project title" />
           </FormField>
+          <FormField label="Tagline">
+            <Input value={form.tagline} onChange={(e) => f('tagline')(e.target.value)} placeholder="One-line hook shown on the detail page" />
+          </FormField>
           <FormField label="Description">
             <Textarea rows={3} value={form.description} onChange={(e) => f('description')(e.target.value)} placeholder="Short description…" />
           </FormField>
-          <FormField label="Category">
-            <Input value={form.category} onChange={(e) => f('category')(e.target.value)} placeholder="e.g. Web, AI, Mobile" />
-          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Category">
+              <Input value={form.category} onChange={(e) => f('category')(e.target.value)} placeholder="e.g. Web, AI, Mobile" />
+            </FormField>
+            <FormField label="Status">
+              <Select value={form.status} onValueChange={f('status')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PROJECT_STATUS_OPTIONS.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
           <FormField label="Tags (comma-separated)">
             <Input value={form.tags} onChange={(e) => f('tags')(e.target.value)} placeholder="React, TypeScript, …" />
           </FormField>
-          <FormField label="GitHub URL">
-            <Input value={form.github_url} onChange={(e) => f('github_url')(e.target.value)} placeholder="https://github.com/…" />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="GitHub URL">
+              <Input value={form.github_url} onChange={(e) => f('github_url')(e.target.value)} placeholder="https://github.com/…" />
+            </FormField>
+            <FormField label="Live URL">
+              <Input value={form.live_url} onChange={(e) => f('live_url')(e.target.value)} placeholder="https://…" />
+            </FormField>
+          </div>
+          <FormField label="Image URL">
+            <Input value={form.image_url} onChange={(e) => f('image_url')(e.target.value)} placeholder="https://… (card/hero thumbnail)" />
           </FormField>
+
+          <div className="border-t border-black/10 pt-4">
+            <p className="text-sm font-medium mb-3">Pitch details (shown on the project's detail page)</p>
+            <div className="grid gap-4">
+              <FormField label="Pitch Summary">
+                <Textarea rows={2} value={form.pitch_summary} onChange={(e) => f('pitch_summary')(e.target.value)} placeholder="One-paragraph elevator pitch…" />
+              </FormField>
+              <FormField label="Problem Statement">
+                <Textarea rows={2} value={form.problem_statement} onChange={(e) => f('problem_statement')(e.target.value)} placeholder="What problem does this solve?" />
+              </FormField>
+              <FormField label="Solution / Approach">
+                <Textarea rows={2} value={form.solution} onChange={(e) => f('solution')(e.target.value)} placeholder="How does it solve it?" />
+              </FormField>
+              <FormField label="Looking For">
+                <Textarea rows={2} value={form.looking_for} onChange={(e) => f('looking_for')(e.target.value)} placeholder="e.g. Looking for a backend collaborator and early users" />
+              </FormField>
+              <FormField label="Gallery Image URLs (comma-separated)">
+                <Input value={form.gallery_urls} onChange={(e) => f('gallery_urls')(e.target.value)} placeholder="https://…, https://…" />
+              </FormField>
+            </div>
+          </div>
+
+          <div className="border-t border-black/10 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm font-medium">Collaborators</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addCollaboratorRow}>
+                <Plus className="w-3 h-3 mr-1" />Add Collaborator
+              </Button>
+            </div>
+            {collaborators.length === 0 && (
+              <p className="text-xs text-black/40 py-2">No collaborators yet.</p>
+            )}
+            <div className="space-y-2">
+              {collaborators.map((c, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input value={c.name} onChange={(e) => updateCollaborator(idx, 'name', e.target.value)} placeholder="Name" className="flex-1" />
+                  <Input value={c.role || ''} onChange={(e) => updateCollaborator(idx, 'role', e.target.value)} placeholder="Role" className="flex-1" />
+                  <Input value={c.url || ''} onChange={(e) => updateCollaborator(idx, 'url', e.target.value)} placeholder="Profile URL (optional)" className="flex-1" />
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeCollaboratorRow(idx)}>
+                    <X className="w-3.5 h-3.5 text-red-500" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <Switch id="proj-featured" checked={form.featured} onCheckedChange={f('featured')} />
             <Label htmlFor="proj-featured" className="cursor-pointer">Featured project</Label>
@@ -1119,7 +1263,8 @@ function ProductDialog({ open, mode, initialData, categories, onSave, onClose }:
 type CourseForm = {
   title: string; description: string; short_description: string;
   level: 'beginner' | 'intermediate' | 'advanced';
-  price: string; is_free: boolean; is_published: boolean;
+  price: string; is_free: boolean; is_published: boolean; is_private: boolean;
+  access_code: string;
   instructor_name: string; tags: string;
   thumbnail_url?: string; thumbnail_file?: File;
 };
@@ -1133,7 +1278,8 @@ function CourseDialog({ open, mode, initialData, onSave, onClose }: {
   const blank: CourseForm = {
     title: '', description: '', short_description: '',
     level: 'beginner', price: '0', is_free: true,
-    is_published: false, instructor_name: '', tags: '',
+    is_published: false, is_private: false, access_code: '',
+    instructor_name: '', tags: '',
     thumbnail_url: '', thumbnail_file: undefined,
   };
   const [form, setForm] = useState<CourseForm>(blank);
@@ -1151,6 +1297,8 @@ function CourseDialog({ open, mode, initialData, onSave, onClose }: {
         price: initialData.price != null ? String(initialData.price) : '0',
         is_free: initialData.is_free ?? true,
         is_published: initialData.is_published || false,
+        is_private: initialData.is_private ?? false,
+        access_code: '',
         instructor_name: initialData.instructor_name || '',
         tags: initialData.tags || '',
         thumbnail_url: initialData.thumbnail_url || '',
@@ -1184,6 +1332,8 @@ function CourseDialog({ open, mode, initialData, onSave, onClose }: {
         price,
         is_free: form.is_free,
         is_published: form.is_published,
+        is_private: form.is_private,
+        ...(form.access_code.trim() ? { access_code: form.access_code.trim() } : {}),
         instructor_name: form.instructor_name.trim() || undefined,
         tags: form.tags.trim() || undefined,
       };
@@ -1286,6 +1436,20 @@ function CourseDialog({ open, mode, initialData, onSave, onClose }: {
             <Switch id="course-published" checked={form.is_published} onCheckedChange={f('is_published')} />
             <Label htmlFor="course-published" className="cursor-pointer">Publish immediately</Label>
           </div>
+          <div className="flex items-center gap-3">
+            <Switch id="course-private" checked={form.is_private} onCheckedChange={f('is_private')} />
+            <Label htmlFor="course-private" className="cursor-pointer">Private course (access code required)</Label>
+          </div>
+          {form.is_private && (
+            <FormField label="Access Code">
+              <Input
+                value={form.access_code}
+                onChange={(e) => f('access_code')(e.target.value)}
+                placeholder={mode === 'edit' ? 'Leave blank to keep existing code' : 'Set an access code'}
+              />
+              <p className="text-xs text-black/40 mt-1">Share this code with students you want to grant access.</p>
+            </FormField>
+          )}
         </div>
         {err && <p className="text-sm text-destructive">{err}</p>}
         <DialogFooter>
@@ -1612,6 +1776,7 @@ type AssessmentForm = {
   is_mandatory: boolean;
   passing_score: string;
   time_limit_minutes: string;
+  time_per_question_seconds: string;
 };
 
 function AssessmentDialog({ open, mode, initialData, onSave, onClose }: {
@@ -1629,6 +1794,7 @@ function AssessmentDialog({ open, mode, initialData, onSave, onClose }: {
     is_mandatory: true,
     passing_score: '',
     time_limit_minutes: '',
+    time_per_question_seconds: '',
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -1643,10 +1809,11 @@ function AssessmentDialog({ open, mode, initialData, onSave, onClose }: {
         is_mandatory: initialData?.is_mandatory ?? true,
         passing_score: initialData?.passing_score != null ? String(initialData.passing_score) : '',
         time_limit_minutes: initialData?.time_limit_minutes != null ? String(initialData.time_limit_minutes) : '',
+        time_per_question_seconds: initialData?.time_per_question_seconds != null ? String(initialData.time_per_question_seconds) : '',
       });
       setErr('');
     }
-  }, [open, initialData?.assessment_type, initialData?.title, initialData?.description, initialData?.instructions, initialData?.is_mandatory, initialData?.passing_score, initialData?.time_limit_minutes]);
+  }, [open, initialData?.assessment_type, initialData?.title, initialData?.description, initialData?.instructions, initialData?.is_mandatory, initialData?.passing_score, initialData?.time_limit_minutes, initialData?.time_per_question_seconds]);
 
   const f = <K extends keyof AssessmentForm>(k: K) => (v: AssessmentForm[K]) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -1662,6 +1829,7 @@ function AssessmentDialog({ open, mode, initialData, onSave, onClose }: {
         is_mandatory: form.is_mandatory,
         passing_score: form.passing_score ? Number(form.passing_score) : undefined,
         time_limit_minutes: form.time_limit_minutes ? Number(form.time_limit_minutes) : undefined,
+        time_per_question_seconds: form.time_per_question_seconds ? Number(form.time_per_question_seconds) : undefined,
       });
     } catch (e: any) { setErr(e.message || 'Save failed.'); setSaving(false); }
   };
@@ -1694,10 +1862,13 @@ function AssessmentDialog({ open, mode, initialData, onSave, onClose }: {
             <FormField label="Passing Score (%)">
               <Input type="number" min="0" max="100" value={form.passing_score} onChange={(e) => f('passing_score')(e.target.value)} placeholder="Optional" />
             </FormField>
-            <FormField label="Time Limit (minutes)">
+            <FormField label="Time Limit (minutes, whole quiz)">
               <Input type="number" min="0" value={form.time_limit_minutes} onChange={(e) => f('time_limit_minutes')(e.target.value)} placeholder="Optional" />
             </FormField>
           </div>
+          <FormField label="Time Per Question (seconds)">
+            <Input type="number" min="0" value={form.time_per_question_seconds} onChange={(e) => f('time_per_question_seconds')(e.target.value)} placeholder="Optional — overrides the whole-quiz timer with a per-question countdown" />
+          </FormField>
           <div className="flex items-center gap-3">
             <Switch id="assessment-mandatory" checked={form.is_mandatory} onCheckedChange={f('is_mandatory')} />
             <Label htmlFor="assessment-mandatory" className="cursor-pointer">Mandatory (required to pass)</Label>
@@ -1722,7 +1893,8 @@ function QuizQuestionDialog({ open, mode, initialData, onSave, onClose }: {
 }) {
   const [questionText, setQuestionText] = useState('');
   const [optionsRaw, setOptionsRaw] = useState('');
-  const [correctIdx, setCorrectIdx] = useState('0');
+  const [isMultiSelect, setIsMultiSelect] = useState(false);
+  const [correct, setCorrect] = useState<number[]>([0]);
   const [explanation, setExplanation] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -1731,24 +1903,41 @@ function QuizQuestionDialog({ open, mode, initialData, onSave, onClose }: {
     if (open) {
       setQuestionText(initialData?.question_text || '');
       setOptionsRaw((initialData?.options || []).join('\n'));
-      setCorrectIdx(initialData?.correct_answer_index != null ? String(initialData.correct_answer_index) : '0');
+      const multi = initialData?.is_multi_select ?? false;
+      setIsMultiSelect(multi);
+      setCorrect(
+        multi
+          ? (initialData?.correct_answer_indices?.length ? initialData.correct_answer_indices : [0])
+          : [initialData?.correct_answer_index ?? 0]
+      );
       setExplanation(initialData?.explanation || '');
       setErr('');
     }
-  }, [open, initialData?.question_text, initialData?.options, initialData?.correct_answer_index, initialData?.explanation]);
+  }, [open, initialData?.question_text, initialData?.options, initialData?.correct_answer_index, initialData?.correct_answer_indices, initialData?.is_multi_select, initialData?.explanation]);
+
+  const options = optionsRaw.split('\n').map((o) => o.trim()).filter(Boolean);
+
+  const toggleCorrect = (idx: number) => {
+    if (isMultiSelect) {
+      setCorrect((prev) => (prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx].sort((a, b) => a - b)));
+    } else {
+      setCorrect([idx]);
+    }
+  };
 
   const handleSubmit = async () => {
-    const options = optionsRaw.split('\n').map((o) => o.trim()).filter(Boolean);
-    const idx = Number(correctIdx);
     if (!questionText.trim()) { setErr('Question text is required.'); return; }
     if (options.length < 2) { setErr('Provide at least 2 options (one per line).'); return; }
-    if (Number.isNaN(idx) || idx < 0 || idx >= options.length) { setErr('Correct answer index is invalid.'); return; }
+    const validCorrect = correct.filter((i) => i >= 0 && i < options.length);
+    if (validCorrect.length === 0) { setErr(`Select the correct answer${isMultiSelect ? '(s)' : ''}.`); return; }
     setSaving(true); setErr('');
     try {
       await onSave({
         question_text: questionText.trim(),
         options,
-        correct_answer_index: idx,
+        correct_answer_index: validCorrect[0],
+        correct_answer_indices: isMultiSelect ? validCorrect : undefined,
+        is_multi_select: isMultiSelect,
         explanation: explanation.trim() || undefined,
       });
     } catch (e: any) { setErr(e.message || 'Save failed.'); setSaving(false); }
@@ -1765,14 +1954,40 @@ function QuizQuestionDialog({ open, mode, initialData, onSave, onClose }: {
           <FormField label="Options (one per line)">
             <Textarea rows={5} value={optionsRaw} onChange={(e) => setOptionsRaw(e.target.value)} placeholder={'Option A\nOption B\nOption C'} />
           </FormField>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Correct Answer Index (0-based)">
-              <Input type="number" min="0" value={correctIdx} onChange={(e) => setCorrectIdx(e.target.value)} placeholder="e.g. 0" title="Correct answer index (0-based)" />
-            </FormField>
-            <FormField label="Explanation">
-              <Input value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Optional explanation" />
-            </FormField>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="question-multi-select"
+              checked={isMultiSelect}
+              onCheckedChange={(v) => { setIsMultiSelect(v); setCorrect((prev) => (v ? prev : [prev[0] ?? 0])); }}
+            />
+            <Label htmlFor="question-multi-select" className="cursor-pointer">Allow multiple correct answers (select all that apply)</Label>
           </div>
+          <div>
+            <Label className="text-xs mb-1.5 block">Correct Answer{isMultiSelect ? 's' : ''} *</Label>
+            {options.length === 0 ? (
+              <p className="text-xs text-black/40">Enter options above first.</p>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {options.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => toggleCorrect(i)}
+                    className={cn(
+                      'w-9 h-9 rounded text-xs font-bold border transition-colors',
+                      correct.includes(i) ? 'bg-green-500 text-white border-green-500' : 'bg-white border-gray-300 hover:border-green-400'
+                    )}
+                    title={options[i]}
+                  >
+                    {String.fromCharCode(65 + i)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <FormField label="Explanation">
+            <Input value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Optional explanation" />
+          </FormField>
         </div>
         {err && <p className="text-sm text-destructive">{err}</p>}
         <DialogFooter>
@@ -1864,7 +2079,12 @@ function PartnerDialog({ open, mode, initialData, onSave, onClose }: {
 type BusinessForm = {
   name: string; description: string;
   logo_url: string; website_url: string;
+  tagline: string; industry: string; stage: string; founded_year: string; location: string;
+  pitch_summary: string; problem_statement: string; solution: string; gallery_urls: string;
+  contact_email: string; is_seeking_investment: boolean; investment_ask: string;
 };
+
+const BUSINESS_STAGE_OPTIONS = ['Idea', 'Pre-seed', 'Seed', 'Growth', 'Established'];
 
 function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
   open: boolean; mode: 'create' | 'edit';
@@ -1872,7 +2092,12 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
   onSave: (data: Partial<Business>) => Promise<void>;
   onClose: () => void;
 }) {
-  const blank: BusinessForm = { name: '', description: '', logo_url: '', website_url: '' };
+  const blank: BusinessForm = {
+    name: '', description: '', logo_url: '', website_url: '',
+    tagline: '', industry: '', stage: '', founded_year: '', location: '',
+    pitch_summary: '', problem_statement: '', solution: '', gallery_urls: '',
+    contact_email: '', is_seeking_investment: false, investment_ask: '',
+  };
   const [form, setForm] = useState<BusinessForm>(blank);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -1886,6 +2111,18 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
         description: initialData.description || '',
         logo_url: initialData.logo_url || '',
         website_url: initialData.website_url || '',
+        tagline: initialData.tagline || '',
+        industry: initialData.industry || '',
+        stage: initialData.stage || '',
+        founded_year: initialData.founded_year || '',
+        location: initialData.location || '',
+        pitch_summary: initialData.pitch_summary || '',
+        problem_statement: initialData.problem_statement || '',
+        solution: initialData.solution || '',
+        gallery_urls: (initialData.gallery_urls || []).join(', '),
+        contact_email: initialData.contact_email || '',
+        is_seeking_investment: initialData.is_seeking_investment || false,
+        investment_ask: initialData.investment_ask || '',
       });
       setErr('');
     }
@@ -1921,19 +2158,34 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
         description: form.description.trim() || undefined,
         logo_url: form.logo_url.trim() || undefined,
         website_url: form.website_url.trim(),
+        tagline: form.tagline.trim() || undefined,
+        industry: form.industry.trim() || undefined,
+        stage: form.stage || undefined,
+        founded_year: form.founded_year.trim() || undefined,
+        location: form.location.trim() || undefined,
+        pitch_summary: form.pitch_summary.trim() || undefined,
+        problem_statement: form.problem_statement.trim() || undefined,
+        solution: form.solution.trim() || undefined,
+        gallery_urls: parseList(form.gallery_urls),
+        contact_email: form.contact_email.trim() || undefined,
+        is_seeking_investment: form.is_seeking_investment,
+        investment_ask: form.investment_ask.trim() || undefined,
       });
     } catch (e: any) { setErr(e.message || 'Save failed.'); setSaving(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Add Business/NGO' : 'Edit Business/NGO'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <FormField label="Name *">
             <Input value={form.name} onChange={(e) => f('name')(e.target.value)} placeholder="Business/NGO name" />
+          </FormField>
+          <FormField label="Tagline">
+            <Input value={form.tagline} onChange={(e) => f('tagline')(e.target.value)} placeholder="One-line hook shown on the detail page" />
           </FormField>
           <FormField label="Description">
             <Textarea value={form.description} onChange={(e) => f('description')(e.target.value)} placeholder="Description (optional)" rows={3} />
@@ -1962,6 +2214,57 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
               <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </div>
           </FormField>
+
+          <div className="border-t border-black/10 pt-4">
+            <p className="text-sm font-medium mb-3">Pitch details (shown on the business's detail page)</p>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Industry">
+                  <Input value={form.industry} onChange={(e) => f('industry')(e.target.value)} placeholder="e.g. Fintech, Agriculture" />
+                </FormField>
+                <FormField label="Stage">
+                  <Select value={form.stage} onValueChange={f('stage')}>
+                    <SelectTrigger><SelectValue placeholder="Select stage…" /></SelectTrigger>
+                    <SelectContent>
+                      {BUSINESS_STAGE_OPTIONS.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Founded Year">
+                  <Input value={form.founded_year} onChange={(e) => f('founded_year')(e.target.value)} placeholder="2024" />
+                </FormField>
+                <FormField label="Location">
+                  <Input value={form.location} onChange={(e) => f('location')(e.target.value)} placeholder="City, Country" />
+                </FormField>
+              </div>
+              <FormField label="Pitch Summary">
+                <Textarea rows={2} value={form.pitch_summary} onChange={(e) => f('pitch_summary')(e.target.value)} placeholder="One-paragraph elevator pitch…" />
+              </FormField>
+              <FormField label="Problem Statement">
+                <Textarea rows={2} value={form.problem_statement} onChange={(e) => f('problem_statement')(e.target.value)} placeholder="What problem does this solve?" />
+              </FormField>
+              <FormField label="Solution">
+                <Textarea rows={2} value={form.solution} onChange={(e) => f('solution')(e.target.value)} placeholder="How does it solve it?" />
+              </FormField>
+              <FormField label="Gallery Image URLs (comma-separated)">
+                <Input value={form.gallery_urls} onChange={(e) => f('gallery_urls')(e.target.value)} placeholder="https://…, https://…" />
+              </FormField>
+              <FormField label="Contact Email">
+                <Input value={form.contact_email} onChange={(e) => f('contact_email')(e.target.value)} placeholder="hello@business.com" />
+              </FormField>
+              <div className="flex items-center gap-3">
+                <Switch id="biz-seeking" checked={form.is_seeking_investment} onCheckedChange={f('is_seeking_investment')} />
+                <Label htmlFor="biz-seeking" className="cursor-pointer">Seeking investment</Label>
+              </div>
+              {form.is_seeking_investment && (
+                <FormField label="Investment Ask">
+                  <Textarea rows={2} value={form.investment_ask} onChange={(e) => f('investment_ask')(e.target.value)} placeholder="e.g. Raising $250K seed round to expand into 3 new markets" />
+                </FormField>
+              )}
+            </div>
+          </div>
         </div>
         {err && <p className="text-sm text-destructive mt-2">{err}</p>}
         <DialogFooter className="mt-4">
@@ -2023,6 +2326,32 @@ export function Admin() {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
   const [showEnrollments, setShowEnrollments] = useState(false);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponForm, setCouponForm] = useState({ code: '', discount_type: 'percent', discount_value: '', course_id: '', max_uses: '', max_uses_per_user: '1', expires_at: '' });
+  const [couponSaving, setCouponSaving] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
+  // Users state
+  type AdminUser2 = { id: string; email: string; full_name: string; role: string; is_active: boolean; is_verified: boolean; created_at: string };
+  const [users, setUsers] = useState<AdminUser2[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userForm, setUserForm] = useState({ email: '', full_name: '', password: '', role: 'user', is_active: true, is_verified: true });
+  const [userFormOpen, setUserFormOpen] = useState(false);
+  const [userSaving, setUserSaving] = useState(false);
+  const [userError, setUserError] = useState('');
+  const [editingUser, setEditingUser] = useState<AdminUser2 | null>(null);
+  const [editUserForm, setEditUserForm] = useState({ full_name: '', role: 'user', is_active: true, is_verified: true });
+  const [editUserOpen, setEditUserOpen] = useState(false);
+
+  const loadUsers = async (search = '') => {
+    setUsersLoading(true);
+    try {
+      const data = await api.get<AdminUser2[]>(`/admin/users?limit=200${search ? `&search=${encodeURIComponent(search)}` : ''}`);
+      setUsers(data);
+    } catch {} finally { setUsersLoading(false); }
+  };
 
   // Profile settings state
   type ProfileSettings = {
@@ -2199,6 +2528,7 @@ export function Admin() {
 
   const ALL_MENU = [
     { id: 'dashboard' as Tab, label: 'Dashboard', icon: LayoutDashboard, perms: [] as string[] },
+    { id: 'users' as Tab, label: 'Users', icon: Users, perms: [] as string[] },
     { id: 'profile' as Tab, label: 'Profile', icon: UserCircle, perms: ['manage_portfolio'] },
     { id: 'support' as Tab, label: 'Support', icon: LifeBuoy, perms: ['manage_tickets'] },
     { id: 'projects' as Tab, label: 'Projects', icon: FolderKanban, perms: ['manage_portfolio'] },
@@ -2268,6 +2598,7 @@ export function Admin() {
     try {
       const data = await api.get<Course[]>('/courses/admin/all?limit=500');
       setCourses(data);
+      api.get<Coupon[]>('/courses/coupons').then(setCoupons).catch(() => {});
     } catch (err: any) {
       setError(err.message || 'Failed to load courses.');
     }
@@ -2351,6 +2682,7 @@ export function Admin() {
     loadBlogPosts();
     loadDynamicForms();
     if (user?.is_admin) loadRbac();
+    loadUsers();
     // Check system config health
     api.get<{ smtp_configured: boolean; smtp_warning: string | null }>('/admin/system-status')
       .then((s) => setSmtpWarning(s.smtp_warning))
@@ -4294,6 +4626,182 @@ export function Admin() {
               <AiDocsTab />
             )}
 
+            {activeTab === 'users' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                <div className="flex items-center justify-between mb-6">
+                  <h1 className="text-4xl">Users</h1>
+                  <Button onClick={() => { setUserForm({ email: '', full_name: '', password: '', role: 'user', is_active: true, is_verified: true }); setUserError(''); setUserFormOpen(true); }}>
+                    <Plus className="w-4 h-4 mr-2" />New User
+                  </Button>
+                </div>
+
+                {/* Search */}
+                <GlassCard className="p-4 mb-4">
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Search by name or email…"
+                      value={userSearch}
+                      onChange={e => setUserSearch(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && loadUsers(userSearch)}
+                      className="max-w-sm"
+                    />
+                    <Button variant="outline" onClick={() => loadUsers(userSearch)}>Search</Button>
+                    <Button variant="ghost" onClick={() => { setUserSearch(''); loadUsers(); }}>Clear</Button>
+                  </div>
+                </GlassCard>
+
+                {/* Create user form */}
+                {userFormOpen && (
+                  <GlassCard className="p-6 mb-6">
+                    <h2 className="text-xl mb-4">Create User</h2>
+                    {userError && <p className="text-red-500 text-sm mb-3">{userError}</p>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label className="text-xs mb-1 block">Full Name</Label>
+                        <Input value={userForm.full_name} onChange={e => setUserForm(f => ({ ...f, full_name: e.target.value }))} placeholder="John Doe" />
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1 block">Email</Label>
+                        <Input type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} placeholder="user@example.com" />
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1 block">Password</Label>
+                        <Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="Temporary password" />
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1 block">Role</Label>
+                        <select value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))} className="w-full border border-black/20 rounded-md px-3 py-2 text-sm bg-white">
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                          <option value="superadmin">Superadmin</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Switch checked={userForm.is_active} onCheckedChange={v => setUserForm(f => ({ ...f, is_active: v }))} />
+                        <Label className="text-sm">Active</Label>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Switch checked={userForm.is_verified} onCheckedChange={v => setUserForm(f => ({ ...f, is_verified: v }))} />
+                        <Label className="text-sm">Email Verified</Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button disabled={userSaving} onClick={async () => {
+                        if (!userForm.email || !userForm.full_name || !userForm.password) { setUserError('Email, name, and password are required.'); return; }
+                        setUserSaving(true); setUserError('');
+                        try {
+                          await api.post('/admin/users', userForm);
+                          setUserFormOpen(false);
+                          loadUsers(userSearch);
+                        } catch (e: any) { setUserError(e.message || 'Failed to create user.'); }
+                        finally { setUserSaving(false); }
+                      }}>{userSaving ? 'Saving…' : 'Create User'}</Button>
+                      <Button variant="outline" onClick={() => setUserFormOpen(false)}>Cancel</Button>
+                    </div>
+                  </GlassCard>
+                )}
+
+                {/* Edit user form */}
+                {editUserOpen && editingUser && (
+                  <GlassCard className="p-6 mb-6">
+                    <h2 className="text-xl mb-1">Edit User</h2>
+                    <p className="text-sm text-black/50 mb-4">{editingUser.email}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label className="text-xs mb-1 block">Full Name</Label>
+                        <Input value={editUserForm.full_name} onChange={e => setEditUserForm(f => ({ ...f, full_name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-1 block">Role</Label>
+                        <select value={editUserForm.role} onChange={e => setEditUserForm(f => ({ ...f, role: e.target.value }))} className="w-full border border-black/20 rounded-md px-3 py-2 text-sm bg-white">
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                          <option value="superadmin">Superadmin</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Switch checked={editUserForm.is_active} onCheckedChange={v => setEditUserForm(f => ({ ...f, is_active: v }))} />
+                        <Label className="text-sm">Active</Label>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Switch checked={editUserForm.is_verified} onCheckedChange={v => setEditUserForm(f => ({ ...f, is_verified: v }))} />
+                        <Label className="text-sm">Email Verified</Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button disabled={userSaving} onClick={async () => {
+                        setUserSaving(true);
+                        try {
+                          await api.patch(`/admin/users/${editingUser.id}`, editUserForm);
+                          setEditUserOpen(false); setEditingUser(null);
+                          loadUsers(userSearch);
+                        } catch (e: any) { setUserError(e.message || 'Failed to update user.'); }
+                        finally { setUserSaving(false); }
+                      }}>{userSaving ? 'Saving…' : 'Save Changes'}</Button>
+                      <Button variant="outline" onClick={() => { setEditUserOpen(false); setEditingUser(null); }}>Cancel</Button>
+                    </div>
+                  </GlassCard>
+                )}
+
+                {/* Users table */}
+                <GlassCard className="overflow-hidden">
+                  {usersLoading ? (
+                    <div className="text-center py-12 text-black/50">Loading users…</div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map(u => (
+                          <TableRow key={u.id}>
+                            <TableCell className="font-medium">{u.full_name}</TableCell>
+                            <TableCell className="text-sm text-black/70">{u.email}</TableCell>
+                            <TableCell>
+                              <span className={cn('px-2 py-0.5 rounded text-xs font-medium', u.role === 'superadmin' ? 'bg-purple-100 text-purple-800' : u.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700')}>
+                                {u.role}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <span className={cn('px-2 py-0.5 rounded text-xs', u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600')}>{u.is_active ? 'Active' : 'Inactive'}</span>
+                                {!u.is_verified && <span className="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-700">Unverified</span>}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-black/50">{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="icon" aria-label="Edit user" onClick={() => {
+                                  setEditingUser(u);
+                                  setEditUserForm({ full_name: u.full_name, role: u.role, is_active: u.is_active, is_verified: u.is_verified });
+                                  setEditUserOpen(true); setUserFormOpen(false);
+                                }}><Edit className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" aria-label="Delete user" onClick={async () => {
+                                  if (!confirm(`Delete ${u.full_name}? This cannot be undone.`)) return;
+                                  try { await api.delete(`/admin/users/${u.id}`); loadUsers(userSearch); }
+                                  catch (e: any) { alert(e.message || 'Failed to delete user.'); }
+                                }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {users.length === 0 && (
+                          <TableRow><TableCell colSpan={6} className="text-center py-12 text-black/40">No users found.</TableCell></TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </GlassCard>
+              </motion.div>
+            )}
+
             {activeTab === 'team' && (
               <TeamAdminTab />
             )}
@@ -4322,7 +4830,16 @@ export function Admin() {
                           <TableCell>{course.title}</TableCell>
                           <TableCell className="capitalize">{course.level}</TableCell>
                           <TableCell>{course.is_free ? 'Free' : `$${course.price}`}</TableCell>
-                          <TableCell>{course.is_published ? 'Published' : 'Draft'}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1.5">
+                              <span className={cn('px-2 py-0.5 rounded text-xs font-medium', course.is_published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700')}>
+                                {course.is_published ? 'Published' : 'Draft'}
+                              </span>
+                              {course.is_private && (
+                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">Private</span>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               <Button aria-label="Edit course" variant="ghost" size="icon" onClick={() => handleEditCourse(course)}><Edit className="w-4 h-4" /></Button>
@@ -4408,6 +4925,13 @@ export function Admin() {
                                     <div>
                                       <p className="text-sm font-medium">{assessment.title}</p>
                                       <p className="text-xs text-black/50">{assessment.assessment_type} • {assessment.is_mandatory ? 'Mandatory' : 'Optional'}</p>
+                                      {assessment.assessment_type === 'quiz' && (
+                                        <div className="flex gap-1.5 mt-1">
+                                          {assessment.passing_score != null && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pass: {assessment.passing_score}%</span>}
+                                          {assessment.time_limit_minutes != null && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{assessment.time_limit_minutes}min</span>}
+                                          {assessment.time_per_question_seconds != null && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{assessment.time_per_question_seconds}s/q</span>}
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="flex gap-1">
                                       <Button variant="ghost" size="icon" onClick={() => handleEditAssessment(assessment)}><Edit className="w-4 h-4" /></Button>
@@ -4426,7 +4950,10 @@ export function Admin() {
                                       <div className="space-y-1">
                                         {(assessment.questions || []).map((q, qIdx) => (
                                           <div key={q.id} className="flex items-center justify-between text-xs bg-black/5 rounded px-2 py-1">
-                                            <span className="truncate">Q{qIdx + 1}: {q.question_text}</span>
+                                            <span className="truncate flex items-center gap-1.5">
+                                              Q{qIdx + 1}: {q.question_text}
+                                              {q.is_multi_select && <span className="shrink-0 text-[10px] uppercase tracking-wide bg-purple-100 text-purple-700 px-1 py-0.5 rounded">Multi</span>}
+                                            </span>
                                             <div className="flex gap-1">
                                               <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(assessment.id, q)}><Edit className="w-3 h-3" /></Button>
                                               <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
@@ -4532,6 +5059,136 @@ export function Admin() {
                     )}
                   </GlassCard>
                 )}
+
+                {/* ── Coupon Management ── */}
+                <GlassCard className="p-6 mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl">Coupons</h2>
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      setCouponsLoading(true);
+                      try { setCoupons(await api.get<Coupon[]>('/courses/coupons')); } finally { setCouponsLoading(false); }
+                    }}>Refresh</Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 p-4 bg-black/5 rounded-lg">
+                    <div>
+                      <Label className="text-xs">Code</Label>
+                      <Input className="h-8 text-sm mt-1" placeholder="SAVE20" value={couponForm.code}
+                        onChange={e => setCouponForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Type</Label>
+                      <select className="w-full h-8 mt-1 text-sm border rounded px-2 bg-white"
+                        value={couponForm.discount_type} onChange={e => setCouponForm(f => ({ ...f, discount_type: e.target.value }))}>
+                        <option value="percent">Percent (%)</option>
+                        <option value="fixed">Fixed ($)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Value</Label>
+                      <Input className="h-8 text-sm mt-1" type="number" placeholder="20" value={couponForm.discount_value}
+                        onChange={e => setCouponForm(f => ({ ...f, discount_value: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Course (optional)</Label>
+                      <select className="w-full h-8 mt-1 text-sm border rounded px-2 bg-white"
+                        value={couponForm.course_id} onChange={e => setCouponForm(f => ({ ...f, course_id: e.target.value }))}>
+                        <option value="">All courses</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Max uses (blank = unlimited)</Label>
+                      <Input className="h-8 text-sm mt-1" type="number" placeholder="Unlimited" value={couponForm.max_uses}
+                        onChange={e => setCouponForm(f => ({ ...f, max_uses: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Max per user</Label>
+                      <Input className="h-8 text-sm mt-1" type="number" value={couponForm.max_uses_per_user}
+                        onChange={e => setCouponForm(f => ({ ...f, max_uses_per_user: e.target.value }))} />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label className="text-xs">Expires at (optional)</Label>
+                      <Input className="h-8 text-sm mt-1" type="datetime-local" value={couponForm.expires_at}
+                        onChange={e => setCouponForm(f => ({ ...f, expires_at: e.target.value }))} />
+                    </div>
+                    <div className="col-span-2 sm:col-span-3 flex items-end gap-2">
+                      {couponError && <p className="text-xs text-red-500 flex-1">{couponError}</p>}
+                      <Button size="sm" disabled={couponSaving || !couponForm.code || !couponForm.discount_value}
+                        onClick={async () => {
+                          setCouponSaving(true); setCouponError('');
+                          try {
+                            const created = await api.post<Coupon>('/courses/coupons', {
+                              code: couponForm.code,
+                              discount_type: couponForm.discount_type,
+                              discount_value: Number(couponForm.discount_value),
+                              course_id: couponForm.course_id || null,
+                              max_uses: couponForm.max_uses ? Number(couponForm.max_uses) : null,
+                              max_uses_per_user: Number(couponForm.max_uses_per_user) || 1,
+                              expires_at: couponForm.expires_at ? new Date(couponForm.expires_at).toISOString() : null,
+                            });
+                            setCoupons(prev => [created, ...prev]);
+                            setCouponForm({ code: '', discount_type: 'percent', discount_value: '', course_id: '', max_uses: '', max_uses_per_user: '1', expires_at: '' });
+                          } catch (e: any) { setCouponError(e.message || 'Failed to create coupon'); }
+                          finally { setCouponSaving(false); }
+                        }}>
+                        {couponSaving ? 'Creating…' : 'Create Coupon'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {couponsLoading ? <p className="text-sm text-black/40">Loading…</p> : coupons.length === 0 ? (
+                    <p className="text-sm text-black/40 py-4 text-center">No coupons yet. Create one above.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Discount</TableHead>
+                          <TableHead>Scope</TableHead>
+                          <TableHead>Uses</TableHead>
+                          <TableHead>Expires</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {coupons.map(c => (
+                          <TableRow key={c.id}>
+                            <TableCell className="font-mono font-semibold">{c.code}</TableCell>
+                            <TableCell>{c.discount_type === 'percent' ? `${c.discount_value}%` : `$${c.discount_value}`}</TableCell>
+                            <TableCell className="text-sm text-black/50">{c.course_id ? courses.find(x => x.id === c.course_id)?.title ?? 'Specific course' : 'All courses'}</TableCell>
+                            <TableCell className="text-sm">{c.use_count}{c.max_uses ? ` / ${c.max_uses}` : ''}</TableCell>
+                            <TableCell className="text-sm text-black/50">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : '—'}</TableCell>
+                            <TableCell>
+                              <span className={cn('px-2 py-0.5 rounded text-xs font-medium', c.is_active ? 'bg-green-100 text-green-700' : 'bg-black/10 text-black/50')}>
+                                {c.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="outline" className="h-7 text-xs"
+                                  onClick={async () => {
+                                    const updated = await api.patch<Coupon>(`/courses/coupons/${c.id}`, {});
+                                    setCoupons(prev => prev.map(x => x.id === c.id ? updated : x));
+                                  }}>
+                                  {c.is_active ? 'Disable' : 'Enable'}
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive"
+                                  onClick={async () => {
+                                    await api.delete(`/courses/coupons/${c.id}`);
+                                    setCoupons(prev => prev.filter(x => x.id !== c.id));
+                                  }}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </GlassCard>
               </motion.div>
             )}
           </div>

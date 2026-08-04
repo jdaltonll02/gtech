@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 from typing import Optional
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Float, JSON
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Float, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.session import Base
@@ -55,6 +55,8 @@ class Course(Base):
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0.00"))
     is_free: Mapped[bool] = mapped_column(Boolean, default=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_private: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    access_code_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     estimated_hours: Mapped[Optional[float]] = mapped_column(Float)
     tags: Mapped[Optional[str]] = mapped_column(String(500))
     instructor_name: Mapped[Optional[str]] = mapped_column(String(255))
@@ -75,6 +77,38 @@ class Course(Base):
         foreign_keys="Section.course_id", overlaps="sections",
     )
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="course")
+    prerequisites: Mapped[list["CoursePrerequisite"]] = relationship(
+        "CoursePrerequisite", back_populates="course", cascade="all, delete-orphan",
+        foreign_keys="CoursePrerequisite.course_id",
+    )
+
+
+class CoursePrerequisite(Base):
+    """course_id requires prerequisite_course_id to be completed first."""
+    __tablename__ = "course_prerequisites"
+    __table_args__ = (UniqueConstraint("course_id", "prerequisite_course_id", name="uq_course_prerequisite"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"))
+    prerequisite_course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    course: Mapped["Course"] = relationship("Course", back_populates="prerequisites", foreign_keys=[course_id])
+    prerequisite_course: Mapped["Course"] = relationship("Course", foreign_keys=[prerequisite_course_id])
+
+
+class CourseInstructor(Base):
+    """Scopes a manage_own_courses staff member (the 'instructor' role) to specific courses."""
+    __tablename__ = "course_instructors"
+    __table_args__ = (UniqueConstraint("user_id", "course_id", name="uq_course_instructor"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    course: Mapped["Course"] = relationship("Course")
 
 
 class Section(Base):
@@ -112,6 +146,9 @@ class Lesson(Base):
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer)
     content: Mapped[Optional[str]] = mapped_column(Text)
     is_preview: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Drip scheduling: lesson unlocks this many days after Enrollment.enrolled_at.
+    # NULL means available immediately (default — matches all pre-existing lessons).
+    available_after_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -127,6 +164,33 @@ class Lesson(Base):
         "Assessment", back_populates="lesson", cascade="all, delete-orphan", order_by="Assessment.order_index"
     )
     progress_records: Mapped[list["LessonProgress"]] = relationship("LessonProgress", back_populates="lesson")
+    comments: Mapped[list["LessonComment"]] = relationship(
+        "LessonComment", back_populates="lesson", cascade="all, delete-orphan", order_by="LessonComment.created_at"
+    )
+
+
+class LessonComment(Base):
+    """A question/reply in a lesson's discussion thread. One level of replies only
+    (parent_comment_id points at a top-level comment, replies don't nest further)."""
+    __tablename__ = "lesson_comments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    lesson_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="CASCADE"))
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    parent_comment_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("lesson_comments.id", ondelete="CASCADE"), nullable=True)
+    author_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_instructor_reply: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    lesson: Mapped["Lesson"] = relationship("Lesson", back_populates="comments")
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id])
+    parent: Mapped[Optional["LessonComment"]] = relationship(
+        "LessonComment", remote_side="LessonComment.id", back_populates="replies",
+    )
+    replies: Mapped[list["LessonComment"]] = relationship(
+        "LessonComment", back_populates="parent", cascade="all, delete-orphan", order_by="LessonComment.created_at",
+    )
 
 
 class ContentBlock(Base):
@@ -171,6 +235,7 @@ class Assessment(Base):
     is_mandatory: Mapped[bool] = mapped_column(Boolean, default=True)
     passing_score: Mapped[Optional[int]] = mapped_column(Integer)  # percentage, for quizzes
     time_limit_minutes: Mapped[Optional[int]] = mapped_column(Integer)
+    time_per_question_seconds: Mapped[Optional[int]] = mapped_column(Integer)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
@@ -192,9 +257,12 @@ class QuizQuestion(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     assessment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("assessments.id", ondelete="CASCADE"))
     question_text: Mapped[str] = mapped_column(Text, nullable=False)
-    # options stored as JSON list of strings
     options: Mapped[list] = mapped_column(JSON, default=list)
+    # Single-select (legacy): one correct index
     correct_answer_index: Mapped[int] = mapped_column(Integer, default=0)
+    # Multi-select: list of correct indices (used when is_multi_select=True)
+    correct_answer_indices: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    is_multi_select: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     explanation: Mapped[Optional[str]] = mapped_column(Text)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
@@ -258,9 +326,10 @@ class Certificate(Base):
 
 class Badge(Base):
     __tablename__ = "badges"
+    __table_args__ = (UniqueConstraint("enrollment_id", "badge_type", name="uq_badge_enrollment_type"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    enrollment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("enrollments.id", ondelete="CASCADE"), unique=True)
+    enrollment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("enrollments.id", ondelete="CASCADE"), index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"))
     badge_type: Mapped[str] = mapped_column(String(50), nullable=False, default="course_completion")
@@ -276,6 +345,39 @@ class CoursePaymentStatus(str, PyEnum):
     PENDING = "pending"
     PAID = "paid"
     FAILED = "failed"
+
+
+class Coupon(Base):
+    """Discount coupon for paid courses."""
+    __tablename__ = "coupons"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    discount_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'percent' | 'fixed'
+    discount_value: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    course_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=True)
+    max_uses: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_uses_per_user: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    course: Mapped[Optional["Course"]] = relationship("Course", foreign_keys=[course_id])
+    redemptions: Mapped[list["CouponRedemption"]] = relationship("CouponRedemption", back_populates="coupon", cascade="all, delete-orphan")
+
+
+class CouponRedemption(Base):
+    """Records each time a coupon is used by a user for a course purchase."""
+    __tablename__ = "coupon_redemptions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    coupon_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("coupons.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    course_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    discount_applied: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    coupon: Mapped["Coupon"] = relationship("Coupon", back_populates="redemptions")
 
 
 class CoursePayment(Base):
