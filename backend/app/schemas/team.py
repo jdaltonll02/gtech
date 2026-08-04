@@ -94,6 +94,7 @@ class TeamMemberProjectCreate(BaseModel):
     live_url: Optional[str] = None
     image_url: Optional[str] = None
     order_index: int = 0
+    is_organizational: bool = False
 
 
 class TeamMemberProjectUpdate(BaseModel):
@@ -104,6 +105,7 @@ class TeamMemberProjectUpdate(BaseModel):
     live_url: Optional[str] = None
     image_url: Optional[str] = None
     order_index: Optional[int] = None
+    is_organizational: Optional[bool] = None
 
 
 class TeamMemberProjectResponse(BaseModel):
@@ -116,12 +118,22 @@ class TeamMemberProjectResponse(BaseModel):
     live_url: Optional[str] = None
     image_url: Optional[str] = None
     order_index: int = 0
+    is_organizational: bool = False
 
     model_config = {"from_attributes": True}
 
     @field_serializer("id", "team_member_id")
     def serialize_uuid(self, v: UUID) -> str:
         return str(v)
+
+
+class OrganizationalProjectResponse(TeamMemberProjectResponse):
+    """A team-member project flagged as belonging to the organization, not just
+    the contributing member — used by the public /projects grid and the
+    landing page's Projects section. Carries light contributor attribution."""
+    contributor_name: str
+    contributor_slug: str
+    contributor_photo_url: Optional[str] = None
 
 
 # ── Team Member ────────────────────────────────────────────────────────────────

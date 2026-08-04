@@ -33,6 +33,8 @@ import { Team } from './pages/team';
 import { TeamMember } from './pages/team-member';
 import { BusinessDetail } from './pages/business-detail';
 import { ProjectDetail } from './pages/project-detail';
+import { Projects } from './pages/projects';
+import { ProjectOrgDetail } from './pages/project-org-detail';
 import { Resume } from './pages/resume';
 import { useAuthStore } from './store/authStore';
 
@@ -124,6 +126,9 @@ export const router = createBrowserRouter([
       // Businesses / Projects — pitch-deck detail pages
       { path: 'businesses/:id', Component: BusinessDetail },
       { path: 'portfolio/project/:id', Component: ProjectDetail },
+      // Organizational projects (company-wide, contributed by any team member)
+      { path: 'projects', Component: Projects },
+      { path: 'projects/:id', Component: ProjectOrgDetail },
       // Blog
       { path: 'blog', Component: Blog },
       { path: 'blog/:slug', Component: BlogPost },

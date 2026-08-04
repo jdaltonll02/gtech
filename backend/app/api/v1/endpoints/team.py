@@ -10,6 +10,7 @@ from app.schemas.team import (
     TeamMemberEducationCreate, TeamMemberEducationUpdate, TeamMemberEducationResponse,
     TeamMemberProjectCreate, TeamMemberProjectUpdate, TeamMemberProjectResponse,
     TeamMemberCertificationCreate, TeamMemberCertificationUpdate, TeamMemberCertificationResponse,
+    OrganizationalProjectResponse,
 )
 
 router = APIRouter(prefix="/team", tags=["team"])
@@ -58,6 +59,49 @@ async def list_team(db: DB):
         .order_by(TeamMember.display_order, TeamMember.full_name)
     )
     return result.scalars().all()
+
+
+@router.get("/projects/organizational", response_model=List[OrganizationalProjectResponse])
+async def list_organizational_projects(db: DB):
+    """Company-wide projects — contributed by any team member but flagged
+    is_organizational, not tied to any one person's profile. Powers the
+    landing page's Projects section and the public /projects grid."""
+    result = await db.execute(
+        select(TeamMemberProject, TeamMember)
+        .join(TeamMember, TeamMember.id == TeamMemberProject.team_member_id)
+        .where(TeamMemberProject.is_organizational == True, TeamMember.is_active == True)
+        .order_by(TeamMemberProject.order_index, TeamMemberProject.title)
+    )
+    projects = []
+    for project, member in result.all():
+        data = TeamMemberProjectResponse.model_validate(project).model_dump()
+        projects.append(OrganizationalProjectResponse(
+            **data,
+            contributor_name=member.full_name,
+            contributor_slug=member.slug,
+            contributor_photo_url=member.photo_url,
+        ))
+    return projects
+
+
+@router.get("/projects/organizational/{project_id}", response_model=OrganizationalProjectResponse)
+async def get_organizational_project(project_id: uuid.UUID, db: DB):
+    result = await db.execute(
+        select(TeamMemberProject, TeamMember)
+        .join(TeamMember, TeamMember.id == TeamMemberProject.team_member_id)
+        .where(TeamMemberProject.id == project_id, TeamMemberProject.is_organizational == True, TeamMember.is_active == True)
+    )
+    row = result.first()
+    if not row:
+        _not_found("Project")
+    project, member = row
+    data = TeamMemberProjectResponse.model_validate(project).model_dump()
+    return OrganizationalProjectResponse(
+        **data,
+        contributor_name=member.full_name,
+        contributor_slug=member.slug,
+        contributor_photo_url=member.photo_url,
+    )
 
 
 @router.get("/{slug}", response_model=TeamMemberDetailResponse)

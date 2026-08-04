@@ -12,7 +12,7 @@ import { api } from '../utils/api';
 
 type Experience = { id: string; company: string; position: string; duration: string; location: string; description: string; order_index: number };
 type Education = { id: string; institution: string; degree: string; field_of_study: string; start_year: string; end_year: string; description: string; order_index: number };
-type Project = { id: string; title: string; description: string; tech_stack: string[]; github_url: string; live_url: string; image_url: string; order_index: number };
+type Project = { id: string; title: string; description: string; tech_stack: string[]; github_url: string; live_url: string; image_url: string; order_index: number; is_organizational?: boolean };
 type Certification = { id: string; title: string; issuer: string; date: string; credential_url: string; order_index: number };
 
 type TeamMember = {
@@ -43,7 +43,7 @@ const BLANK_MEMBER: Omit<TeamMember, 'id'> = {
 
 const BLANK_EXP = { company: '', position: '', duration: '', location: '', description: '', order_index: 0 };
 const BLANK_EDU = { institution: '', degree: '', field_of_study: '', start_year: '', end_year: '', description: '', order_index: 0 };
-const BLANK_PROJ = { title: '', description: '', tech_stack: '', github_url: '', live_url: '', image_url: '', order_index: 0 };
+const BLANK_PROJ = { title: '', description: '', tech_stack: '', github_url: '', live_url: '', image_url: '', order_index: 0, is_organizational: false };
 const BLANK_CERT = { title: '', issuer: '', date: '', credential_url: '', order_index: 0 };
 
 export function TeamAdminTab() {
@@ -55,6 +55,8 @@ export function TeamAdminTab() {
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
+  const [projImageUploading, setProjImageUploading] = useState(false);
+  const projImageRef = useRef<HTMLInputElement>(null);
 
   // sub-item forms
   const [expForm, setExpForm] = useState<any>(BLANK_EXP);
@@ -153,6 +155,24 @@ export function TeamAdminTab() {
     } finally {
       setPhotoUploading(false);
       if (photoRef.current) photoRef.current.value = '';
+    }
+  };
+
+  const handleProjImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProjImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'team');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      setProjForm((f: any) => ({ ...f, image_url: res.url }));
+    } catch (err: any) {
+      alert(err.message || 'Upload failed');
+    } finally {
+      setProjImageUploading(false);
+      if (projImageRef.current) projImageRef.current.value = '';
     }
   };
 
@@ -477,11 +497,16 @@ export function TeamAdminTab() {
                   {projects.map((proj) => (
                     <div key={proj.id} className="flex items-start justify-between p-3 bg-black/3 rounded-lg">
                       <div>
-                        <p className="font-medium text-sm">{proj.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{proj.title}</p>
+                          {proj.is_organizational && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-medium">Organizational</span>
+                          )}
+                        </div>
                         <p className="text-xs text-black/50">{proj.tech_stack?.join(', ')}</p>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
-                        <Button size="icon" variant="ghost" onClick={() => { setEditingProj(proj.id); setProjForm({ title: proj.title, description: proj.description, tech_stack: proj.tech_stack?.join(', ') ?? '', github_url: proj.github_url ?? '', live_url: proj.live_url ?? '', image_url: proj.image_url ?? '', order_index: proj.order_index }); }}>
+                        <Button size="icon" variant="ghost" onClick={() => { setEditingProj(proj.id); setProjForm({ title: proj.title, description: proj.description, tech_stack: proj.tech_stack?.join(', ') ?? '', github_url: proj.github_url ?? '', live_url: proj.live_url ?? '', image_url: proj.image_url ?? '', order_index: proj.order_index, is_organizational: proj.is_organizational ?? false }); }}>
                           <Edit className="w-3.5 h-3.5" />
                         </Button>
                         <Button size="icon" variant="ghost" onClick={() => deleteProj(proj.id)}>
@@ -498,6 +523,28 @@ export function TeamAdminTab() {
                 <div className="md:col-span-2"><Label>Tech Stack (comma-separated)</Label><Input className="mt-1" placeholder="React, FastAPI, PostgreSQL" value={projForm.tech_stack} onChange={(e) => setProjForm((f: any) => ({ ...f, tech_stack: e.target.value }))} /></div>
                 <div><Label>GitHub URL</Label><Input className="mt-1" value={projForm.github_url} onChange={(e) => setProjForm((f: any) => ({ ...f, github_url: e.target.value }))} /></div>
                 <div><Label>Live URL</Label><Input className="mt-1" value={projForm.live_url} onChange={(e) => setProjForm((f: any) => ({ ...f, live_url: e.target.value }))} /></div>
+                <div className="md:col-span-2">
+                  <Label>Project Image</Label>
+                  <div className="flex items-center gap-3 mt-1">
+                    {projForm.image_url ? (
+                      <>
+                        <img src={projForm.image_url} alt="preview" className="w-16 h-16 rounded-lg object-cover border border-black/10" />
+                        <Button size="sm" variant="ghost" type="button" onClick={() => setProjForm((f: any) => ({ ...f, image_url: '' }))}>Remove</Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" type="button" disabled={projImageUploading} onClick={() => projImageRef.current?.click()}>
+                        {projImageUploading ? 'Uploading…' : 'Upload Image'}
+                      </Button>
+                    )}
+                    <input ref={projImageRef} type="file" accept="image/*" className="hidden" onChange={handleProjImageUpload} />
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex items-center gap-3 mt-1">
+                  <Switch checked={projForm.is_organizational} onCheckedChange={(v: boolean) => setProjForm((f: any) => ({ ...f, is_organizational: v }))} id="proj-org" />
+                  <Label htmlFor="proj-org" className="cursor-pointer">
+                    Organizational project — belongs to the company, not just this profile (also appears on the landing page and public /projects grid)
+                  </Label>
+                </div>
               </div>
               <div className="flex gap-2 mt-3">
                 <Button onClick={saveProj} disabled={subSaving || !projForm.title || !projForm.description}>

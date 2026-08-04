@@ -388,6 +388,46 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
   const [collaborators, setCollaborators] = useState<ProjectCollaborator[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const imageRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'uploads');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      setForm((p) => ({ ...p, image_url: res.url }));
+    } catch (uploadErr: any) {
+      setErr(uploadErr.message || 'Image upload failed.');
+    } finally {
+      setImageUploading(false);
+      if (imageRef.current) imageRef.current.value = '';
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGalleryUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'uploads');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      setForm((p) => ({ ...p, gallery_urls: p.gallery_urls ? `${p.gallery_urls}, ${res.url}` : res.url }));
+    } catch (uploadErr: any) {
+      setErr(uploadErr.message || 'Image upload failed.');
+    } finally {
+      setGalleryUploading(false);
+      if (galleryRef.current) galleryRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -487,8 +527,22 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
               <Input value={form.live_url} onChange={(e) => f('live_url')(e.target.value)} placeholder="https://…" />
             </FormField>
           </div>
-          <FormField label="Image URL">
-            <Input value={form.image_url} onChange={(e) => f('image_url')(e.target.value)} placeholder="https://… (card/hero thumbnail)" />
+          <FormField label="Project Image">
+            <div className="space-y-2">
+              {form.image_url ? (
+                <div className="flex items-center gap-3">
+                  <img src={form.image_url} alt="preview" className="h-16 w-16 object-cover rounded border border-black/10" />
+                  <Button size="sm" variant="ghost" type="button" onClick={() => setForm((p) => ({ ...p, image_url: '' }))}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" type="button" disabled={imageUploading} onClick={() => imageRef.current?.click()}>
+                  {imageUploading ? 'Uploading…' : <><Image className="w-3.5 h-3.5 mr-1" />Upload Image</>}
+                </Button>
+              )}
+              <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            </div>
           </FormField>
 
           <div className="border-t border-black/10 pt-4">
@@ -506,8 +560,29 @@ function ProjectDialog({ open, mode, initialData, onSave, onClose }: {
               <FormField label="Looking For">
                 <Textarea rows={2} value={form.looking_for} onChange={(e) => f('looking_for')(e.target.value)} placeholder="e.g. Looking for a backend collaborator and early users" />
               </FormField>
-              <FormField label="Gallery Image URLs (comma-separated)">
-                <Input value={form.gallery_urls} onChange={(e) => f('gallery_urls')(e.target.value)} placeholder="https://…, https://…" />
+              <FormField label="Gallery Images">
+                <div className="space-y-2">
+                  {form.gallery_urls && (
+                    <div className="flex flex-wrap gap-2">
+                      {parseList(form.gallery_urls).map((url, i) => (
+                        <div key={i} className="relative">
+                          <img src={url} alt={`gallery ${i + 1}`} className="h-14 w-14 object-cover rounded border border-black/10" />
+                          <button
+                            type="button"
+                            onClick={() => f('gallery_urls')(parseList(form.gallery_urls).filter((_, idx) => idx !== i).join(', '))}
+                            className="absolute -top-1.5 -right-1.5 bg-white border border-black/10 rounded-full p-0.5 shadow-sm"
+                          >
+                            <X className="w-3 h-3 text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button size="sm" variant="outline" type="button" disabled={galleryUploading} onClick={() => galleryRef.current?.click()}>
+                    {galleryUploading ? 'Uploading…' : <><Image className="w-3.5 h-3.5 mr-1" />Add Gallery Image</>}
+                  </Button>
+                  <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+                </div>
               </FormField>
             </div>
           </div>
@@ -2103,6 +2178,8 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
   const [err, setErr] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [bizGalleryUploading, setBizGalleryUploading] = useState(false);
+  const bizGalleryRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -2145,6 +2222,24 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
     } finally {
       setLogoUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const handleBizGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBizGalleryUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'partners');
+      const res = await api.postForm<{ url: string }>('/media/upload', fd);
+      setForm((p) => ({ ...p, gallery_urls: p.gallery_urls ? `${p.gallery_urls}, ${res.url}` : res.url }));
+    } catch (uploadErr: any) {
+      setErr(uploadErr.message || 'Image upload failed.');
+    } finally {
+      setBizGalleryUploading(false);
+      if (bizGalleryRef.current) bizGalleryRef.current.value = '';
     }
   };
 
@@ -2248,8 +2343,29 @@ function BusinessDialog({ open, mode, initialData, onSave, onClose }: {
               <FormField label="Solution">
                 <Textarea rows={2} value={form.solution} onChange={(e) => f('solution')(e.target.value)} placeholder="How does it solve it?" />
               </FormField>
-              <FormField label="Gallery Image URLs (comma-separated)">
-                <Input value={form.gallery_urls} onChange={(e) => f('gallery_urls')(e.target.value)} placeholder="https://…, https://…" />
+              <FormField label="Gallery Images">
+                <div className="space-y-2">
+                  {form.gallery_urls && (
+                    <div className="flex flex-wrap gap-2">
+                      {parseList(form.gallery_urls).map((url, i) => (
+                        <div key={i} className="relative">
+                          <img src={url} alt={`gallery ${i + 1}`} className="h-14 w-14 object-cover rounded border border-black/10" />
+                          <button
+                            type="button"
+                            onClick={() => f('gallery_urls')(parseList(form.gallery_urls).filter((_, idx) => idx !== i).join(', '))}
+                            className="absolute -top-1.5 -right-1.5 bg-white border border-black/10 rounded-full p-0.5 shadow-sm"
+                          >
+                            <X className="w-3 h-3 text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button size="sm" variant="outline" type="button" disabled={bizGalleryUploading} onClick={() => bizGalleryRef.current?.click()}>
+                    {bizGalleryUploading ? 'Uploading…' : <><Image className="w-3.5 h-3.5 mr-1" />Add Gallery Image</>}
+                  </Button>
+                  <input ref={bizGalleryRef} type="file" accept="image/*" className="hidden" onChange={handleBizGalleryUpload} />
+                </div>
               </FormField>
               <FormField label="Contact Email">
                 <Input value={form.contact_email} onChange={(e) => f('contact_email')(e.target.value)} placeholder="hello@business.com" />

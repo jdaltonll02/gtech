@@ -11,6 +11,13 @@
 !**/.env.sample
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Migration/disaster-recovery backups (scripts/backup.sh) — contain live
+# secrets and a full database dump, never commit these
+# ─────────────────────────────────────────────────────────────────────────────
+backups/
+*.tar.gz
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SSL / TLS certificates & private keys
 # ─────────────────────────────────────────────────────────────────────────────
 certs/

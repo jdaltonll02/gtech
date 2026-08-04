@@ -34,6 +34,7 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="text-lg">Quick Links</h3>
             <ul className="space-y-2 text-sm">
+              <li><Link to="/projects" className="text-black/60 hover:text-primary transition-colors">Projects</Link></li>
               <li><Link to="/courses" className="text-black/60 hover:text-primary transition-colors">Courses</Link></li>
               <li><Link to="/store" className="text-black/60 hover:text-primary transition-colors">Store</Link></li>
               <li><Link to="/gallery" className="text-black/60 hover:text-primary transition-colors">Gallery</Link></li>
