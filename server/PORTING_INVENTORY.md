@@ -103,28 +103,28 @@ Generated from the canonical Python files on 2026-11-10.
 | GET | `/api/v1/courses/{course_id}/ratings/me` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1200` | todo |
 | POST | `/api/v1/courses/{course_id}/rate` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1219` | todo |
 | DELETE | `/api/v1/courses/{course_id}/rate` | Authenticated | 204 | `backend/app/api/v1/endpoints/courses.py:1259` | todo |
-| GET | `/api/v1/ecommerce/categories` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:45` | todo |
-| POST | `/api/v1/ecommerce/categories` | Permission: manage_ecommerce | 201 | `backend/app/api/v1/endpoints/ecommerce.py:51` | todo |
-| PATCH | `/api/v1/ecommerce/categories/{cat_id}` | Permission: manage_ecommerce | 200 | `backend/app/api/v1/endpoints/ecommerce.py:59` | todo |
-| DELETE | `/api/v1/ecommerce/categories/{cat_id}` | Permission: manage_ecommerce | 204 | `backend/app/api/v1/endpoints/ecommerce.py:71` | todo |
-| GET | `/api/v1/ecommerce/products` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:82` | todo |
-| POST | `/api/v1/ecommerce/products` | Permission: manage_ecommerce | 201 | `backend/app/api/v1/endpoints/ecommerce.py:92` | todo |
-| GET | `/api/v1/ecommerce/products/{product_id}` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:108` | todo |
-| PATCH | `/api/v1/ecommerce/products/{product_id}` | Permission: manage_ecommerce | 200 | `backend/app/api/v1/endpoints/ecommerce.py:119` | todo |
-| DELETE | `/api/v1/ecommerce/products/{product_id}` | Permission: manage_ecommerce | 204 | `backend/app/api/v1/endpoints/ecommerce.py:155` | todo |
-| GET | `/api/v1/ecommerce/cart` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:186` | todo |
-| POST | `/api/v1/ecommerce/cart` | Authenticated | 201 | `backend/app/api/v1/endpoints/ecommerce.py:192` | todo |
-| PATCH | `/api/v1/ecommerce/cart/{item_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:213` | todo |
-| DELETE | `/api/v1/ecommerce/cart/{item_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:227` | todo |
-| DELETE | `/api/v1/ecommerce/cart` | Authenticated | 204 | `backend/app/api/v1/endpoints/ecommerce.py:241` | todo |
-| GET | `/api/v1/ecommerce/orders` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:250` | todo |
-| GET | `/api/v1/ecommerce/orders/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:261` | todo |
-| POST | `/api/v1/ecommerce/orders/checkout` | Authenticated | 201 | `backend/app/api/v1/endpoints/ecommerce.py:274` | todo |
-| GET | `/api/v1/ecommerce/products/{product_id}/ratings/summary` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:320` | todo |
-| GET | `/api/v1/ecommerce/products/{product_id}/ratings` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:335` | todo |
-| GET | `/api/v1/ecommerce/products/{product_id}/ratings/me` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:358` | todo |
-| POST | `/api/v1/ecommerce/products/{product_id}/rate` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:377` | todo |
-| DELETE | `/api/v1/ecommerce/products/{product_id}/rate` | Authenticated | 204 | `backend/app/api/v1/endpoints/ecommerce.py:412` | todo |
+| GET | `/api/v1/ecommerce/categories` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:45` | done |
+| POST | `/api/v1/ecommerce/categories` | Permission: manage_ecommerce | 201 | `backend/app/api/v1/endpoints/ecommerce.py:51` | done |
+| PATCH | `/api/v1/ecommerce/categories/{cat_id}` | Permission: manage_ecommerce | 200 | `backend/app/api/v1/endpoints/ecommerce.py:59` | done |
+| DELETE | `/api/v1/ecommerce/categories/{cat_id}` | Permission: manage_ecommerce | 204 | `backend/app/api/v1/endpoints/ecommerce.py:71` | done |
+| GET | `/api/v1/ecommerce/products` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:82` | done |
+| POST | `/api/v1/ecommerce/products` | Permission: manage_ecommerce | 201 | `backend/app/api/v1/endpoints/ecommerce.py:92` | done |
+| GET | `/api/v1/ecommerce/products/{product_id}` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:108` | done |
+| PATCH | `/api/v1/ecommerce/products/{product_id}` | Permission: manage_ecommerce | 200 | `backend/app/api/v1/endpoints/ecommerce.py:119` | done |
+| DELETE | `/api/v1/ecommerce/products/{product_id}` | Permission: manage_ecommerce | 204 | `backend/app/api/v1/endpoints/ecommerce.py:155` | done |
+| GET | `/api/v1/ecommerce/cart` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:186` | done |
+| POST | `/api/v1/ecommerce/cart` | Authenticated | 201 | `backend/app/api/v1/endpoints/ecommerce.py:192` | done |
+| PATCH | `/api/v1/ecommerce/cart/{item_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:213` | done |
+| DELETE | `/api/v1/ecommerce/cart/{item_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:227` | done |
+| DELETE | `/api/v1/ecommerce/cart` | Authenticated | 204 | `backend/app/api/v1/endpoints/ecommerce.py:241` | done |
+| GET | `/api/v1/ecommerce/orders` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:250` | done |
+| GET | `/api/v1/ecommerce/orders/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:261` | done |
+| POST | `/api/v1/ecommerce/orders/checkout` | Authenticated | 201 | `backend/app/api/v1/endpoints/ecommerce.py:274` | done |
+| GET | `/api/v1/ecommerce/products/{product_id}/ratings/summary` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:320` | done |
+| GET | `/api/v1/ecommerce/products/{product_id}/ratings` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:335` | done |
+| GET | `/api/v1/ecommerce/products/{product_id}/ratings/me` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:358` | done |
+| POST | `/api/v1/ecommerce/products/{product_id}/rate` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:377` | done |
+| DELETE | `/api/v1/ecommerce/products/{product_id}/rate` | Authenticated | 204 | `backend/app/api/v1/endpoints/ecommerce.py:412` | done |
 | GET | `/api/v1/forms` | Public | 200 | `backend/app/api/v1/endpoints/forms.py:30` | done |
 | GET | `/api/v1/forms/{slug}` | Optional bearer | 200 | `backend/app/api/v1/endpoints/forms.py:41` | done |
 | POST | `/api/v1/forms/{slug}/submit` | Optional bearer | 201 | `backend/app/api/v1/endpoints/forms.py:56` | done |
