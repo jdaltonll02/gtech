@@ -13,6 +13,7 @@ import { teamRouter } from './routes/team.js';
 import { mediaRouter } from './routes/media.js';
 import { ecommerceRouter } from './routes/ecommerce.js';
 import { paymentsRouter, stripeWebhookRouter } from './routes/payments.js';
+import { supportRouter } from './routes/support.js';
 import { corsMiddleware, globalLimiter, permissionsPolicy, securityHeaders } from './middleware/security.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 
@@ -38,6 +39,7 @@ export function createApp() {
   app.use('/api/v1/media', mediaRouter);
   app.use('/api/v1/ecommerce', ecommerceRouter);
   app.use('/api/v1/payments', paymentsRouter);
+  app.use('/api/v1/support', supportRouter);
   app.use('/media', express.static(path.resolve(projectRoot, config.LOCAL_MEDIA_ROOT), { fallthrough: false }));
 
   const frontendDist = path.resolve(projectRoot, 'frontend/dist');

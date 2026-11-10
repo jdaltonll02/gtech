@@ -207,15 +207,15 @@ Generated from the canonical Python files on 2026-11-10.
 | PATCH | `/api/v1/rbac/assignments/{assignment_id}` | Superadmin | 200 | `backend/app/api/v1/endpoints/rbac.py:136` | done |
 | DELETE | `/api/v1/rbac/assignments/{assignment_id}` | Superadmin | 204 | `backend/app/api/v1/endpoints/rbac.py:162` | done |
 | GET | `/api/v1/rbac/users` | Superadmin | 200 | `backend/app/api/v1/endpoints/rbac.py:174` | done |
-| POST | `/api/v1/support/tickets` | Public | 201 | `backend/app/api/v1/endpoints/support.py:109` | todo |
-| GET | `/api/v1/support/tickets/my` | Authenticated | 200 | `backend/app/api/v1/endpoints/support.py:140` | todo |
-| GET | `/api/v1/support/tickets/my/{ticket_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/support.py:157` | todo |
-| POST | `/api/v1/support/tickets/my/{ticket_id}/reply` | Authenticated | 200 | `backend/app/api/v1/endpoints/support.py:170` | todo |
-| GET | `/api/v1/support/admin/tickets` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:203` | todo |
-| GET | `/api/v1/support/admin/tickets/{ticket_id}` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:239` | todo |
-| PATCH | `/api/v1/support/admin/tickets/{ticket_id}` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:252` | todo |
-| POST | `/api/v1/support/admin/tickets/{ticket_id}/reply` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:270` | todo |
-| GET | `/api/v1/support/admin/stats` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:298` | todo |
+| POST | `/api/v1/support/tickets` | Public | 201 | `backend/app/api/v1/endpoints/support.py:109` | done |
+| GET | `/api/v1/support/tickets/my` | Authenticated | 200 | `backend/app/api/v1/endpoints/support.py:140` | done |
+| GET | `/api/v1/support/tickets/my/{ticket_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/support.py:157` | done |
+| POST | `/api/v1/support/tickets/my/{ticket_id}/reply` | Authenticated | 200 | `backend/app/api/v1/endpoints/support.py:170` | done |
+| GET | `/api/v1/support/admin/tickets` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:203` | done |
+| GET | `/api/v1/support/admin/tickets/{ticket_id}` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:239` | done |
+| PATCH | `/api/v1/support/admin/tickets/{ticket_id}` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:252` | done |
+| POST | `/api/v1/support/admin/tickets/{ticket_id}/reply` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:270` | done |
+| GET | `/api/v1/support/admin/stats` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:298` | done |
 | GET | `/api/v1/team` | Public | 200 | `backend/app/api/v1/endpoints/team.py:53` | done |
 | GET | `/api/v1/team/{slug}` | Public | 200 | `backend/app/api/v1/endpoints/team.py:63` | done |
 | GET | `/api/v1/team/admin/all` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:74` | done |
@@ -245,9 +245,9 @@ Generated from the canonical Python files on 2026-11-10.
 | send_order_confirmation | Paid order | 3 × 60s | `tasks/email_tasks.py:37` | todo |
 | send_password_reset | Forgot password | 3 × 60s | `tasks/email_tasks.py:82` | todo |
 | send_2fa_code | Login/resend | 3 × 60s | `tasks/email_tasks.py:107` | todo |
-| send_ticket_notification | Ticket creation | 3 × 60s | `tasks/email_tasks.py:132` | todo |
+| send_ticket_notification | Ticket creation | 3 × 60s | `tasks/email_tasks.py:132` | done |
 | send_course_completion | Course completion | 3 × 60s | `tasks/email_tasks.py:184` | todo |
-| send_ticket_reply | Ticket reply | 3 × 60s | `tasks/email_tasks.py:216` | todo |
+| send_ticket_reply | Ticket reply | 3 × 60s | `tasks/email_tasks.py:216` | done |
 | process_uploaded_image | Upload | none declared | `tasks/media_tasks.py:8` | todo |
 | cleanup_orphaned_media | Every 24h | scheduled | `tasks/media_tasks.py:31` | todo |
 | process_paid_order | Payment success | 3 × 30s; idempotent | `tasks/order_tasks.py:7` | done |
