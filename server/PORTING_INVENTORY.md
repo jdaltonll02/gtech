@@ -27,15 +27,15 @@ Generated from the canonical Python files on 2026-11-10.
 | PATCH | `/api/v1/admin/users/{user_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:92` | done |
 | DELETE | `/api/v1/admin/users/{user_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/admin.py:104` | done |
 | GET | `/api/v1/admin/system-status` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:113` | done |
-| POST | `/api/v1/ai/chat` | Optional bearer | 200 | `backend/app/api/v1/endpoints/ai.py:60` | todo |
-| POST | `/api/v1/ai/classroom/{course_id}` | Optional bearer | 200 | `backend/app/api/v1/endpoints/ai.py:85` | todo |
-| GET | `/api/v1/ai/sessions/{session_key}/history` | Public | 200 | `backend/app/api/v1/endpoints/ai.py:118` | todo |
-| GET | `/api/v1/admin/ai/documents` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/ai.py:135` | todo |
-| POST | `/api/v1/admin/ai/documents` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/ai.py:146` | todo |
-| DELETE | `/api/v1/admin/ai/documents/{doc_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/ai.py:204` | todo |
-| GET | `/api/v1/courses/{course_id}/ai/documents` | Public | 200 | `backend/app/api/v1/endpoints/ai.py:216` | todo |
-| POST | `/api/v1/courses/{course_id}/ai/documents` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/ai.py:226` | todo |
-| DELETE | `/api/v1/courses/{course_id}/ai/documents/{doc_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/ai.py:280` | todo |
+| POST | `/api/v1/ai/chat` | Optional bearer | 200 | `backend/app/api/v1/endpoints/ai.py:60` | done |
+| POST | `/api/v1/ai/classroom/{course_id}` | Optional bearer | 200 | `backend/app/api/v1/endpoints/ai.py:85` | done |
+| GET | `/api/v1/ai/sessions/{session_key}/history` | Public | 200 | `backend/app/api/v1/endpoints/ai.py:118` | done |
+| GET | `/api/v1/admin/ai/documents` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/ai.py:135` | done |
+| POST | `/api/v1/admin/ai/documents` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/ai.py:146` | done |
+| DELETE | `/api/v1/admin/ai/documents/{doc_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/ai.py:204` | done |
+| GET | `/api/v1/courses/{course_id}/ai/documents` | Public | 200 | `backend/app/api/v1/endpoints/ai.py:216` | done |
+| POST | `/api/v1/courses/{course_id}/ai/documents` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/ai.py:226` | done |
+| DELETE | `/api/v1/courses/{course_id}/ai/documents/{doc_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/ai.py:280` | done |
 | POST | `/api/v1/auth/forgot-password` | Public | 200 | `backend/app/api/v1/endpoints/auth.py:57` | done |
 | POST | `/api/v1/auth/reset-password` | Public | 200 | `backend/app/api/v1/endpoints/auth.py:84` | done |
 | POST | `/api/v1/auth/2fa/send-code` | Authenticated | 200 | `backend/app/api/v1/endpoints/auth.py:118` | done |

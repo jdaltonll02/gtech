@@ -1,0 +1,7 @@
+import { randomUUID } from 'node:crypto';
+import { PDFParse } from 'pdf-parse';
+import { prisma } from '../lib/prisma.js';
+import { embedding } from './llm.js';
+
+const chunk=(text,page)=>{const out=[];for(let start=0;start<text.length;start+=520){const content=text.slice(start,start+600).trim();if(content)out.push({content,page_number:page});}return out;};
+export async function ingestDocument(documentId,bytes){let parser;try{parser=new PDFParse({data:bytes});const result=await parser.getText(),chunks=result.pages.flatMap((p)=>chunk(p.text,p.num));if(!chunks.length){await prisma.$executeRawUnsafe("UPDATE ai_documents SET status='error',error_message='Could not extract text from PDF.',updated_at=NOW() WHERE id=$1::uuid",documentId);return 0;}let index=0;for(const item of chunks){const vector=await embedding(item.content);await prisma.$executeRawUnsafe('INSERT INTO ai_document_chunks(id,document_id,chunk_index,content,embedding,page_number,token_count) VALUES($1::uuid,$2::uuid,$3,$4,$5::jsonb,$6,$7)',randomUUID(),documentId,index,item.content,JSON.stringify(vector),item.page_number,item.content.split(/\s+/).length);index++;}await prisma.$executeRawUnsafe("UPDATE ai_documents SET status='ready',chunk_count=$1,updated_at=NOW() WHERE id=$2::uuid",index,documentId);return index;}catch(error){await prisma.$executeRawUnsafe("UPDATE ai_documents SET status='error',error_message=$1,updated_at=NOW() WHERE id=$2::uuid",String(error.message).slice(0,1000),documentId);return 0;}finally{if(parser)await parser.destroy();}}
