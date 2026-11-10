@@ -154,13 +154,13 @@ Generated from the canonical Python files on 2026-11-10.
 | GET | `/api/v1/partners/{partner_id}` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:106` | done |
 | PATCH | `/api/v1/partners/admin/{partner_id}` | Permission: manage_partners | 200 | `backend/app/api/v1/endpoints/partners.py:115` | done |
 | DELETE | `/api/v1/partners/admin/{partner_id}` | Permission: manage_partners | 204 | `backend/app/api/v1/endpoints/partners.py:127` | done |
-| POST | `/api/v1/payments/stripe/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:29` | todo |
-| POST | `/api/v1/payments/stripe/webhook` | Public | 200 | `backend/app/api/v1/endpoints/payments.py:47` | todo |
-| POST | `/api/v1/payments/paypal/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:110` | todo |
-| POST | `/api/v1/payments/paypal/capture/{paypal_order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:125` | todo |
-| POST | `/api/v1/payments/momo/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:143` | todo |
-| POST | `/api/v1/payments/momo/callback` | Public | 200 | `backend/app/api/v1/endpoints/payments.py:162` | todo |
-| GET | `/api/v1/payments/momo/status/{reference}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:187` | todo |
+| POST | `/api/v1/payments/stripe/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:29` | done |
+| POST | `/api/v1/payments/stripe/webhook` | Public | 200 | `backend/app/api/v1/endpoints/payments.py:47` | done |
+| POST | `/api/v1/payments/paypal/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:110` | done |
+| POST | `/api/v1/payments/paypal/capture/{paypal_order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:125` | done |
+| POST | `/api/v1/payments/momo/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:143` | done |
+| POST | `/api/v1/payments/momo/callback` | Public | 200 | `backend/app/api/v1/endpoints/payments.py:162` | done |
+| GET | `/api/v1/payments/momo/status/{reference}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:187` | done |
 | GET | `/api/v1/portfolio/projects` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:36` | done |
 | POST | `/api/v1/portfolio/projects` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:47` | done |
 | GET | `/api/v1/portfolio/projects/{project_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:56` | done |
@@ -250,7 +250,7 @@ Generated from the canonical Python files on 2026-11-10.
 | send_ticket_reply | Ticket reply | 3 × 60s | `tasks/email_tasks.py:216` | todo |
 | process_uploaded_image | Upload | none declared | `tasks/media_tasks.py:8` | todo |
 | cleanup_orphaned_media | Every 24h | scheduled | `tasks/media_tasks.py:31` | todo |
-| process_paid_order | Payment success | 3 × 30s; idempotent | `tasks/order_tasks.py:7` | todo |
+| process_paid_order | Payment success | 3 × 30s; idempotent | `tasks/order_tasks.py:7` | done |
 | cancel_stale_orders | Every hour | scheduled | `tasks/order_tasks.py:68` | todo |
 
 ## Services

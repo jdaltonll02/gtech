@@ -12,6 +12,7 @@ import { formsRouter } from './routes/forms.js';
 import { teamRouter } from './routes/team.js';
 import { mediaRouter } from './routes/media.js';
 import { ecommerceRouter } from './routes/ecommerce.js';
+import { paymentsRouter, stripeWebhookRouter } from './routes/payments.js';
 import { corsMiddleware, globalLimiter, permissionsPolicy, securityHeaders } from './middleware/security.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 
@@ -23,8 +24,7 @@ export function createApp() {
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(securityHeaders, permissionsPolicy, corsMiddleware, globalLimiter);
-
-  // The Stripe webhook router is mounted here before JSON parsing when ported.
+  app.use(stripeWebhookRouter);
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false }));
   app.use(healthRouter);
@@ -37,6 +37,7 @@ export function createApp() {
   app.use('/api/v1/team', teamRouter);
   app.use('/api/v1/media', mediaRouter);
   app.use('/api/v1/ecommerce', ecommerceRouter);
+  app.use('/api/v1/payments', paymentsRouter);
   app.use('/media', express.static(path.resolve(projectRoot, config.LOCAL_MEDIA_ROOT), { fallthrough: false }));
 
   const frontendDist = path.resolve(projectRoot, 'frontend/dist');
