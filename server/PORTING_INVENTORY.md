@@ -216,24 +216,24 @@ Generated from the canonical Python files on 2026-11-10.
 | PATCH | `/api/v1/support/admin/tickets/{ticket_id}` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:252` | todo |
 | POST | `/api/v1/support/admin/tickets/{ticket_id}/reply` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:270` | todo |
 | GET | `/api/v1/support/admin/stats` | Permission: manage_tickets | 200 | `backend/app/api/v1/endpoints/support.py:298` | todo |
-| GET | `/api/v1/team` | Public | 200 | `backend/app/api/v1/endpoints/team.py:53` | todo |
-| GET | `/api/v1/team/{slug}` | Public | 200 | `backend/app/api/v1/endpoints/team.py:63` | todo |
-| GET | `/api/v1/team/admin/all` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:74` | todo |
-| POST | `/api/v1/team/admin` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:82` | todo |
-| PATCH | `/api/v1/team/admin/{member_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:93` | todo |
-| DELETE | `/api/v1/team/admin/{member_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:105` | todo |
-| POST | `/api/v1/team/admin/{member_id}/experiences` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:116` | todo |
-| PATCH | `/api/v1/team/admin/{member_id}/experiences/{exp_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:127` | todo |
-| DELETE | `/api/v1/team/admin/{member_id}/experiences/{exp_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:141` | todo |
-| POST | `/api/v1/team/admin/{member_id}/educations` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:154` | todo |
-| PATCH | `/api/v1/team/admin/{member_id}/educations/{edu_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:165` | todo |
-| DELETE | `/api/v1/team/admin/{member_id}/educations/{edu_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:179` | todo |
-| POST | `/api/v1/team/admin/{member_id}/projects` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:192` | todo |
-| PATCH | `/api/v1/team/admin/{member_id}/projects/{proj_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:203` | todo |
-| DELETE | `/api/v1/team/admin/{member_id}/projects/{proj_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:217` | todo |
-| POST | `/api/v1/team/admin/{member_id}/certifications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:230` | todo |
-| PATCH | `/api/v1/team/admin/{member_id}/certifications/{cert_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:241` | todo |
-| DELETE | `/api/v1/team/admin/{member_id}/certifications/{cert_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:255` | todo |
+| GET | `/api/v1/team` | Public | 200 | `backend/app/api/v1/endpoints/team.py:53` | done |
+| GET | `/api/v1/team/{slug}` | Public | 200 | `backend/app/api/v1/endpoints/team.py:63` | done |
+| GET | `/api/v1/team/admin/all` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:74` | done |
+| POST | `/api/v1/team/admin` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:82` | done |
+| PATCH | `/api/v1/team/admin/{member_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:93` | done |
+| DELETE | `/api/v1/team/admin/{member_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:105` | done |
+| POST | `/api/v1/team/admin/{member_id}/experiences` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:116` | done |
+| PATCH | `/api/v1/team/admin/{member_id}/experiences/{exp_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:127` | done |
+| DELETE | `/api/v1/team/admin/{member_id}/experiences/{exp_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:141` | done |
+| POST | `/api/v1/team/admin/{member_id}/educations` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:154` | done |
+| PATCH | `/api/v1/team/admin/{member_id}/educations/{edu_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:165` | done |
+| DELETE | `/api/v1/team/admin/{member_id}/educations/{edu_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:179` | done |
+| POST | `/api/v1/team/admin/{member_id}/projects` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:192` | done |
+| PATCH | `/api/v1/team/admin/{member_id}/projects/{proj_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:203` | done |
+| DELETE | `/api/v1/team/admin/{member_id}/projects/{proj_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:217` | done |
+| POST | `/api/v1/team/admin/{member_id}/certifications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:230` | done |
+| PATCH | `/api/v1/team/admin/{member_id}/certifications/{cert_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:241` | done |
+| DELETE | `/api/v1/team/admin/{member_id}/certifications/{cert_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:255` | done |
 | GET | `/health` | Public | 200 | `backend/app/main.py:94` | todo |
 
 ## Tasks
