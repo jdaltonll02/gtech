@@ -20,13 +20,13 @@ Generated from the canonical Python files on 2026-11-10.
 
 | Method | Path | Authentication / role | Success | Python source | Status |
 |---|---|---|---:|---|---|
-| GET | `/api/v1/admin/analytics` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:15` | todo |
-| GET | `/api/v1/admin/orders` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:63` | todo |
-| PATCH | `/api/v1/admin/orders/{order_id}/status` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:75` | todo |
-| GET | `/api/v1/admin/users` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:86` | todo |
-| PATCH | `/api/v1/admin/users/{user_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:92` | todo |
-| DELETE | `/api/v1/admin/users/{user_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/admin.py:104` | todo |
-| GET | `/api/v1/admin/system-status` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:113` | todo |
+| GET | `/api/v1/admin/analytics` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:15` | done |
+| GET | `/api/v1/admin/orders` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:63` | done |
+| PATCH | `/api/v1/admin/orders/{order_id}/status` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:75` | done |
+| GET | `/api/v1/admin/users` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:86` | done |
+| PATCH | `/api/v1/admin/users/{user_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:92` | done |
+| DELETE | `/api/v1/admin/users/{user_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/admin.py:104` | done |
+| GET | `/api/v1/admin/system-status` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/admin.py:113` | done |
 | POST | `/api/v1/ai/chat` | Optional bearer | 200 | `backend/app/api/v1/endpoints/ai.py:60` | todo |
 | POST | `/api/v1/ai/classroom/{course_id}` | Optional bearer | 200 | `backend/app/api/v1/endpoints/ai.py:85` | todo |
 | GET | `/api/v1/ai/sessions/{session_key}/history` | Public | 200 | `backend/app/api/v1/endpoints/ai.py:118` | todo |
