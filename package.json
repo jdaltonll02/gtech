@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "engines": { "node": ">=20" },
   "scripts": {
-    "build": "npm ci --prefix frontend && npm run build --prefix frontend && npm ci --prefix server && npm run prisma:generate --prefix server",
+    "build": "npm install --prefix frontend --no-package-lock --workspaces=false && npm run build --prefix frontend && npm ci --prefix server && npm run prisma:generate --prefix server",
     "start": "npm start --prefix server",
     "test": "npm test --prefix server"
   }

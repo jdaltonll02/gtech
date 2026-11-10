@@ -234,37 +234,37 @@ Generated from the canonical Python files on 2026-11-10.
 | POST | `/api/v1/team/admin/{member_id}/certifications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/team.py:230` | done |
 | PATCH | `/api/v1/team/admin/{member_id}/certifications/{cert_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/team.py:241` | done |
 | DELETE | `/api/v1/team/admin/{member_id}/certifications/{cert_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/team.py:255` | done |
-| GET | `/health` | Public | 200 | `backend/app/main.py:94` | todo |
+| GET | `/health` | Public | 200 | `backend/app/main.py:94` | done |
 
 ## Tasks
 
 | Task | Trigger / schedule | Retry | Source | Status |
 |---|---|---|---|---|
-| send_verification_email | Registration/resend | 3 × 60s | `tasks/email_tasks.py:9` | todo |
-| send_welcome_email | Verification | 3 × 60s | `tasks/email_tasks.py:23` | todo |
-| send_order_confirmation | Paid order | 3 × 60s | `tasks/email_tasks.py:37` | todo |
-| send_password_reset | Forgot password | 3 × 60s | `tasks/email_tasks.py:82` | todo |
-| send_2fa_code | Login/resend | 3 × 60s | `tasks/email_tasks.py:107` | todo |
+| send_verification_email | Registration/resend | 3 × 60s | `tasks/email_tasks.py:9` | done |
+| send_welcome_email | Verification | 3 × 60s | `tasks/email_tasks.py:23` | done |
+| send_order_confirmation | Paid order | 3 × 60s | `tasks/email_tasks.py:37` | done |
+| send_password_reset | Forgot password | 3 × 60s | `tasks/email_tasks.py:82` | done |
+| send_2fa_code | Login/resend | 3 × 60s | `tasks/email_tasks.py:107` | done |
 | send_ticket_notification | Ticket creation | 3 × 60s | `tasks/email_tasks.py:132` | done |
-| send_course_completion | Course completion | 3 × 60s | `tasks/email_tasks.py:184` | todo |
+| send_course_completion | Course completion | 3 × 60s | `tasks/email_tasks.py:184` | done |
 | send_ticket_reply | Ticket reply | 3 × 60s | `tasks/email_tasks.py:216` | done |
-| process_uploaded_image | Upload | none declared | `tasks/media_tasks.py:8` | todo |
-| cleanup_orphaned_media | Every 24h | scheduled | `tasks/media_tasks.py:31` | todo |
+| process_uploaded_image | Upload | none declared | `tasks/media_tasks.py:8` | done |
+| cleanup_orphaned_media | Every 24h | scheduled | `tasks/media_tasks.py:31` | done |
 | process_paid_order | Payment success | 3 × 30s; idempotent | `tasks/order_tasks.py:7` | done |
-| cancel_stale_orders | Every hour | scheduled | `tasks/order_tasks.py:68` | todo |
+| cancel_stale_orders | Every hour | scheduled | `tasks/order_tasks.py:68` | done |
 
 ## Services
 
 | Service | Python source | Node implementation | Status |
 |---|---|---|---|
-| SMTP email | `services/email_service.py` | Nodemailer + Hostinger SMTP | todo |
-| Stripe | `services/stripe_service.py` | `stripe` | todo |
-| PayPal | `services/paypal_service.py` | REST via fetch | todo |
-| MTN MoMo | `services/momo_service.py` | fetch | todo |
-| LLM/embeddings | `services/llm.py` | `openai` compatible client | todo |
-| RAG | `services/rag.py` | Prisma raw pgvector query | todo |
-| PDF ingestion | `services/ingestion.py` | `pdf-parse` | todo |
-| Web search | `services/web_search.py` | isolated maintained provider | todo |
+| SMTP email | `services/email_service.py` | Nodemailer + Hostinger SMTP | done |
+| Stripe | `services/stripe_service.py` | `stripe` | done |
+| PayPal | `services/paypal_service.py` | REST via fetch | done |
+| MTN MoMo | `services/momo_service.py` | fetch | done |
+| LLM/embeddings | `services/llm.py` | `openai` compatible client | done |
+| RAG | `services/rag.py` | JSON embeddings with in-process cosine similarity (matching current Python model) | done |
+| PDF ingestion | `services/ingestion.py` | `pdf-parse` | done |
+| Web search | `services/web_search.py` | isolated DuckDuckGo HTML adapter | done |
 | S3 dead stub | `services/s3.py` | intentionally omitted | n/a |
 
 ## Environment variables
@@ -291,16 +291,16 @@ Defaults must match `backend/app/core/config.py`. Optional integrations warn and
 
 | Concern | Required parity | Status |
 |---|---|---|
-| Security headers | Exact CSP, nosniff, DENY framing, referrer policy, permissions policy, production HSTS | todo |
-| CORS | Exact allow-list, credentials, methods, and headers | todo |
-| Rate limiting | Global IP limit plus auth limits (3/5/10 per minute); persistent store preferred | todo |
-| Proxy | Hostinger-safe `trust proxy` | todo |
-| Error handling | `{"detail": ...}`; FastAPI-like Zod validation errors with status 422 | todo |
-| Serialization | UUID strings, ISO datetimes, Decimal strings, enum values, snake_case | todo |
-| Uploads/images | Multer + Sharp | todo |
-| Stripe webhook | Raw body middleware before JSON | todo |
-| Media | Isolated storage module; same `/media` URL shape | todo |
-| Static app | Serve `frontend/dist` with non-API SPA fallback | todo |
+| Security headers | Exact CSP, nosniff, DENY framing, referrer policy, permissions policy, production HSTS | done |
+| CORS | Exact allow-list, credentials, methods, and headers | done |
+| Rate limiting | Global IP limit plus auth limits (3/5/10 per minute); persistent store preferred | done |
+| Proxy | Hostinger-safe `trust proxy` | done |
+| Error handling | `{"detail": ...}`; FastAPI-like Zod validation errors with status 422 | done |
+| Serialization | UUID strings, ISO datetimes, Decimal strings, enum values, snake_case | done |
+| Uploads/images | Multer + Sharp | done |
+| Stripe webhook | Raw body middleware before JSON | done |
+| Media | Isolated storage module; same `/media` URL shape | done |
+| Static app | Serve `frontend/dist` with non-API SPA fallback | done |
 
 ## KV parity
 
