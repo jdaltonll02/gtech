@@ -60,49 +60,49 @@ Generated from the canonical Python files on 2026-11-10.
 | POST | `/api/v1/blog/admin/posts` | Permission: manage_blog | 201 | `backend/app/api/v1/endpoints/blog.py:84` | done |
 | PATCH | `/api/v1/blog/admin/posts/{post_id}` | Permission: manage_blog | 200 | `backend/app/api/v1/endpoints/blog.py:108` | done |
 | DELETE | `/api/v1/blog/admin/posts/{post_id}` | Permission: manage_blog | 204 | `backend/app/api/v1/endpoints/blog.py:130` | done |
-| GET | `/api/v1/courses/` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:80` | todo |
-| POST | `/api/v1/courses/` | Permission: manage_courses/manage_own_courses | 201 | `backend/app/api/v1/endpoints/courses.py:123` | todo |
-| GET | `/api/v1/courses/admin/all` | Permission: manage_courses/manage_own_courses | 200 | `backend/app/api/v1/endpoints/courses.py:134` | todo |
-| GET | `/api/v1/courses/admin/{course_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:149` | todo |
-| GET | `/api/v1/courses/admin/{course_id}/enrollments` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:254` | todo |
-| DELETE | `/api/v1/courses/admin/enrollments/{enrollment_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:281` | todo |
-| GET | `/api/v1/courses/my/enrollments` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:293` | todo |
-| GET | `/api/v1/courses/my/certificates` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:319` | todo |
-| GET | `/api/v1/courses/certificates/{cert_number}` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:343` | todo |
-| GET | `/api/v1/courses/lessons/{lesson_id}/blocks` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:368` | todo |
-| POST | `/api/v1/courses/lessons/{lesson_id}/blocks` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:376` | todo |
-| PATCH | `/api/v1/courses/blocks/{block_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:387` | todo |
-| DELETE | `/api/v1/courses/blocks/{block_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:399` | todo |
-| GET | `/api/v1/courses/lessons/{lesson_id}/assessments` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:410` | todo |
-| POST | `/api/v1/courses/lessons/{lesson_id}/assessments` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:421` | todo |
-| PATCH | `/api/v1/courses/assessments/{assessment_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:433` | todo |
-| DELETE | `/api/v1/courses/assessments/{assessment_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:447` | todo |
-| POST | `/api/v1/courses/assessments/{assessment_id}/submit` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:456` | todo |
-| POST | `/api/v1/courses/assessments/{assessment_id}/questions` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:541` | todo |
-| PATCH | `/api/v1/courses/questions/{question_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:552` | todo |
-| DELETE | `/api/v1/courses/questions/{question_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:564` | todo |
-| POST | `/api/v1/courses/sections/{section_id}/lessons` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:575` | todo |
-| PATCH | `/api/v1/courses/sections/{section_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:592` | todo |
-| DELETE | `/api/v1/courses/sections/{section_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:614` | todo |
-| PATCH | `/api/v1/courses/sections/{section_id}/lessons/reorder` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:623` | todo |
-| PATCH | `/api/v1/courses/lessons/{lesson_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:638` | todo |
-| DELETE | `/api/v1/courses/lessons/{lesson_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:667` | todo |
-| POST | `/api/v1/courses/{course_id}/sections` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:680` | todo |
-| PATCH | `/api/v1/courses/{course_id}/sections/reorder` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:696` | todo |
-| POST | `/api/v1/courses/{course_id}/enroll` | Authenticated | 201 | `backend/app/api/v1/endpoints/courses.py:717` | todo |
-| POST | `/api/v1/courses/{course_id}/payment-intent` | Authenticated | 201 | `backend/app/api/v1/endpoints/courses.py:765` | todo |
-| POST | `/api/v1/courses/{course_id}/confirm-payment` | Authenticated | 201 | `backend/app/api/v1/endpoints/courses.py:815` | todo |
-| GET | `/api/v1/courses/{course_id}/lessons/{lesson_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:881` | todo |
-| POST | `/api/v1/courses/{course_id}/lessons/{lesson_id}/progress` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:939` | todo |
-| GET | `/api/v1/courses/{course_id}/progress` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1063` | todo |
-| PATCH | `/api/v1/courses/{course_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:1078` | todo |
-| DELETE | `/api/v1/courses/{course_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:1092` | todo |
-| GET | `/api/v1/courses/{course_id}` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:1105` | todo |
-| GET | `/api/v1/courses/{course_id}/ratings/summary` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:1162` | todo |
-| GET | `/api/v1/courses/{course_id}/ratings` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:1177` | todo |
-| GET | `/api/v1/courses/{course_id}/ratings/me` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1200` | todo |
-| POST | `/api/v1/courses/{course_id}/rate` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1219` | todo |
-| DELETE | `/api/v1/courses/{course_id}/rate` | Authenticated | 204 | `backend/app/api/v1/endpoints/courses.py:1259` | todo |
+| GET | `/api/v1/courses/` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:80` | done |
+| POST | `/api/v1/courses/` | Permission: manage_courses/manage_own_courses | 201 | `backend/app/api/v1/endpoints/courses.py:123` | done |
+| GET | `/api/v1/courses/admin/all` | Permission: manage_courses/manage_own_courses | 200 | `backend/app/api/v1/endpoints/courses.py:134` | done |
+| GET | `/api/v1/courses/admin/{course_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:149` | done |
+| GET | `/api/v1/courses/admin/{course_id}/enrollments` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:254` | done |
+| DELETE | `/api/v1/courses/admin/enrollments/{enrollment_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:281` | done |
+| GET | `/api/v1/courses/my/enrollments` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:293` | done |
+| GET | `/api/v1/courses/my/certificates` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:319` | done |
+| GET | `/api/v1/courses/certificates/{cert_number}` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:343` | done |
+| GET | `/api/v1/courses/lessons/{lesson_id}/blocks` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:368` | done |
+| POST | `/api/v1/courses/lessons/{lesson_id}/blocks` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:376` | done |
+| PATCH | `/api/v1/courses/blocks/{block_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:387` | done |
+| DELETE | `/api/v1/courses/blocks/{block_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:399` | done |
+| GET | `/api/v1/courses/lessons/{lesson_id}/assessments` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:410` | done |
+| POST | `/api/v1/courses/lessons/{lesson_id}/assessments` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:421` | done |
+| PATCH | `/api/v1/courses/assessments/{assessment_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:433` | done |
+| DELETE | `/api/v1/courses/assessments/{assessment_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:447` | done |
+| POST | `/api/v1/courses/assessments/{assessment_id}/submit` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:456` | done |
+| POST | `/api/v1/courses/assessments/{assessment_id}/questions` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:541` | done |
+| PATCH | `/api/v1/courses/questions/{question_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:552` | done |
+| DELETE | `/api/v1/courses/questions/{question_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:564` | done |
+| POST | `/api/v1/courses/sections/{section_id}/lessons` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:575` | done |
+| PATCH | `/api/v1/courses/sections/{section_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:592` | done |
+| DELETE | `/api/v1/courses/sections/{section_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:614` | done |
+| PATCH | `/api/v1/courses/sections/{section_id}/lessons/reorder` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:623` | done |
+| PATCH | `/api/v1/courses/lessons/{lesson_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:638` | done |
+| DELETE | `/api/v1/courses/lessons/{lesson_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:667` | done |
+| POST | `/api/v1/courses/{course_id}/sections` | Admin/superadmin | 201 | `backend/app/api/v1/endpoints/courses.py:680` | done |
+| PATCH | `/api/v1/courses/{course_id}/sections/reorder` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:696` | done |
+| POST | `/api/v1/courses/{course_id}/enroll` | Authenticated | 201 | `backend/app/api/v1/endpoints/courses.py:717` | done |
+| POST | `/api/v1/courses/{course_id}/payment-intent` | Authenticated | 201 | `backend/app/api/v1/endpoints/courses.py:765` | done |
+| POST | `/api/v1/courses/{course_id}/confirm-payment` | Authenticated | 201 | `backend/app/api/v1/endpoints/courses.py:815` | done |
+| GET | `/api/v1/courses/{course_id}/lessons/{lesson_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:881` | done |
+| POST | `/api/v1/courses/{course_id}/lessons/{lesson_id}/progress` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:939` | done |
+| GET | `/api/v1/courses/{course_id}/progress` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1063` | done |
+| PATCH | `/api/v1/courses/{course_id}` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/courses.py:1078` | done |
+| DELETE | `/api/v1/courses/{course_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/courses.py:1092` | done |
+| GET | `/api/v1/courses/{course_id}` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:1105` | done |
+| GET | `/api/v1/courses/{course_id}/ratings/summary` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:1162` | done |
+| GET | `/api/v1/courses/{course_id}/ratings` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:1177` | done |
+| GET | `/api/v1/courses/{course_id}/ratings/me` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1200` | done |
+| POST | `/api/v1/courses/{course_id}/rate` | Authenticated | 200 | `backend/app/api/v1/endpoints/courses.py:1219` | done |
+| DELETE | `/api/v1/courses/{course_id}/rate` | Authenticated | 204 | `backend/app/api/v1/endpoints/courses.py:1259` | done |
 | GET | `/api/v1/ecommerce/categories` | Public | 200 | `backend/app/api/v1/endpoints/ecommerce.py:45` | done |
 | POST | `/api/v1/ecommerce/categories` | Permission: manage_ecommerce | 201 | `backend/app/api/v1/endpoints/ecommerce.py:51` | done |
 | PATCH | `/api/v1/ecommerce/categories/{cat_id}` | Permission: manage_ecommerce | 200 | `backend/app/api/v1/endpoints/ecommerce.py:59` | done |

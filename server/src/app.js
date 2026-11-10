@@ -16,6 +16,7 @@ import { paymentsRouter, stripeWebhookRouter } from './routes/payments.js';
 import { supportRouter } from './routes/support.js';
 import { adminRouter } from './routes/admin.js';
 import { aiRouter } from './routes/ai.js';
+import { coursesRouter } from './routes/courses/index.js';
 import { corsMiddleware, globalLimiter, permissionsPolicy, securityHeaders } from './middleware/security.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 
@@ -44,6 +45,7 @@ export function createApp() {
   app.use('/api/v1/support', supportRouter);
   app.use('/api/v1/admin', adminRouter);
   app.use('/api/v1', aiRouter);
+  app.use('/api/v1/courses', coursesRouter);
   app.use('/media', express.static(path.resolve(projectRoot, config.LOCAL_MEDIA_ROOT), { fallthrough: false }));
 
   const frontendDist = path.resolve(projectRoot, 'frontend/dist');

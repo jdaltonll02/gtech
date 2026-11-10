@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { requireAdmin, requirePermissions } from '../../auth/middleware.js';
+import { asyncHandler, HttpError } from '../../lib/http-error.js';
+import { prisma } from '../../lib/prisma.js';
+import { courseDetail,courseListOut,courseOne,newid,patchRow,uuid } from './common.js';
+
+export const courseCatalogRouter=Router();
+const courseAdmin=requirePermissions('manage_courses','manage_own_courses');
+const admin=requireAdmin;
+const schema=z.object({title:z.string(),slug:z.string(),description:z.string(),short_description:z.string().nullable().optional(),thumbnail_url:z.string().nullable().optional(),level:z.enum(['beginner','intermediate','advanced']).default('beginner'),price:z.coerce.number().nonnegative().default(0),is_free:z.boolean().default(true),is_published:z.boolean().optional(),estimated_hours:z.number().nullable().optional(),tags:z.string().nullable().optional(),instructor_name:z.string().nullable().optional()});
+const listSql=`SELECT c.*,COUNT(DISTINCT e.id)::int enrollment_count,COALESCE(AVG(r.rating),0) avg_rating,COUNT(DISTINCT r.id)::int rating_count FROM courses c LEFT JOIN enrollments e ON e.course_id=c.id LEFT JOIN course_ratings r ON r.course_id=c.id`;
+courseCatalogRouter.get('/',asyncHandler(async(q,s)=>{const skip=Math.max(0,Number(q.query.skip)||0),limit=Math.min(100,Math.max(1,Number(q.query.limit)||20));const rows=await prisma.$queryRawUnsafe(`${listSql} WHERE c.is_published=TRUE GROUP BY c.id ORDER BY c.created_at DESC OFFSET $1 LIMIT $2`,skip,limit);s.json(rows.map(courseListOut));}));
+courseCatalogRouter.post('/',...courseAdmin,asyncHandler(async(q,s)=>{const b=schema.parse(q.body);const rows=await prisma.$queryRawUnsafe('INSERT INTO courses(id,title,slug,description,short_description,thumbnail_url,level,price,is_free,is_published,estimated_hours,tags,instructor_name,created_at,updated_at) VALUES($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9,FALSE,$10,$11,$12,NOW(),NOW()) RETURNING *',newid(),b.title,b.slug,b.description,b.short_description??null,b.thumbnail_url??null,b.level,b.price,b.is_free,b.estimated_hours??null,b.tags??null,b.instructor_name??null);s.status(201).json(courseListOut(rows[0]));}));
+courseCatalogRouter.get('/admin/all',...courseAdmin,asyncHandler(async(q,s)=>{const rows=await prisma.$queryRawUnsafe(`${listSql} GROUP BY c.id ORDER BY c.created_at DESC`);s.json(rows.map(courseListOut));}));
+courseCatalogRouter.get('/admin/:course_id',...admin,asyncHandler(async(q,s)=>s.json(await courseDetail(uuid.parse(q.params.course_id)))));
+courseCatalogRouter.get('/admin/:course_id/enrollments',...admin,asyncHandler(async(q,s)=>{await courseOne(uuid.parse(q.params.course_id));const rows=await prisma.$queryRawUnsafe("SELECT e.*,u.email user_email,COALESCE(u.full_name,'') user_name FROM enrollments e JOIN users u ON u.id=e.user_id WHERE e.course_id=$1::uuid ORDER BY e.enrolled_at DESC",q.params.course_id);s.json(rows);}));
+courseCatalogRouter.delete('/admin/enrollments/:enrollment_id',...admin,asyncHandler(async(q,s)=>{const n=await prisma.$executeRawUnsafe('DELETE FROM enrollments WHERE id=$1::uuid',uuid.parse(q.params.enrollment_id));if(!n)throw new HttpError(404,'Enrollment not found');s.status(204).end();}));
+courseCatalogRouter.patch('/:course_id',...admin,asyncHandler(async(q,s)=>{const out=await patchRow('courses',uuid.parse(q.params.course_id),schema.partial().parse(q.body),'Course not found');s.json(courseListOut(out));}));
+courseCatalogRouter.delete('/:course_id',...admin,asyncHandler(async(q,s)=>{const n=await prisma.$executeRawUnsafe('DELETE FROM courses WHERE id=$1::uuid',uuid.parse(q.params.course_id));if(!n)throw new HttpError(404,'Course not found');s.status(204).end();}));
+courseCatalogRouter.get('/:course_id',asyncHandler(async(q,s)=>s.json(await courseDetail(uuid.parse(q.params.course_id),true))));

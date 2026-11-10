@@ -6,6 +6,7 @@ import { HttpError } from '../lib/http-error.js';
 let stripe;
 const stripeClient=()=>stripe??=new Stripe(config.STRIPE_SECRET_KEY||'sk_disabled');
 export async function createStripeIntent(amount,metadata={}){try{const intent=await stripeClient().paymentIntents.create({amount:Math.trunc(Number(amount)*100),currency:'usd',metadata,automatic_payment_methods:{enabled:true}});return{client_secret:intent.client_secret,payment_intent_id:intent.id};}catch(error){throw new HttpError(400,error.message);}}
+export async function retrieveStripeIntent(id){try{return await stripeClient().paymentIntents.retrieve(id);}catch{throw new HttpError(400,'Could not verify payment with Stripe.');}}
 export function verifyStripeWebhook(payload,signature){try{return stripeClient().webhooks.constructEvent(payload,signature,config.STRIPE_WEBHOOK_SECRET);}catch(error){throw new HttpError(400,`Webhook error: ${error.message}`);}}
 
 const paypalBase=()=>config.PAYPAL_MODE==='live'?'https://api-m.paypal.com':'https://api-m.sandbox.paypal.com';
