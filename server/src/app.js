@@ -4,6 +4,7 @@ import express from 'express';
 import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { authRouter } from './routes/auth.js';
+import { rbacRouter } from './routes/rbac.js';
 import { corsMiddleware, globalLimiter, permissionsPolicy, securityHeaders } from './middleware/security.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 
@@ -21,6 +22,7 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }));
   app.use(healthRouter);
   app.use('/api/v1/auth', authRouter);
+  app.use('/api/v1/rbac', rbacRouter);
   app.use('/media', express.static(path.resolve(projectRoot, config.LOCAL_MEDIA_ROOT), { fallthrough: false }));
 
   const frontendDist = path.resolve(projectRoot, 'frontend/dist');
