@@ -1,0 +1,26 @@
+import { randomUUID } from 'node:crypto';
+import { Router } from 'express';
+import { z } from 'zod';
+import { requirePermissions } from '../auth/middleware.js';
+import { asyncHandler, HttpError } from '../lib/http-error.js';
+import { deletePattern, get, set } from '../lib/kv.js';
+import { prisma } from '../lib/prisma.js';
+
+export const partnersRouter=Router();
+const admin=requirePermissions('manage_partners'),uuid=z.string().uuid(),fields=['name','description','logo_url','website_url','order_index'];
+const schema=z.object({name:z.string(),description:z.string().nullable().default(null),logo_url:z.string(),website_url:z.string(),order_index:z.number().int().default(0)});
+const out=(x)=>Object.fromEntries(['id',...fields].map((k)=>[k,x[k]]));
+const find=async(table,name,id)=>{const x=(await prisma.$queryRawUnsafe(`SELECT * FROM ${table} WHERE id=$1::uuid`,id))[0];if(!x)throw new HttpError(404,`${name} not found`);return x;};
+const list=async(table,key)=>{const cached=await get(`${key}:all`);if(cached)return cached;const x=(await prisma.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY order_index`)).map(out);await set(`${key}:all`,x,300);return x;};
+const create=async(table,b)=>{const x=schema.parse(b);return out((await prisma.$queryRawUnsafe(`INSERT INTO ${table}(id,name,description,logo_url,website_url,order_index,created_at,updated_at) VALUES($1::uuid,$2,$3,$4,$5,$6,NOW(),NOW()) RETURNING *`,randomUUID(),x.name,x.description,x.logo_url,x.website_url,x.order_index))[0]);};
+const update=async(table,name,id,b)=>{await find(table,name,id);const x=schema.partial().parse(b),e=Object.entries(x).filter(([,v])=>v!==null&&v!==undefined),v=e.map(([,y])=>y);v.push(id);return out((await prisma.$queryRawUnsafe(`UPDATE ${table} SET ${e.map(([k],i)=>`${k}=$${i+1}`).join(',')}${e.length?',':''}updated_at=NOW() WHERE id=$${v.length}::uuid RETURNING *`,...v))[0]);};
+partnersRouter.get('/',asyncHandler(async(_q,s)=>s.json(await list('partners','partners'))));
+partnersRouter.post('/admin',...admin,asyncHandler(async(q,s)=>{const x=await create('partners',q.body);await deletePattern('partners:*');s.status(201).json(x);}));
+partnersRouter.get('/businesses',asyncHandler(async(_q,s)=>s.json(await list('businesses','businesses'))));
+partnersRouter.post('/admin/businesses',...admin,asyncHandler(async(q,s)=>{const x=await create('businesses',q.body);await deletePattern('businesses:*');s.status(201).json(x);}));
+partnersRouter.get('/businesses/:id',asyncHandler(async(q,s)=>s.json(out(await find('businesses','Business',uuid.parse(q.params.id))))));
+partnersRouter.patch('/admin/businesses/:id',...admin,asyncHandler(async(q,s)=>{const x=await update('businesses','Business',uuid.parse(q.params.id),q.body);await deletePattern('businesses:*');s.json(x);}));
+partnersRouter.delete('/admin/businesses/:id',...admin,asyncHandler(async(q,s)=>{const id=uuid.parse(q.params.id);await find('businesses','Business',id);await prisma.$executeRawUnsafe('DELETE FROM businesses WHERE id=$1::uuid',id);await deletePattern('businesses:*');s.status(204).end();}));
+partnersRouter.get('/:id',asyncHandler(async(q,s)=>s.json(out(await find('partners','Partner',uuid.parse(q.params.id))))));
+partnersRouter.patch('/admin/:id',...admin,asyncHandler(async(q,s)=>{const x=await update('partners','Partner',uuid.parse(q.params.id),q.body);await deletePattern('partners:*');s.json(x);}));
+partnersRouter.delete('/admin/:id',...admin,asyncHandler(async(q,s)=>{const id=uuid.parse(q.params.id);await find('partners','Partner',id);await prisma.$executeRawUnsafe('DELETE FROM partners WHERE id=$1::uuid',id);await deletePattern('partners:*');s.status(204).end();}));

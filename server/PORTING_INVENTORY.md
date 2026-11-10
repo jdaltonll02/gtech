@@ -144,16 +144,16 @@ Generated from the canonical Python files on 2026-11-10.
 | GET | `/api/v1/media/{media_id}` | Public | 200 | `backend/app/api/v1/endpoints/media.py:131` | todo |
 | DELETE | `/api/v1/media/{media_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/media.py:140` | todo |
 | POST | `/api/v1/media/migrate-legacy` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/media.py:153` | todo |
-| GET | `/api/v1/partners` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:30` | todo |
-| POST | `/api/v1/partners/admin` | Permission: manage_partners | 201 | `backend/app/api/v1/endpoints/partners.py:41` | todo |
-| GET | `/api/v1/partners/businesses` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:52` | todo |
-| POST | `/api/v1/partners/admin/businesses` | Permission: manage_partners | 201 | `backend/app/api/v1/endpoints/partners.py:63` | todo |
-| GET | `/api/v1/partners/businesses/{business_id}` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:72` | todo |
-| PATCH | `/api/v1/partners/admin/businesses/{business_id}` | Permission: manage_partners | 200 | `backend/app/api/v1/endpoints/partners.py:81` | todo |
-| DELETE | `/api/v1/partners/admin/businesses/{business_id}` | Permission: manage_partners | 204 | `backend/app/api/v1/endpoints/partners.py:93` | todo |
-| GET | `/api/v1/partners/{partner_id}` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:106` | todo |
-| PATCH | `/api/v1/partners/admin/{partner_id}` | Permission: manage_partners | 200 | `backend/app/api/v1/endpoints/partners.py:115` | todo |
-| DELETE | `/api/v1/partners/admin/{partner_id}` | Permission: manage_partners | 204 | `backend/app/api/v1/endpoints/partners.py:127` | todo |
+| GET | `/api/v1/partners` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:30` | done |
+| POST | `/api/v1/partners/admin` | Permission: manage_partners | 201 | `backend/app/api/v1/endpoints/partners.py:41` | done |
+| GET | `/api/v1/partners/businesses` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:52` | done |
+| POST | `/api/v1/partners/admin/businesses` | Permission: manage_partners | 201 | `backend/app/api/v1/endpoints/partners.py:63` | done |
+| GET | `/api/v1/partners/businesses/{business_id}` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:72` | done |
+| PATCH | `/api/v1/partners/admin/businesses/{business_id}` | Permission: manage_partners | 200 | `backend/app/api/v1/endpoints/partners.py:81` | done |
+| DELETE | `/api/v1/partners/admin/businesses/{business_id}` | Permission: manage_partners | 204 | `backend/app/api/v1/endpoints/partners.py:93` | done |
+| GET | `/api/v1/partners/{partner_id}` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:106` | done |
+| PATCH | `/api/v1/partners/admin/{partner_id}` | Permission: manage_partners | 200 | `backend/app/api/v1/endpoints/partners.py:115` | done |
+| DELETE | `/api/v1/partners/admin/{partner_id}` | Permission: manage_partners | 204 | `backend/app/api/v1/endpoints/partners.py:127` | done |
 | POST | `/api/v1/payments/stripe/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:29` | todo |
 | POST | `/api/v1/payments/stripe/webhook` | Public | 200 | `backend/app/api/v1/endpoints/payments.py:47` | todo |
 | POST | `/api/v1/payments/paypal/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:110` | todo |
