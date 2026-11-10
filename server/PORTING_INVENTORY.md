@@ -161,42 +161,42 @@ Generated from the canonical Python files on 2026-11-10.
 | POST | `/api/v1/payments/momo/intent/{order_id}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:143` | todo |
 | POST | `/api/v1/payments/momo/callback` | Public | 200 | `backend/app/api/v1/endpoints/payments.py:162` | todo |
 | GET | `/api/v1/payments/momo/status/{reference}` | Authenticated | 200 | `backend/app/api/v1/endpoints/payments.py:187` | todo |
-| GET | `/api/v1/portfolio/projects` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:36` | todo |
-| POST | `/api/v1/portfolio/projects` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:47` | todo |
-| GET | `/api/v1/portfolio/projects/{project_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:56` | todo |
-| PATCH | `/api/v1/portfolio/projects/{project_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:65` | todo |
-| DELETE | `/api/v1/portfolio/projects/{project_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:77` | todo |
-| GET | `/api/v1/portfolio/experience` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:89` | todo |
-| POST | `/api/v1/portfolio/experience` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:100` | todo |
-| GET | `/api/v1/portfolio/experience/{exp_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:109` | todo |
-| PATCH | `/api/v1/portfolio/experience/{exp_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:118` | todo |
-| DELETE | `/api/v1/portfolio/experience/{exp_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:130` | todo |
-| GET | `/api/v1/portfolio/education` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:142` | todo |
-| POST | `/api/v1/portfolio/education` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:153` | todo |
-| GET | `/api/v1/portfolio/education/{edu_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:162` | todo |
-| PATCH | `/api/v1/portfolio/education/{edu_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:171` | todo |
-| DELETE | `/api/v1/portfolio/education/{edu_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:183` | todo |
-| GET | `/api/v1/portfolio/certifications` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:195` | todo |
-| POST | `/api/v1/portfolio/certifications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:206` | todo |
-| GET | `/api/v1/portfolio/certifications/{cert_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:215` | todo |
-| PATCH | `/api/v1/portfolio/certifications/{cert_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:224` | todo |
-| DELETE | `/api/v1/portfolio/certifications/{cert_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:236` | todo |
-| GET | `/api/v1/portfolio/publications` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:248` | todo |
-| POST | `/api/v1/portfolio/publications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:259` | todo |
-| GET | `/api/v1/portfolio/publications/{pub_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:268` | todo |
-| PATCH | `/api/v1/portfolio/publications/{pub_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:277` | todo |
-| DELETE | `/api/v1/portfolio/publications/{pub_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:289` | todo |
-| GET | `/api/v1/portfolio/skills` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:301` | todo |
-| POST | `/api/v1/portfolio/skills` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:312` | todo |
-| PATCH | `/api/v1/portfolio/skills/{skill_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:321` | todo |
-| DELETE | `/api/v1/portfolio/skills/{skill_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:333` | todo |
-| GET | `/api/v1/portfolio/profile` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:348` | todo |
-| PATCH | `/api/v1/portfolio/profile` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:357` | todo |
-| GET | `/api/v1/portfolio/testimonials` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:373` | todo |
-| POST | `/api/v1/portfolio/testimonials` | Authenticated | 201 | `backend/app/api/v1/endpoints/portfolio.py:387` | todo |
-| GET | `/api/v1/portfolio/admin/testimonials` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:403` | todo |
-| PATCH | `/api/v1/portfolio/admin/testimonials/{testimonial_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:410` | todo |
-| DELETE | `/api/v1/portfolio/admin/testimonials/{testimonial_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:422` | todo |
+| GET | `/api/v1/portfolio/projects` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:36` | done |
+| POST | `/api/v1/portfolio/projects` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:47` | done |
+| GET | `/api/v1/portfolio/projects/{project_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:56` | done |
+| PATCH | `/api/v1/portfolio/projects/{project_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:65` | done |
+| DELETE | `/api/v1/portfolio/projects/{project_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:77` | done |
+| GET | `/api/v1/portfolio/experience` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:89` | done |
+| POST | `/api/v1/portfolio/experience` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:100` | done |
+| GET | `/api/v1/portfolio/experience/{exp_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:109` | done |
+| PATCH | `/api/v1/portfolio/experience/{exp_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:118` | done |
+| DELETE | `/api/v1/portfolio/experience/{exp_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:130` | done |
+| GET | `/api/v1/portfolio/education` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:142` | done |
+| POST | `/api/v1/portfolio/education` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:153` | done |
+| GET | `/api/v1/portfolio/education/{edu_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:162` | done |
+| PATCH | `/api/v1/portfolio/education/{edu_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:171` | done |
+| DELETE | `/api/v1/portfolio/education/{edu_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:183` | done |
+| GET | `/api/v1/portfolio/certifications` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:195` | done |
+| POST | `/api/v1/portfolio/certifications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:206` | done |
+| GET | `/api/v1/portfolio/certifications/{cert_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:215` | done |
+| PATCH | `/api/v1/portfolio/certifications/{cert_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:224` | done |
+| DELETE | `/api/v1/portfolio/certifications/{cert_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:236` | done |
+| GET | `/api/v1/portfolio/publications` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:248` | done |
+| POST | `/api/v1/portfolio/publications` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:259` | done |
+| GET | `/api/v1/portfolio/publications/{pub_id}` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:268` | done |
+| PATCH | `/api/v1/portfolio/publications/{pub_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:277` | done |
+| DELETE | `/api/v1/portfolio/publications/{pub_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:289` | done |
+| GET | `/api/v1/portfolio/skills` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:301` | done |
+| POST | `/api/v1/portfolio/skills` | Permission: manage_portfolio | 201 | `backend/app/api/v1/endpoints/portfolio.py:312` | done |
+| PATCH | `/api/v1/portfolio/skills/{skill_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:321` | done |
+| DELETE | `/api/v1/portfolio/skills/{skill_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:333` | done |
+| GET | `/api/v1/portfolio/profile` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:348` | done |
+| PATCH | `/api/v1/portfolio/profile` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:357` | done |
+| GET | `/api/v1/portfolio/testimonials` | Public | 200 | `backend/app/api/v1/endpoints/portfolio.py:373` | done |
+| POST | `/api/v1/portfolio/testimonials` | Authenticated | 201 | `backend/app/api/v1/endpoints/portfolio.py:387` | done |
+| GET | `/api/v1/portfolio/admin/testimonials` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:403` | done |
+| PATCH | `/api/v1/portfolio/admin/testimonials/{testimonial_id}` | Permission: manage_portfolio | 200 | `backend/app/api/v1/endpoints/portfolio.py:410` | done |
+| DELETE | `/api/v1/portfolio/admin/testimonials/{testimonial_id}` | Permission: manage_portfolio | 204 | `backend/app/api/v1/endpoints/portfolio.py:422` | done |
 | GET | `/api/v1/rbac/permissions` | Superadmin | 200 | `backend/app/api/v1/endpoints/rbac.py:19` | done |
 | GET | `/api/v1/rbac/roles` | Superadmin | 200 | `backend/app/api/v1/endpoints/rbac.py:26` | done |
 | POST | `/api/v1/rbac/roles` | Superadmin | 201 | `backend/app/api/v1/endpoints/rbac.py:32` | done |
