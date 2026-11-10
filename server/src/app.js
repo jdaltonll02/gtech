@@ -8,6 +8,7 @@ import { rbacRouter } from './routes/rbac.js';
 import { portfolioRouter } from './routes/portfolio.js';
 import { blogRouter } from './routes/blog.js';
 import { partnersRouter } from './routes/partners.js';
+import { formsRouter } from './routes/forms.js';
 import { corsMiddleware, globalLimiter, permissionsPolicy, securityHeaders } from './middleware/security.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 
@@ -29,6 +30,7 @@ export function createApp() {
   app.use('/api/v1/portfolio', portfolioRouter);
   app.use('/api/v1/blog', blogRouter);
   app.use('/api/v1/partners', partnersRouter);
+  app.use('/api/v1/forms', formsRouter);
   app.use('/media', express.static(path.resolve(projectRoot, config.LOCAL_MEDIA_ROOT), { fallthrough: false }));
 
   const frontendDist = path.resolve(projectRoot, 'frontend/dist');

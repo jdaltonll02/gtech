@@ -125,20 +125,20 @@ Generated from the canonical Python files on 2026-11-10.
 | GET | `/api/v1/ecommerce/products/{product_id}/ratings/me` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:358` | todo |
 | POST | `/api/v1/ecommerce/products/{product_id}/rate` | Authenticated | 200 | `backend/app/api/v1/endpoints/ecommerce.py:377` | todo |
 | DELETE | `/api/v1/ecommerce/products/{product_id}/rate` | Authenticated | 204 | `backend/app/api/v1/endpoints/ecommerce.py:412` | todo |
-| GET | `/api/v1/forms` | Public | 200 | `backend/app/api/v1/endpoints/forms.py:30` | todo |
-| GET | `/api/v1/forms/{slug}` | Optional bearer | 200 | `backend/app/api/v1/endpoints/forms.py:41` | todo |
-| POST | `/api/v1/forms/{slug}/submit` | Optional bearer | 201 | `backend/app/api/v1/endpoints/forms.py:56` | todo |
-| GET | `/api/v1/forms/admin/all` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:90` | todo |
-| GET | `/api/v1/forms/admin/{form_id}` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:96` | todo |
-| POST | `/api/v1/forms/admin/create` | Permission: manage_forms | 201 | `backend/app/api/v1/endpoints/forms.py:101` | todo |
-| PATCH | `/api/v1/forms/admin/{form_id}` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:113` | todo |
-| DELETE | `/api/v1/forms/admin/{form_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:123` | todo |
-| POST | `/api/v1/forms/admin/{form_id}/fields` | Permission: manage_forms | 201 | `backend/app/api/v1/endpoints/forms.py:135` | todo |
-| PATCH | `/api/v1/forms/admin/fields/{field_id}` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:144` | todo |
-| DELETE | `/api/v1/forms/admin/fields/{field_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:156` | todo |
-| POST | `/api/v1/forms/admin/{form_id}/fields/reorder` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:166` | todo |
-| GET | `/api/v1/forms/admin/{form_id}/submissions` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:179` | todo |
-| DELETE | `/api/v1/forms/admin/submissions/{submission_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:191` | todo |
+| GET | `/api/v1/forms` | Public | 200 | `backend/app/api/v1/endpoints/forms.py:30` | done |
+| GET | `/api/v1/forms/{slug}` | Optional bearer | 200 | `backend/app/api/v1/endpoints/forms.py:41` | done |
+| POST | `/api/v1/forms/{slug}/submit` | Optional bearer | 201 | `backend/app/api/v1/endpoints/forms.py:56` | done |
+| GET | `/api/v1/forms/admin/all` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:90` | done |
+| GET | `/api/v1/forms/admin/{form_id}` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:96` | done |
+| POST | `/api/v1/forms/admin/create` | Permission: manage_forms | 201 | `backend/app/api/v1/endpoints/forms.py:101` | done |
+| PATCH | `/api/v1/forms/admin/{form_id}` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:113` | done |
+| DELETE | `/api/v1/forms/admin/{form_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:123` | done |
+| POST | `/api/v1/forms/admin/{form_id}/fields` | Permission: manage_forms | 201 | `backend/app/api/v1/endpoints/forms.py:135` | done |
+| PATCH | `/api/v1/forms/admin/fields/{field_id}` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:144` | done |
+| DELETE | `/api/v1/forms/admin/fields/{field_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:156` | done |
+| POST | `/api/v1/forms/admin/{form_id}/fields/reorder` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:166` | done |
+| GET | `/api/v1/forms/admin/{form_id}/submissions` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:179` | done |
+| DELETE | `/api/v1/forms/admin/submissions/{submission_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:191` | done |
 | POST | `/api/v1/media/upload` | Authenticated | 201 | `backend/app/api/v1/endpoints/media.py:67` | todo |
 | GET | `/api/v1/media/` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/media.py:123` | todo |
 | GET | `/api/v1/media/{media_id}` | Public | 200 | `backend/app/api/v1/endpoints/media.py:131` | todo |
