@@ -139,11 +139,11 @@ Generated from the canonical Python files on 2026-11-10.
 | POST | `/api/v1/forms/admin/{form_id}/fields/reorder` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:166` | done |
 | GET | `/api/v1/forms/admin/{form_id}/submissions` | Permission: manage_forms | 200 | `backend/app/api/v1/endpoints/forms.py:179` | done |
 | DELETE | `/api/v1/forms/admin/submissions/{submission_id}` | Permission: manage_forms | 204 | `backend/app/api/v1/endpoints/forms.py:191` | done |
-| POST | `/api/v1/media/upload` | Authenticated | 201 | `backend/app/api/v1/endpoints/media.py:67` | todo |
-| GET | `/api/v1/media/` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/media.py:123` | todo |
-| GET | `/api/v1/media/{media_id}` | Public | 200 | `backend/app/api/v1/endpoints/media.py:131` | todo |
-| DELETE | `/api/v1/media/{media_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/media.py:140` | todo |
-| POST | `/api/v1/media/migrate-legacy` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/media.py:153` | todo |
+| POST | `/api/v1/media/upload` | Authenticated | 201 | `backend/app/api/v1/endpoints/media.py:67` | done |
+| GET | `/api/v1/media/` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/media.py:123` | done |
+| GET | `/api/v1/media/{media_id}` | Public | 200 | `backend/app/api/v1/endpoints/media.py:131` | done |
+| DELETE | `/api/v1/media/{media_id}` | Admin/superadmin | 204 | `backend/app/api/v1/endpoints/media.py:140` | done |
+| POST | `/api/v1/media/migrate-legacy` | Admin/superadmin | 200 | `backend/app/api/v1/endpoints/media.py:153` | done |
 | GET | `/api/v1/partners` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:30` | done |
 | POST | `/api/v1/partners/admin` | Permission: manage_partners | 201 | `backend/app/api/v1/endpoints/partners.py:41` | done |
 | GET | `/api/v1/partners/businesses` | Public | 200 | `backend/app/api/v1/endpoints/partners.py:52` | done |
