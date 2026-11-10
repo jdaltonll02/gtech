@@ -53,13 +53,13 @@ Generated from the canonical Python files on 2026-11-10.
 | GET | `/api/v1/auth/oauth-token` | Public | 200 | `backend/app/api/v1/endpoints/auth.py:331` | done |
 | GET | `/api/v1/auth/google` | Public | 200 | `backend/app/api/v1/endpoints/auth.py:345` | done |
 | GET | `/api/v1/auth/google/callback` | Public | 200 | `backend/app/api/v1/endpoints/auth.py:358` | done |
-| GET | `/api/v1/blog` | Public | 200 | `backend/app/api/v1/endpoints/blog.py:24` | todo |
-| GET | `/api/v1/blog/categories` | Public | 200 | `backend/app/api/v1/endpoints/blog.py:51` | todo |
-| GET | `/api/v1/blog/{slug}` | Public | 200 | `backend/app/api/v1/endpoints/blog.py:59` | todo |
-| GET | `/api/v1/blog/admin/all` | Permission: manage_blog | 200 | `backend/app/api/v1/endpoints/blog.py:76` | todo |
-| POST | `/api/v1/blog/admin/posts` | Permission: manage_blog | 201 | `backend/app/api/v1/endpoints/blog.py:84` | todo |
-| PATCH | `/api/v1/blog/admin/posts/{post_id}` | Permission: manage_blog | 200 | `backend/app/api/v1/endpoints/blog.py:108` | todo |
-| DELETE | `/api/v1/blog/admin/posts/{post_id}` | Permission: manage_blog | 204 | `backend/app/api/v1/endpoints/blog.py:130` | todo |
+| GET | `/api/v1/blog` | Public | 200 | `backend/app/api/v1/endpoints/blog.py:24` | done |
+| GET | `/api/v1/blog/categories` | Public | 200 | `backend/app/api/v1/endpoints/blog.py:51` | done |
+| GET | `/api/v1/blog/{slug}` | Public | 200 | `backend/app/api/v1/endpoints/blog.py:59` | done |
+| GET | `/api/v1/blog/admin/all` | Permission: manage_blog | 200 | `backend/app/api/v1/endpoints/blog.py:76` | done |
+| POST | `/api/v1/blog/admin/posts` | Permission: manage_blog | 201 | `backend/app/api/v1/endpoints/blog.py:84` | done |
+| PATCH | `/api/v1/blog/admin/posts/{post_id}` | Permission: manage_blog | 200 | `backend/app/api/v1/endpoints/blog.py:108` | done |
+| DELETE | `/api/v1/blog/admin/posts/{post_id}` | Permission: manage_blog | 204 | `backend/app/api/v1/endpoints/blog.py:130` | done |
 | GET | `/api/v1/courses/` | Public | 200 | `backend/app/api/v1/endpoints/courses.py:80` | todo |
 | POST | `/api/v1/courses/` | Permission: manage_courses/manage_own_courses | 201 | `backend/app/api/v1/endpoints/courses.py:123` | todo |
 | GET | `/api/v1/courses/admin/all` | Permission: manage_courses/manage_own_courses | 200 | `backend/app/api/v1/endpoints/courses.py:134` | todo |
