@@ -133,6 +133,8 @@ export function Profile() {
     linkedin_url: '', twitter_url: '', github_url: '',
   });
   const [passwordForm, setPasswordForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [originalEmail, setOriginalEmail] = useState('');
+  const [emailChangePassword, setEmailChangePassword] = useState('');
 
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -143,16 +145,21 @@ export function Profile() {
   const [twoFaLoading, setTwoFaLoading] = useState(false);
   const [twoFaMsg, setTwoFaMsg] = useState('');
 
+  const [badges, setBadges] = useState<{ id: string; badge_type: string; title: string; issued_at: string; course: { title: string } }[]>([]);
+
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     Promise.all([
       api.get<Enrollment[]>('/courses/my/enrollments'),
       api.get<any[]>('/courses/my/certificates'),
       api.get<UserResponse>('/auth/me'),
-    ]).then(([enrs, certs, me]) => {
+      api.get<any[]>('/courses/my/badges').catch(() => []),
+    ]).then(([enrs, certs, me, myBadges]) => {
       setEnrollments(enrs);
       setCertificates(certs);
+      setBadges(myBadges);
       if (typeof me.two_factor_enabled === 'boolean') setTwoFaEnabled((me as any).two_factor_enabled);
+      setOriginalEmail(me.email ?? '');
       setProfileForm({
         full_name: me.full_name ?? '',
         email: me.email ?? '',
@@ -189,16 +196,31 @@ export function Profile() {
 
   if (!user) return null;
 
+  const emailChanged = profileForm.email !== originalEmail;
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMsg(null);
+    if (emailChanged && !emailChangePassword) {
+      setProfileMsg({ type: 'error', text: 'Enter your current password to change your email address.' });
+      return;
+    }
     setProfileLoading(true);
     try {
-      const updated = await api.patch<UserResponse>('/auth/me', profileForm);
+      const body: Record<string, unknown> = { ...profileForm };
+      if (emailChanged) body.current_password = emailChangePassword;
+      const updated = await api.patch<UserResponse>('/auth/me', body);
       const at = localStorage.getItem('access_token') ?? '';
       const rt = localStorage.getItem('refresh_token') ?? '';
       setAuth({ id: updated.id, email: updated.email, full_name: updated.full_name, is_admin: updated.is_admin }, at, rt);
-      setProfileMsg({ type: 'success', text: 'Profile updated successfully.' });
+      setOriginalEmail(updated.email);
+      setEmailChangePassword('');
+      setProfileMsg({
+        type: 'success',
+        text: emailChanged
+          ? 'Profile updated. We sent a verification link to your new email address — you\'ll need to confirm it before your next sign-in.'
+          : 'Profile updated successfully.',
+      });
     } catch (err: any) {
       setProfileMsg({ type: 'error', text: err.message || 'Update failed.' });
     } finally {
@@ -328,6 +350,26 @@ export function Profile() {
                         )}
                       </GlassCard>
 
+                      {/* Badges */}
+                      {badges.length > 0 && (
+                        <GlassCard className="p-5">
+                          <h2 className="font-semibold mb-4">Badges</h2>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {badges.map((b) => (
+                              <div key={b.id} className="flex flex-col items-center text-center gap-2 p-3 rounded-lg bg-black/[0.03]">
+                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center flex-shrink-0">
+                                  <Award className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium leading-tight">{b.title}</p>
+                                  <p className="text-[10px] text-black/40 mt-0.5">{new Date(b.issued_at).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </GlassCard>
+                      )}
+
                       {/* Quick links */}
                       <div className="grid grid-cols-2 gap-3">
                         <GlassCard className="p-4">
@@ -372,6 +414,19 @@ export function Profile() {
                             <Input id="email" type="email" value={profileForm.email} onChange={setField('email')} required />
                           </div>
                         </div>
+                        {emailChanged && (
+                          <div className="mt-4 space-y-1.5">
+                            <Label htmlFor="email_change_password">Current Password *</Label>
+                            <Input
+                              id="email_change_password"
+                              type="password"
+                              value={emailChangePassword}
+                              onChange={(e) => setEmailChangePassword(e.target.value)}
+                              required
+                            />
+                            <p className="text-xs text-black/40">Required to confirm this is you. You'll need to verify the new address before signing in again.</p>
+                          </div>
+                        )}
                         <div className="mt-4 space-y-1.5">
                           <Label htmlFor="headline">Headline</Label>
                           <Input id="headline" placeholder="e.g. Software Engineer · Lifelong Learner" value={profileForm.headline} onChange={setField('headline')} maxLength={120} />

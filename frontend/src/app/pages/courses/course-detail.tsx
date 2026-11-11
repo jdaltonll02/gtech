@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, BookOpen, BarChart2, CheckCircle, PlayCircle, FileText, Code2, ChevronDown, ChevronUp, Award, Lock, CreditCard, X, Star } from 'lucide-react';
+import { Clock, BookOpen, BarChart2, CheckCircle, PlayCircle, FileText, Code2, ChevronDown, ChevronUp, Award, Lock, CreditCard, X, Star, Tag, KeyRound } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { GlassCard } from '../../components/glass-card';
 import { StarRating, RatingDistribution } from '../../components/star-rating';
 import { Textarea } from '../../components/ui/textarea';
@@ -15,6 +16,7 @@ import { cn } from '../../components/ui/utils';
 
 type RatingSummary = { avg_rating: number; rating_count: number; distribution: Record<number, number> };
 type CourseRating = { id: string; user_id: string; author_name: string; rating: number; review: string | null; created_at: string };
+type CouponValidation = { valid: boolean; discount_type: string; discount_value: number; final_price: number; message: string };
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '';
 if (!STRIPE_KEY) console.warn('[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set — card element will not render.');
@@ -33,6 +35,8 @@ interface PaymentIntentResponse {
   payment_intent_id: string;
   amount: number;
   course_id: string;
+  coupon_code?: string;
+  discount_applied?: number;
 }
 
 const CARD_ELEMENT_OPTIONS = {
@@ -53,43 +57,53 @@ function CoursePaymentModal({
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  // Use a loading boolean instead of a step that unmounts the CardElement.
-  // The CardElement must stay mounted from render until confirmCardPayment resolves.
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponValidation, setCouponValidation] = useState<CouponValidation | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  const finalPrice = couponValidation?.valid ? couponValidation.final_price : Number(course.price);
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponValidation(null);
+    try {
+      const result = await api.post<CouponValidation>(`/courses/${course.id}/coupons/validate?code=${encodeURIComponent(couponCode.trim().toUpperCase())}`, {});
+      setCouponValidation(result);
+      if (!result.valid) setError(result.message || 'Invalid coupon code');
+      else setError('');
+    } catch {
+      setError('Could not validate coupon');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
 
   const handlePay = async () => {
     if (!stripe || !elements) { setError('Payment not ready, please refresh.'); return; }
-    // Capture the element reference NOW, while it is still mounted.
     const cardEl = elements.getElement(CardElement);
     if (!cardEl) { setError('Card form not found.'); return; }
 
     setLoading(true);
     setError('');
     try {
-      // 1. Create payment intent on server
-      const intent = await api.post<PaymentIntentResponse>(`/courses/${course.id}/payment-intent`, {});
+      const intentUrl = couponValidation?.valid
+        ? `/courses/${course.id}/payment-intent?coupon_code=${encodeURIComponent(couponCode.trim().toUpperCase())}`
+        : `/courses/${course.id}/payment-intent`;
+      const intent = await api.post<PaymentIntentResponse>(intentUrl, {});
 
-      // 2. Confirm card payment — CardElement is still mounted because we never changed
-      //    the render state before this call.
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         intent.client_secret,
         { payment_method: { card: cardEl } },
       );
-      if (stripeError) {
-        setError(stripeError.message ?? 'Card payment failed.');
-        return;
-      }
-      if (paymentIntent?.status !== 'succeeded') {
-        setError('Payment was not completed. Please try again.');
-        return;
-      }
+      if (stripeError) { setError(stripeError.message ?? 'Card payment failed.'); return; }
+      if (paymentIntent?.status !== 'succeeded') { setError('Payment was not completed. Please try again.'); return; }
 
-      // 3. Confirm on server + create enrollment
       const enrollment = await api.post<any>(`/courses/${course.id}/confirm-payment`, {
         payment_intent_id: intent.payment_intent_id,
       });
-
       onSuccess(enrollment);
     } catch (e: any) {
       setError(e.message || 'Payment failed. Please try again.');
@@ -107,13 +121,9 @@ function CoursePaymentModal({
         className="w-full max-w-md"
       >
         <GlassCard className="p-8 relative">
-          <button
-            type="button"
-            aria-label="Close payment dialog"
+          <button type="button" aria-label="Close payment dialog"
             className="absolute top-4 right-4 text-black/40 hover:text-black transition-colors"
-            onClick={onClose}
-            disabled={loading}
-          >
+            onClick={onClose} disabled={loading}>
             <X className="w-5 h-5" />
           </button>
 
@@ -125,12 +135,41 @@ function CoursePaymentModal({
             <p className="text-black/60 text-sm">{course.title}</p>
           </div>
 
-          <div className="flex justify-between items-center mb-6 py-3 border-y border-black/10">
+          <div className="flex justify-between items-center mb-4 py-3 border-y border-black/10">
             <span className="text-black/60">Course access</span>
-            <span className="text-xl font-semibold text-primary">${Number(course.price).toFixed(2)}</span>
+            <div className="text-right">
+              {couponValidation?.valid && (
+                <p className="text-xs text-black/40 line-through">${Number(course.price).toFixed(2)}</p>
+              )}
+              <span className="text-xl font-semibold text-primary">${finalPrice.toFixed(2)}</span>
+            </div>
           </div>
 
-          {/* CardElement stays mounted for the full lifetime of the modal */}
+          {/* Coupon code */}
+          <div className="mb-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
+                <Input
+                  className="pl-8 text-sm h-9"
+                  placeholder="Coupon code (optional)"
+                  value={couponCode}
+                  onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponValidation(null); }}
+                  onKeyDown={e => e.key === 'Enter' && handleValidateCoupon()}
+                  disabled={loading}
+                />
+              </div>
+              <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={handleValidateCoupon} disabled={!couponCode.trim() || validatingCoupon || loading}>
+                {validatingCoupon ? '…' : 'Apply'}
+              </Button>
+            </div>
+            {couponValidation?.valid && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> {couponValidation.message}
+              </p>
+            )}
+          </div>
+
           <div className={cn(
             'rounded-lg border bg-white px-4 py-3 mb-4 transition-all',
             loading ? 'opacity-50 pointer-events-none border-black/10' : 'border-black/15 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
@@ -145,19 +184,14 @@ function CoursePaymentModal({
 
           {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
 
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handlePay}
-            disabled={!stripe || loading}
-          >
+          <Button className="w-full" size="lg" onClick={handlePay} disabled={!stripe || loading}>
             {loading ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 Processing…
               </span>
             ) : (
-              `Pay $${Number(course.price).toFixed(2)} & Enroll`
+              `Pay $${finalPrice.toFixed(2)} & Enroll`
             )}
           </Button>
         </GlassCard>
@@ -175,6 +209,11 @@ function CourseDetailInner() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showAccessCodeInput, setShowAccessCodeInput] = useState(false);
+  const [accessCode, setAccessCode] = useState('');
+  const [accessCodeError, setAccessCodeError] = useState('');
+  const [accessCodeVerified, setAccessCodeVerified] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
   const [ratings, setRatings] = useState<CourseRating[]>([]);
@@ -231,15 +270,36 @@ function CourseDetailInner() {
   const toggleSection = (id: string) =>
     setExpandedSections((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const handleEnrollFree = async () => {
+  const handleVerifyAccessCode = async () => {
+    if (!courseId || !accessCode.trim()) return;
+    setVerifyingCode(true);
+    setAccessCodeError('');
+    try {
+      await api.post(`/courses/${courseId}/access`, { access_code: accessCode.trim() });
+      setAccessCodeVerified(true);
+      // Proceed to enroll (free private) or payment (paid private)
+      if (course?.is_free) {
+        handleEnrollFree(accessCode.trim());
+      } else {
+        setShowPaymentModal(true);
+      }
+    } catch {
+      setAccessCodeError('Invalid access code. Please try again.');
+    } finally {
+      setVerifyingCode(false);
+    }
+  };
+
+  const handleEnrollFree = async (code?: string) => {
     if (!isAuthenticated) { navigate('/login'); return; }
     setEnrolling(true);
     try {
-      const enrollment = await api.post<any>(`/courses/${course.id}/enroll`, {});
+      const url = code ? `/courses/${course!.id}/enroll?access_code=${encodeURIComponent(code)}` : `/courses/${course!.id}/enroll`;
+      const enrollment = await api.post<any>(url, {});
       addEnrollment({ ...enrollment, course });
-      navigate(`/courses/${course.id}/learn`);
+      navigate(`/courses/${course!.id}/learn`);
     } catch (err: any) {
-      if (err.message?.includes('Already enrolled')) navigate(`/courses/${course.id}/learn`);
+      if (err.message?.includes('Already enrolled')) navigate(`/courses/${course!.id}/learn`);
     } finally {
       setEnrolling(false);
     }
@@ -247,7 +307,11 @@ function CourseDetailInner() {
 
   const handleEnrollClick = () => {
     if (!isAuthenticated) { navigate('/login'); return; }
-    if (course.is_free) {
+    if (course!.is_private && !accessCodeVerified) {
+      setShowAccessCodeInput(true);
+      return;
+    }
+    if (course!.is_free) {
       handleEnrollFree();
     } else {
       setShowPaymentModal(true);
@@ -269,6 +333,35 @@ function CourseDetailInner() {
             onSuccess={handlePaymentSuccess}
             onClose={() => setShowPaymentModal(false)}
           />
+        )}
+        {showAccessCodeInput && course && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-sm">
+              <GlassCard className="p-8 relative">
+                <button type="button" className="absolute top-4 right-4 text-black/40 hover:text-black" onClick={() => setShowAccessCodeInput(false)}>
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                    <KeyRound className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-xl mb-1">Private Course</h2>
+                  <p className="text-black/60 text-sm">Enter your access code to enroll</p>
+                </div>
+                <Input
+                  placeholder="Access code"
+                  value={accessCode}
+                  onChange={e => { setAccessCode(e.target.value); setAccessCodeError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleVerifyAccessCode()}
+                  className="mb-3"
+                />
+                {accessCodeError && <p className="text-sm text-red-500 mb-3">{accessCodeError}</p>}
+                <Button className="w-full" onClick={handleVerifyAccessCode} disabled={!accessCode.trim() || verifyingCode}>
+                  {verifyingCode ? 'Verifying…' : 'Continue'}
+                </Button>
+              </GlassCard>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -439,6 +532,11 @@ function CourseDetailInner() {
               <div className="text-3xl font-bold mb-1">
                 {course.is_free ? 'Free' : `$${Number(course.price).toFixed(2)}`}
               </div>
+              {course.is_private && !enrolled && (
+                <div className="flex items-center gap-1.5 text-xs text-black/50 mb-3">
+                  <KeyRound className="w-3.5 h-3.5" /> Access code required
+                </div>
+              )}
               {isAuthenticated && hasCertificate(course.id) && (
                 <div className="flex items-center gap-2 text-sm text-amber-600 mb-4">
                   <Award className="w-4 h-4" /> Certificate earned

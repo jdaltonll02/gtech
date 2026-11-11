@@ -1,3 +1,4 @@
+import hmac
 import uuid
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
@@ -166,7 +167,7 @@ async def momo_callback(
     secret: str = Query(default=""),
 ):
     """MOMO async callback — verifies secret token, re-checks status via API, then updates order."""
-    if settings.MOMO_CALLBACK_SECRET and secret != settings.MOMO_CALLBACK_SECRET:
+    if not settings.MOMO_CALLBACK_SECRET or not hmac.compare_digest(secret, settings.MOMO_CALLBACK_SECRET):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid callback secret")
 
     body = await request.json()

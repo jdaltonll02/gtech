@@ -76,6 +76,10 @@ class TeamMemberProject(Base):
     live_url: Mapped[Optional[str]] = mapped_column(String(500))
     image_url: Mapped[Optional[str]] = mapped_column(String(500))
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+    # Individual projects show only on the contributing member's own /team/:slug
+    # page. Organizational projects belong to the company, not any one person —
+    # they additionally surface on the landing page and the public /projects grid.
+    is_organizational: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
 class TeamMemberCertification(Base):

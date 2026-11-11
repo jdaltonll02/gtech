@@ -25,7 +25,7 @@ describe('authStore', () => {
     useAuthStore.getState().setAuth(mockUser, 'access-123', 'refresh-456');
 
     const { user, accessToken, isAuthenticated } = useAuthStore.getState();
-    expect(user).toEqual(mockUser);
+    expect(user).toEqual({ ...mockUser, permissions: [] });
     expect(accessToken).toBe('access-123');
     expect(isAuthenticated()).toBe(true);
     expect(localStorage.getItem('access_token')).toBe('access-123');

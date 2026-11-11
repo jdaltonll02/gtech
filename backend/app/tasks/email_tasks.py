@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 from app.celery_app import celery_app
 from app.services.email_service import send_email, send_verification_email, send_welcome_email
@@ -132,6 +133,13 @@ def send_2fa_code_task(self, to: str, full_name: str, code: str) -> bool:
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_ticket_notification_task")
 def send_ticket_notification_task(self, ticket_number: str, subject: str, name: str, email: str, category: str, message: str) -> bool:
     from app.core.config import settings
+    # These fields come straight from the public, unauthenticated ticket form —
+    # escape before interpolating into HTML email bodies.
+    subject = html.escape(subject)
+    name = html.escape(name)
+    email = html.escape(email)
+    category = html.escape(category)
+    message = html.escape(message)
     # 1. Confirmation to user
     user_html = f"""
     <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px">
@@ -216,6 +224,9 @@ def send_course_completion_task(self, to: str, full_name: str, course_title: str
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_ticket_reply_task")
 def send_ticket_reply_task(self, ticket_number: str, subject: str, recipient_email: str, recipient_name: str, reply_content: str, is_admin_reply: bool) -> bool:
     from app.core.config import settings
+    subject = html.escape(subject)
+    recipient_name = html.escape(recipient_name)
+    reply_content = html.escape(reply_content)
     sender = "Support Team" if is_admin_reply else recipient_name
     heading = "You have a reply from our support team" if is_admin_reply else "Your customer replied"
     html = f"""
@@ -237,4 +248,36 @@ def send_ticket_reply_task(self, ticket_number: str, subject: str, recipient_ema
         return True
     except Exception as exc:
         logger.warning("Ticket reply email failed: %s", exc)
+        raise self.retry(exc=exc)
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60, name="app.tasks.email_tasks.send_lesson_reply_notification_task")
+def send_lesson_reply_notification_task(
+    self, recipient_email: str, recipient_name: str, lesson_title: str,
+    reply_author_name: str, reply_content: str, course_id: str, lesson_id: str,
+) -> bool:
+    from app.core.config import settings
+    recipient_name = html.escape(recipient_name)
+    lesson_title = html.escape(lesson_title)
+    reply_author_name = html.escape(reply_author_name)
+    reply_content = html.escape(reply_content)
+    email_html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px">
+      <h2 style="color:#8B0000">New reply in "{lesson_title}"</h2>
+      <p>Hi {recipient_name}, {reply_author_name} replied to your comment:</p>
+      <blockquote style="border-left:3px solid #8B0000;margin:12px 0;padding:8px 16px;color:#444;font-size:14px">{reply_content}</blockquote>
+      <a href="{settings.FRONTEND_URL}/courses/{course_id}/learn?lesson={lesson_id}"
+         style="display:inline-block;background:#8B0000;color:#fff;padding:12px 24px;
+                border-radius:8px;text-decoration:none;margin-top:24px">
+        View Discussion
+      </a>
+    </div>
+    """
+    try:
+        result = asyncio.run(send_email(recipient_email, f"New reply in \"{lesson_title}\"", email_html))
+        if not result:
+            raise RuntimeError("Email send returned False")
+        return True
+    except Exception as exc:
+        logger.warning("Lesson reply notification email failed: %s", exc)
         raise self.retry(exc=exc)

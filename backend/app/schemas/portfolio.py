@@ -5,6 +5,12 @@ from pydantic import BaseModel, HttpUrl
 
 # ── Project ──────────────────────────────────────────────────────────────────
 
+class ProjectCollaborator(BaseModel):
+    name: str
+    role: Optional[str] = None
+    url: Optional[str] = None
+
+
 class ProjectBase(BaseModel):
     title: str
     description: str
@@ -15,6 +21,14 @@ class ProjectBase(BaseModel):
     image_url: Optional[str] = None
     featured: bool = False
     order_index: int = 0
+    tagline: Optional[str] = None
+    status: str = "in_progress"
+    pitch_summary: Optional[str] = None
+    problem_statement: Optional[str] = None
+    solution: Optional[str] = None
+    collaborators: list[ProjectCollaborator] = []
+    gallery_urls: list[str] = []
+    looking_for: Optional[str] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -31,6 +45,14 @@ class ProjectUpdate(BaseModel):
     image_url: Optional[str] = None
     featured: Optional[bool] = None
     order_index: Optional[int] = None
+    tagline: Optional[str] = None
+    status: Optional[str] = None
+    pitch_summary: Optional[str] = None
+    problem_statement: Optional[str] = None
+    solution: Optional[str] = None
+    collaborators: Optional[list[ProjectCollaborator]] = None
+    gallery_urls: Optional[list[str]] = None
+    looking_for: Optional[str] = None
 
 
 class ProjectResponse(ProjectBase):

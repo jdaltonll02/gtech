@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
-import { ArrowRight, Building2, Cpu, ShieldCheck, Quote } from 'lucide-react';
+import { ArrowRight, Building2, Cpu, ShieldCheck, Quote, FolderKanban } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
 import { AnimatedBackground } from '../components/animated-background';
 import { StarRating } from '../components/star-rating';
+import { ProjectCard, type OrganizationalProject } from './projects';
 import { api } from '../utils/api';
 
 type PartnerItem = { id: string; name: string; logo_url: string; website_url: string };
@@ -56,25 +57,22 @@ function LogoCarousel({ items, label }: { items: { id: string; name: string; log
 
 const bannerSlides = [
   {
-    // Students in a STEM/coding classroom environment
-    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=80',
+    image: '/img/stem_education.png',
     eyebrow: 'STEM Education',
     title: 'Structured learning pathways for the next generation of innovators.',
     copy: 'From foundational STEM concepts to advanced applied technology, our courses are built to develop real competence — not just credentials.',
   },
   {
-    // Team collaborating on tech startup / entrepreneurship
-    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1600&q=80',
-    eyebrow: 'Tech Entrepreneurship',
-    title: 'Turning ideas into scalable ventures through technology.',
-    copy: 'We work with founders, institutions, and innovators to build the technical foundation that makes entrepreneurship viable at a global scale.',
-  },
-  {
-    // Scientific research / lab innovation
-    image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1600&q=80',
+    image: '/img/research_and_innovation.png',
     eyebrow: 'Research & Innovation',
     title: 'Applied research that bridges science, engineering, and market impact.',
     copy: 'G-Tech pursues research partnerships across academia, industry, and government — translating discovery into deployable solutions.',
+  },
+  {
+    image: '/img/tech_entrepreneurship.png',
+    eyebrow: 'Tech Entrepreneurship',
+    title: 'Turning ideas into scalable ventures through technology.',
+    copy: 'We work with founders, institutions, and innovators to build the technical foundation that makes entrepreneurship viable at a global scale.',
   },
 ];
 
@@ -101,11 +99,13 @@ export function Landing() {
   const [partners, setPartners] = useState<PartnerItem[]>([]);
   const [businesses, setBusinesses] = useState<BusinessItem[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [projects, setProjects] = useState<OrganizationalProject[]>([]);
 
   useEffect(() => {
     api.get<PartnerItem[]>('/partners').then(setPartners).catch(() => {});
     api.get<BusinessItem[]>('/partners/businesses').then(setBusinesses).catch(() => {});
     api.get<TestimonialItem[]>('/portfolio/testimonials').then(setTestimonials).catch(() => {});
+    api.get<OrganizationalProject[]>('/team/projects/organizational').then(setProjects).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -233,6 +233,30 @@ export function Landing() {
 
       {businesses.length > 0 && (
         <LogoCarousel items={businesses} label="Businesses & NGOs" />
+      )}
+
+      {projects.length > 0 && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <FolderKanban className="w-6 h-6 text-primary" />
+              <p className="text-sm uppercase tracking-[0.22em] text-primary">Organization</p>
+            </div>
+            <h2 className="text-4xl mb-10 text-center">Our Projects</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+              {projects.slice(0, 6).map((project, index) => (
+                <ProjectCard key={project.id} project={project} index={index} />
+              ))}
+            </div>
+            <div className="text-center">
+              <Link to="/projects">
+                <Button size="lg" variant="outline" className="group">
+                  View All Projects<ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
       )}
 
       {testimonials.length > 0 && (

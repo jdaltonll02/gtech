@@ -60,6 +60,8 @@ export function Login() {
     setError('');
     setUnverifiedEmail('');
     setResendStatus('idle');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setLoading(true);
     try {
       const data = await api.post<any>('/auth/login', { email: form.email, password: form.password });
@@ -70,6 +72,7 @@ export function Login() {
       }
 
       localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       const me = await api.get<{ id: string; email: string; full_name: string; is_admin: boolean }>('/auth/me');
       setAuth(me, data.access_token, data.refresh_token);
       const hasChangedPassword = localStorage.getItem('password_changed');
@@ -80,6 +83,7 @@ export function Login() {
       }
     } catch (err: any) {
       localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       if (err.message === 'email_not_verified') {
         setUnverifiedEmail(form.email);
       } else {
@@ -112,6 +116,7 @@ export function Login() {
         { user_id: twoFaState.userId, code: otp }
       );
       localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
       const me = await api.get<{ id: string; email: string; full_name: string; is_admin: boolean }>('/auth/me');
       setAuth(me, data.access_token, data.refresh_token);
       navigate(redirectTo, { replace: true });

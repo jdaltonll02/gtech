@@ -8,6 +8,17 @@ from app.models.user import User
 from app.schemas.admin import AdminStatsResponse, AnalyticsResponse, ProductSalesPoint, RevenuePoint
 from app.schemas.ecommerce import OrderResponse
 from app.schemas.user import UserResponse, UserUpdateRequest
+from pydantic import BaseModel, EmailStr
+from app.core.security import hash_password
+
+
+class UserCreateRequest(BaseModel):
+    email: EmailStr
+    full_name: str
+    password: str
+    role: str = "user"
+    is_active: bool = True
+    is_verified: bool = True
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -84,9 +95,30 @@ async def update_order_status(order_id: str, new_status: OrderStatus, db: DB, _:
 
 
 @router.get("/users", response_model=list[UserResponse])
-async def list_users(db: DB, _: AdminUser, skip: int = 0, limit: int = 50):
-    result = await db.execute(select(User).order_by(User.created_at.desc()).offset(skip).limit(limit))
+async def list_users(db: DB, _: AdminUser, skip: int = 0, limit: int = 200, search: str = ""):
+    q = select(User).order_by(User.created_at.desc())
+    if search:
+        q = q.where(User.email.ilike(f"%{search}%") | User.full_name.ilike(f"%{search}%"))
+    result = await db.execute(q.offset(skip).limit(limit))
     return result.scalars().all()
+
+
+@router.post("/users", response_model=UserResponse, status_code=201)
+async def create_user(payload: UserCreateRequest, db: DB, _: AdminUser):
+    existing = await db.scalar(select(User).where(User.email == payload.email))
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    user = User(
+        email=payload.email,
+        full_name=payload.full_name,
+        hashed_password=hash_password(payload.password),
+        role=payload.role,
+        is_active=payload.is_active,
+        is_verified=payload.is_verified,
+    )
+    db.add(user)
+    await db.flush()
+    return user
 
 
 @router.patch("/users/{user_id}", response_model=UserResponse)

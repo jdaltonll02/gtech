@@ -26,6 +26,7 @@ import { Switch } from '../../components/ui/switch';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '../../components/ui/dialog';
+import { MultiSelectPicker } from '../../components/ui/multi-select-picker';
 import { cn } from '../../components/ui/utils';
 import { api } from '../../utils/api';
 
@@ -37,12 +38,14 @@ type AssessmentType = 'quiz' | 'assignment' | 'project';
 
 interface QuizQuestion {
   id: string; assessment_id: string; question_text: string;
-  options: string[]; correct_answer_index: number; explanation?: string; order_index: number;
+  options: string[]; correct_answer_index: number; correct_answer_indices?: number[];
+  is_multi_select: boolean; explanation?: string; order_index: number;
 }
 interface Assessment {
   id: string; lesson_id: string; assessment_type: AssessmentType; title: string;
   description?: string; instructions?: string; is_mandatory: boolean;
-  passing_score?: number; time_limit_minutes?: number; order_index: number; questions: QuizQuestion[];
+  passing_score?: number; time_limit_minutes?: number; time_per_question_seconds?: number;
+  order_index: number; questions: QuizQuestion[];
 }
 interface ContentBlock {
   id: string; lesson_id: string; block_type: BlockType; order_index: number;
@@ -52,6 +55,7 @@ interface ContentBlock {
 interface Lesson {
   id: string; section_id: string; title: string; lesson_type: LessonType;
   order_index: number; duration_seconds?: number; is_preview: boolean;
+  available_after_days?: number | null;
   video_url?: string; content?: string; content_blocks: ContentBlock[]; assessments: Assessment[];
 }
 interface Section {
@@ -61,8 +65,12 @@ interface Section {
 interface CourseDetail {
   id: string; title: string; slug: string; description?: string; short_description?: string;
   thumbnail_url?: string; level: string; price: number; is_free: boolean; is_published: boolean;
+  is_private: boolean;
   estimated_hours?: number; tags?: string; instructor_name?: string; sections: Section[];
+  prerequisite_course_ids?: string[];
 }
+interface CourseListItem { id: string; title: string; }
+interface CourseInstructor { id: string; user_id: string; course_id: string; full_name: string; email: string; }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -173,16 +181,33 @@ function QuizBuilder({ assessment, onAddQuestion, onDeleteQuestion, onUpdateQues
   const [adding, setAdding] = useState(false);
   const [qText, setQText] = useState('');
   const [opts, setOpts] = useState(['', '', '', '']);
-  const [correct, setCorrect] = useState(0);
+  const [correct, setCorrect] = useState<number[]>([0]);
+  const [isMulti, setIsMulti] = useState(false);
   const [explanation, setExplanation] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const resetForm = () => { setQText(''); setOpts(['', '', '', '']); setCorrect(0); setExplanation(''); setAdding(false); };
+  const resetForm = () => { setQText(''); setOpts(['', '', '', '']); setCorrect([0]); setIsMulti(false); setExplanation(''); setAdding(false); };
+
+  const toggleCorrect = (idx: number) => {
+    if (isMulti) {
+      setCorrect(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
+    } else {
+      setCorrect([idx]);
+    }
+  };
 
   const handleSave = async () => {
     if (!qText.trim() || opts.some(o => !o.trim())) return;
     setSaving(true);
-    await onAddQuestion({ question_text: qText, options: opts, correct_answer_index: correct, explanation, order_index: assessment.questions.length });
+    await onAddQuestion({
+      question_text: qText,
+      options: opts,
+      correct_answer_index: correct[0] ?? 0,
+      correct_answer_indices: isMulti ? correct : undefined,
+      is_multi_select: isMulti,
+      explanation,
+      order_index: assessment.questions.length,
+    });
     setSaving(false);
     resetForm();
   };
@@ -198,7 +223,7 @@ function QuizBuilder({ assessment, onAddQuestion, onDeleteQuestion, onUpdateQues
             </Button>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
-            {q.options.map((opt, oi) => (
+            {(q.options ?? []).map((opt, oi) => (
               <div key={oi} className={cn('text-xs px-2 py-1.5 rounded border', oi === q.correct_answer_index ? 'bg-green-50 border-green-300 text-green-800 font-medium' : 'bg-gray-50 border-gray-200')}>
                 <span className="font-semibold mr-1">{String.fromCharCode(65 + oi)}.</span>{opt}
               </div>
@@ -220,11 +245,15 @@ function QuizBuilder({ assessment, onAddQuestion, onDeleteQuestion, onUpdateQues
               </div>
             ))}
           </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={isMulti} onCheckedChange={v => { setIsMulti(v); setCorrect([0]); }} />
+            <Label className="text-xs">Allow multiple correct answers</Label>
+          </div>
           <div>
-            <Label className="text-xs mb-1.5 block">Correct Answer</Label>
-            <div className="flex gap-2">
+            <Label className="text-xs mb-1.5 block">Correct Answer{isMulti ? 's' : ''}</Label>
+            <div className="flex gap-2 flex-wrap">
               {['A', 'B', 'C', 'D'].map((l, i) => (
-                <button key={i} onClick={() => setCorrect(i)} className={cn('w-8 h-8 rounded text-xs font-bold border transition-colors', correct === i ? 'bg-green-500 text-white border-green-500' : 'bg-white border-gray-300 hover:border-green-400')}>
+                <button key={i} onClick={() => toggleCorrect(i)} className={cn('w-8 h-8 rounded text-xs font-bold border transition-colors', correct.includes(i) ? 'bg-green-500 text-white border-green-500' : 'bg-white border-gray-300 hover:border-green-400')}>
                   {l}
                 </button>
               ))}
@@ -408,16 +437,26 @@ function AssessmentSection({ assessments, onAdd, onDelete, onAddQuestion, onDele
   const [open, setOpen] = useState(true);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
-  const [passing, setPassing] = useState('80');
+  const [passing, setPassing] = useState('70');
   const [mandatory, setMandatory] = useState(true);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState('');
+  const [timePerQuestion, setTimePerQuestion] = useState('');
   const [saving, setSaving] = useState(false);
+  const [titleError, setTitleError] = useState(false);
 
   const handleAdd = async () => {
-    if (!title.trim()) return;
+    if (!title.trim()) { setTitleError(true); return; }
     setSaving(true);
-    await onAdd({ assessment_type: 'quiz', title, passing_score: Number(passing), is_mandatory: mandatory, order_index: assessments.length });
+    await onAdd({
+      assessment_type: 'quiz', title,
+      passing_score: Number(passing),
+      is_mandatory: mandatory,
+      time_limit_minutes: timeLimitMinutes ? Number(timeLimitMinutes) : undefined,
+      time_per_question_seconds: timePerQuestion ? Number(timePerQuestion) : undefined,
+      order_index: assessments.length,
+    });
     setSaving(false);
-    setTitle(''); setPassing('80'); setMandatory(true); setAdding(false);
+    setTitle(''); setPassing('70'); setMandatory(true); setTimeLimitMinutes(''); setTimePerQuestion(''); setAdding(false); setTitleError(false);
   };
 
   return (
@@ -435,10 +474,13 @@ function AssessmentSection({ assessments, onAdd, onDelete, onAddQuestion, onDele
           {assessments.map(a => (
             <div key={a.id} className="border rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 bg-orange-50 border-b">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">{a.title}</span>
                   <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">{a.assessment_type}</span>
                   {a.is_mandatory && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">Required</span>}
+                  {a.passing_score != null && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pass: {a.passing_score}%</span>}
+                  {a.time_limit_minutes && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{a.time_limit_minutes}min</span>}
+                  {a.time_per_question_seconds && <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{a.time_per_question_seconds}s/q</span>}
                 </div>
                 <button onClick={() => onDelete(a.id)} className="text-gray-400 hover:text-red-500">
                   <Trash2 className="size-3.5" />
@@ -459,15 +501,24 @@ function AssessmentSection({ assessments, onAdd, onDelete, onAddQuestion, onDele
 
           {adding ? (
             <div className="border rounded-lg p-3 bg-gray-50 space-y-2">
-              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Quiz title" className="text-sm h-8" />
-              <div className="flex items-center gap-3">
+              <Input value={title} onChange={e => { setTitle(e.target.value); setTitleError(false); }} placeholder="Quiz title" className={cn('text-sm h-8', titleError && 'border-red-500 focus-visible:ring-red-500')} />
+              {titleError && <p className="text-xs text-red-500 -mt-1">Quiz title is required.</p>}
+              <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center gap-1.5">
-                  <Label className="text-xs">Passing Score %</Label>
-                  <Input value={passing} onChange={e => setPassing(e.target.value)} className="w-16 text-xs h-7" />
+                  <Label className="text-xs shrink-0">Passing %</Label>
+                  <Input type="number" min={0} max={100} value={passing} onChange={e => setPassing(e.target.value)} className="w-16 text-xs h-7" />
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Switch checked={mandatory} onCheckedChange={setMandatory} />
                   <Label className="text-xs">Mandatory</Label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs shrink-0">Quiz limit (min)</Label>
+                  <Input type="number" min={0} value={timeLimitMinutes} onChange={e => setTimeLimitMinutes(e.target.value)} placeholder="—" className="w-14 text-xs h-7" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs shrink-0">Per question (sec)</Label>
+                  <Input type="number" min={0} value={timePerQuestion} onChange={e => setTimePerQuestion(e.target.value)} placeholder="—" className="w-14 text-xs h-7" />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -516,7 +567,12 @@ export function CourseBuilder() {
   const [deleteConfirmLesson, setDeleteConfirmLesson] = useState<string | null>(null);
 
   // Course settings dialog form
-  const [settingsForm, setSettingsForm] = useState({ title: '', description: '', short_description: '', level: '', price: '', is_free: false, estimated_hours: '', tags: '', instructor_name: '', thumbnail_url: '' });
+  const [settingsForm, setSettingsForm] = useState({ title: '', description: '', short_description: '', level: '', price: '', is_free: false, is_private: false, access_code: '', estimated_hours: '', tags: '', instructor_name: '', thumbnail_url: '' });
+  const [prerequisiteIds, setPrerequisiteIds] = useState<string[]>([]);
+  const [allCourses, setAllCourses] = useState<CourseListItem[]>([]);
+  const [instructors, setInstructors] = useState<CourseInstructor[]>([]);
+  const [instructorEmail, setInstructorEmail] = useState('');
+  const [instructorMsg, setInstructorMsg] = useState('');
 
   // Thumbnail upload ref
   const thumbnailRef = useRef<HTMLInputElement>(null);
@@ -533,11 +589,15 @@ export function CourseBuilder() {
       setSettingsForm({
         title: data.title ?? '', description: data.description ?? '', short_description: data.short_description ?? '',
         level: data.level ?? 'beginner', price: String(data.price ?? 0), is_free: data.is_free,
+        is_private: data.is_private ?? false, access_code: '',
         estimated_hours: String(data.estimated_hours ?? ''), tags: data.tags ?? '',
         instructor_name: data.instructor_name ?? '', thumbnail_url: data.thumbnail_url ?? '',
       });
+      setPrerequisiteIds(data.prerequisite_course_ids ?? []);
       setLoading(false);
     }).catch(() => setLoading(false));
+    api.get<CourseListItem[]>('/courses/admin/all?limit=200').then(setAllCourses).catch(() => {});
+    api.get<CourseInstructor[]>(`/courses/${courseId}/instructors`).then(setInstructors).catch(() => {});
   }, [courseId]);
 
   // ── Save helper ──────────────────────────────────────────────────────────────
@@ -624,7 +684,17 @@ export function CourseBuilder() {
 
   const updateSection = useCallback(async (sectionId: string, patch: { title?: string; description?: string }) => {
     const updated = await api.patch<Section>(`/courses/sections/${sectionId}`, patch);
-    setCourse(c => c ? { ...c, sections: c.sections.map(s => s.id === sectionId ? { ...s, ...updated } : s) } : c);
+    // The section-update response carries lessons as the thin LessonResponse
+    // shape (no content_blocks/assessments — the endpoint only needs to
+    // confirm the section's own fields changed). Only apply those scalar
+    // fields locally; keep the existing (richer) lessons/sub_sections as-is,
+    // since renaming a section can't have changed what's inside its lessons.
+    setCourse(c => c ? {
+      ...c,
+      sections: c.sections.map(s => s.id === sectionId
+        ? { ...s, title: updated.title, description: updated.description, order_index: updated.order_index }
+        : s),
+    } : c);
     flashSaved();
   }, [flashSaved]);
 
@@ -656,7 +726,7 @@ export function CourseBuilder() {
       return {
         ...c, sections: c.sections.map(s => ({
           ...s, lessons: s.lessons.map(l => l.id === lessonId ? {
-            ...l, content_blocks: l.content_blocks.map(b => b.id === blockId ? { ...b, ...updated } : b),
+            ...l, content_blocks: (l.content_blocks ?? []).map(b => b.id === blockId ? { ...b, ...updated } : b),
           } : l),
         })),
       };
@@ -671,7 +741,7 @@ export function CourseBuilder() {
       return {
         ...c, sections: c.sections.map(s => ({
           ...s, lessons: s.lessons.map(l => l.id === lessonId ? {
-            ...l, content_blocks: l.content_blocks.filter(b => b.id !== blockId),
+            ...l, content_blocks: (l.content_blocks ?? []).filter(b => b.id !== blockId),
           } : l),
         })),
       };
@@ -717,7 +787,7 @@ export function CourseBuilder() {
       if (!c) return c;
       return {
         ...c, sections: c.sections.map(s => ({
-          ...s, lessons: s.lessons.map(l => l.id === lessonId ? { ...l, assessments: l.assessments.filter(a => a.id !== assessmentId) } : l),
+          ...s, lessons: s.lessons.map(l => l.id === lessonId ? { ...l, assessments: (l.assessments ?? []).filter(a => a.id !== assessmentId) } : l),
         })),
       };
     });
@@ -730,7 +800,7 @@ export function CourseBuilder() {
       return {
         ...c, sections: c.sections.map(s => ({
           ...s, lessons: s.lessons.map(l => ({
-            ...l, assessments: l.assessments.map(a => a.id === assessmentId ? { ...a, questions: [...a.questions, newQ] } : a),
+            ...l, assessments: (l.assessments ?? []).map(a => a.id === assessmentId ? { ...a, questions: [...(a.questions ?? []), newQ] } : a),
           })),
         })),
       };
@@ -744,7 +814,7 @@ export function CourseBuilder() {
       return {
         ...c, sections: c.sections.map(s => ({
           ...s, lessons: s.lessons.map(l => ({
-            ...l, assessments: l.assessments.map(a => a.id === assessmentId ? { ...a, questions: a.questions.filter(q => q.id !== questionId) } : a),
+            ...l, assessments: (l.assessments ?? []).map(a => a.id === assessmentId ? { ...a, questions: (a.questions ?? []).filter(q => q.id !== questionId) } : a),
           })),
         })),
       };
@@ -769,12 +839,41 @@ export function CourseBuilder() {
       title: settingsForm.title, description: settingsForm.description,
       short_description: settingsForm.short_description, level: settingsForm.level,
       price: Number(settingsForm.price), is_free: settingsForm.is_free,
+      is_private: settingsForm.is_private,
+      ...(settingsForm.access_code ? { access_code: settingsForm.access_code } : {}),
       estimated_hours: settingsForm.estimated_hours ? Number(settingsForm.estimated_hours) : undefined,
       tags: settingsForm.tags, instructor_name: settingsForm.instructor_name,
       thumbnail_url: settingsForm.thumbnail_url,
-    });
+      prerequisite_course_ids: prerequisiteIds,
+    } as Partial<CourseDetail>);
     setSettingsOpen(false);
-  }, [settingsForm, patchCourse]);
+  }, [settingsForm, prerequisiteIds, patchCourse]);
+
+  const addInstructor = useCallback(async () => {
+    if (!courseId || !instructorEmail.trim()) return;
+    setInstructorMsg('');
+    try {
+      // Resolve email -> user_id isn't available client-side; backend accepts user_id as a query param,
+      // so look the user up via the admin user list first.
+      const users = await api.get<{ id: string; email: string; full_name: string }[]>('/admin/users?limit=200');
+      const match = users.find(u => u.email.toLowerCase() === instructorEmail.trim().toLowerCase());
+      if (!match) {
+        setInstructorMsg('No user found with that email.');
+        return;
+      }
+      const created = await api.post<CourseInstructor>(`/courses/${courseId}/instructors?user_id=${match.id}`, {});
+      setInstructors(prev => [...prev, created]);
+      setInstructorEmail('');
+    } catch (err: any) {
+      setInstructorMsg(err.message || 'Failed to assign instructor.');
+    }
+  }, [courseId, instructorEmail]);
+
+  const removeInstructor = useCallback(async (userId: string) => {
+    if (!courseId) return;
+    await api.delete(`/courses/${courseId}/instructors/${userId}`);
+    setInstructors(prev => prev.filter(i => i.user_id !== userId));
+  }, [courseId]);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -1177,6 +1276,22 @@ export function CourseBuilder() {
                       />
                     </div>
 
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Unlocks after (days from enrollment)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        defaultValue={selectedLesson.available_after_days ?? ''}
+                        onBlur={e => {
+                          const raw = e.target.value;
+                          updateLesson(selectedLesson.id, { available_after_days: raw === '' ? null : Number(raw) });
+                        }}
+                        placeholder="Immediately"
+                        className="text-sm h-8"
+                      />
+                      <p className="text-xs text-gray-400">Leave blank for immediate access once enrolled.</p>
+                    </div>
+
                     <div className="space-y-1">
                       <Label className="text-xs font-semibold text-gray-500">Order</Label>
                       <p className="text-xs text-gray-500">{selectedLesson.order_index + 1}</p>
@@ -1292,6 +1407,57 @@ export function CourseBuilder() {
             <div className="col-span-2 flex items-center gap-3">
               <Switch checked={settingsForm.is_free} onCheckedChange={v => setSettingsForm(f => ({ ...f, is_free: v }))} />
               <Label className="text-xs">Free Course</Label>
+            </div>
+            <div className="col-span-2 flex items-center gap-3">
+              <Switch checked={settingsForm.is_private} onCheckedChange={v => setSettingsForm(f => ({ ...f, is_private: v }))} />
+              <Label className="text-xs">Private Course (access code required)</Label>
+            </div>
+            {settingsForm.is_private && (
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Access Code</Label>
+                <Input
+                  value={settingsForm.access_code}
+                  onChange={e => setSettingsForm(f => ({ ...f, access_code: e.target.value }))}
+                  placeholder="Leave blank to keep existing code"
+                  className="text-sm"
+                />
+                <p className="text-xs text-black/40">Share this code with students you want to grant access to.</p>
+              </div>
+            )}
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs">Prerequisites</Label>
+              <MultiSelectPicker
+                options={allCourses.filter(c => c.id !== courseId).map(c => ({ value: c.id, label: c.title }))}
+                selected={prerequisiteIds}
+                onChange={setPrerequisiteIds}
+                placeholder="None — open to everyone"
+                emptyText="No other courses found."
+              />
+              <p className="text-xs text-black/40">Learners must complete these courses (earn a certificate) before enrolling.</p>
+            </div>
+            <div className="col-span-2 space-y-2 border-t pt-4 mt-2">
+              <Label className="text-xs">Instructors</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="instructor@email.com"
+                  value={instructorEmail}
+                  onChange={e => setInstructorEmail(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={addInstructor}>Add</Button>
+              </div>
+              {instructorMsg && <p className="text-xs text-red-600">{instructorMsg}</p>}
+              <div className="space-y-1">
+                {instructors.map(i => (
+                  <div key={i.id} className="flex items-center justify-between text-xs bg-black/5 rounded px-2 py-1.5">
+                    <span>{i.full_name || i.email} <span className="text-black/40">({i.email})</span></span>
+                    <button type="button" onClick={() => removeInstructor(i.user_id)} className="text-black/40 hover:text-red-600">
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {instructors.length === 0 && <p className="text-xs text-black/40">No instructors assigned — only admins can edit this course.</p>}
+              </div>
             </div>
           </div>
           <DialogFooter>

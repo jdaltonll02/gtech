@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    MAX_SESSION_DAYS: int = 30  # hard ceiling — force re-login after this many days
 
     # Database
     DATABASE_URL: str

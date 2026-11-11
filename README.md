@@ -171,6 +171,10 @@ daltonportfolio/
 ├── .gitignore
 ├── docker-compose.yml
 ├── DEPLOY.md                   # Full GCP deployment guide
+├── MIGRATION.md                 # Moving to a new VM (DB, media, secrets, certs)
+├── scripts/
+│   ├── backup.sh                # Full-stack backup (DB + media + env)
+│   └── restore.sh               # Restore a backup onto a (new) VM
 └── README.md                   # This file
 ```
 

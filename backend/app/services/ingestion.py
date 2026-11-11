@@ -12,7 +12,7 @@ CHUNK_OVERLAP = 80     # character overlap between chunks
 def _extract_text_from_pdf(file_bytes: bytes) -> list[dict]:
     """Return list of {page_number, text} dicts."""
     try:
-        from PyPDF2 import PdfReader
+        from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(file_bytes))
         pages = []
         for i, page in enumerate(reader.pages, start=1):

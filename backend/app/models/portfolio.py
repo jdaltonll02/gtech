@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, ARRAY
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, ARRAY, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.session import Base
@@ -43,6 +43,17 @@ class Project(Base):
     image_url: Mapped[Optional[str]] = mapped_column(String(500))
     featured: Mapped[bool] = mapped_column(Boolean, default=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Pitch-deck fields — shown on the internal project detail page.
+    tagline: Mapped[Optional[str]] = mapped_column(String(300))
+    status: Mapped[str] = mapped_column(String(50), default="in_progress")
+    pitch_summary: Mapped[Optional[str]] = mapped_column(Text)
+    problem_statement: Mapped[Optional[str]] = mapped_column(Text)
+    solution: Mapped[Optional[str]] = mapped_column(Text)
+    collaborators: Mapped[list] = mapped_column(JSON, default=list)  # [{name, role, url}]
+    gallery_urls: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    looking_for: Mapped[Optional[str]] = mapped_column(Text)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
