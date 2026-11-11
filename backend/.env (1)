@@ -1,0 +1,16 @@
+SECRET_KEY=any-random-32-char-string-here
+DATABASE_URL=postgresql+asyncpg://portfolio:portfolio_pass@db:5432/portfolio_db
+DATABASE_URL_SYNC=postgresql://portfolio:portfolio_pass@db:5432/portfolio_db
+REDIS_URL=redis://redis:6379/0
+STRIPE_SECRET_KEY=sk_test_dummy
+STRIPE_WEBHOOK_SECRET=whsec_dummy
+STRIPE_PUBLISHABLE_KEY=pk_test_dummy
+PAYPAL_CLIENT_ID=dummy
+PAYPAL_CLIENT_SECRET=dummy
+MOMO_SUBSCRIPTION_KEY=dummy
+MOMO_API_USER=dummy
+MOMO_API_KEY=dummy
+MOMO_CALLBACK_URL=http://localhost:8000/api/v1/payments/momo/callback
+FIRST_SUPERADMIN_EMAIL=dalton.edu02@gmail.com
+FIRST_SUPERADMIN_PASSWORD=Daltonj@02708
+
