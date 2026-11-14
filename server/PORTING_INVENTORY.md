@@ -283,7 +283,7 @@ Generated from the canonical Python files on 2026-11-10.
 | Seed | `FIRST_SUPERADMIN_EMAIL`, `FIRST_SUPERADMIN_PASSWORD` |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
 | Hostinger SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` |
-| AI | `CMU_API_GATEWAY_URL`, `CMU_API_KEY`, `CMU_LLM_MODEL`, `CMU_EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` |
+| AI | `HF_TOKEN`, `HF_BASE_URL`, `HF_CHAT_MODEL`, `HF_EMBEDDING_MODEL`, `HF_EMBEDDING_PROVIDER` (replaced the CMU gateway) |
 
 Defaults must match `backend/app/core/config.py`. Optional integrations warn and degrade gracefully. Hostinger SMTP is considered configured only when host, user, and password are all present.
 

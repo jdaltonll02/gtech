@@ -45,11 +45,12 @@ const schema = z.object({
   SMTP_PASSWORD: optional,
   SMTP_FROM: optional,
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
-  CMU_API_GATEWAY_URL: optional,
-  CMU_API_KEY: optional,
-  CMU_LLM_MODEL: z.string().default('gpt-4o'),
-  CMU_EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
-  EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1536),
+  // Hugging Face Inference Providers (all AI features: chatbot, classroom assistant, document embeddings)
+  HF_TOKEN: optional,
+  HF_BASE_URL: z.string().url().default('https://router.huggingface.co/v1'),
+  HF_CHAT_MODEL: z.string().default('openai/gpt-oss-120b'),
+  HF_EMBEDDING_MODEL: z.string().default('thenlper/gte-large'),
+  HF_EMBEDDING_PROVIDER: z.string().default('auto'),
   SITE_URL: z.string().url().default('https://localhost:5173'),
 });
 
@@ -67,7 +68,7 @@ export const config = Object.freeze({
 const optionalIntegrations = {
   SMTP: ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD'],
   GoogleOAuth: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
-  AI: ['CMU_API_GATEWAY_URL', 'CMU_API_KEY'],
+  AI: ['HF_TOKEN'],
   Stripe: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'],
   PayPal: ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET'],
   MoMo: ['MOMO_SUBSCRIPTION_KEY', 'MOMO_API_USER', 'MOMO_API_KEY', 'MOMO_CALLBACK_URL'],

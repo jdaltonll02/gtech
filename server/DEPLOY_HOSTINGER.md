@@ -46,6 +46,20 @@ Build-time variable (read by Vite during `npm run build`, not at runtime):
 
 Recommended application settings are listed in `server/.env.example`. Configure Hostinger Email with `SMTP_HOST=smtp.hostinger.com`, port `465`, the complete mailbox as `SMTP_USER`, its password, and `SMTP_FROM`. Leave `REDIS_URL` empty to use Neon. Optional integrations emit startup warnings when incomplete.
 
+### AI features (Hugging Face)
+
+The chatbot, classroom assistant and document search all use Hugging Face Inference Providers. Set `HF_TOKEN` to a fine-grained token with the "Make calls to Inference Providers" permission (https://huggingface.co/settings/tokens). Usage is billed pay-as-you-go to that Hugging Face account. Without a token the AI endpoints return errors and document search falls back to keyword matching.
+
+- `HF_CHAT_MODEL` (default `openai/gpt-oss-120b`): any chat model served by an Inference Provider. Append `:cheapest`, `:fastest` or `:<provider>` to steer routing.
+- `HF_EMBEDDING_MODEL` (default `thenlper/gte-large`) and `HF_EMBEDDING_PROVIDER` (default `auto`): used to embed uploaded documents and search queries.
+
+After the first deploy, and again whenever `HF_EMBEDDING_MODEL` changes, re-embed stored document chunks. Vectors from different models cannot be compared; until re-embedded, those chunks are matched by keyword only:
+
+```sh
+npm run ai:reembed --prefix server -- --dry-run   # shows how many chunks need it
+npm run ai:reembed --prefix server
+```
+
 ## 3. External callback URLs
 
 Replace `https://example.com` with the production domain:
