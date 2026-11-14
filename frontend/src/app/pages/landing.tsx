@@ -1,7 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
 import { motion, MotionConfig, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router';
-import { ArrowRight, Rocket, GraduationCap, Handshake, Quote, FolderKanban, Pause, Play, BookOpen } from 'lucide-react';
+import { ArrowRight, Rocket, GraduationCap, Handshake, Quote, FolderKanban, Pause, Play, BookOpen, HeartPulse } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { GlassCard } from '../components/glass-card';
 import { AnimatedBackground } from '../components/animated-background';
@@ -65,38 +65,38 @@ const bannerSlides = [
   {
     image: '/img/stem_education.png',
     eyebrow: 'STEM Education',
-    title: 'Structured learning pathways for the next generation of innovators.',
+    title: 'Build understanding. Develop practical skills.',
   },
   {
     image: '/img/research_and_innovation.png',
-    eyebrow: 'Research & Innovation',
-    title: 'Applied research that bridges science, engineering, and market impact.',
+    eyebrow: 'Applied Research',
+    title: 'Investigate meaningful questions. Develop and test ideas.',
   },
   {
     image: '/img/tech_entrepreneurship.png',
-    eyebrow: 'Tech Entrepreneurship',
-    title: 'Turning ideas into scalable ventures through technology.',
+    eyebrow: 'Technology Ventures',
+    title: 'Turn validated ideas into useful products and sustainable businesses.',
   },
 ];
 
 const focusAreas = [
   {
     icon: Rocket,
-    title: 'Tech Entrepreneurship',
-    description: 'We incubate ideas, build products, and partner with entrepreneurs to create tech-driven businesses with measurable real-world impact.',
-    link: { to: '/projects', label: 'See our ventures' },
+    title: 'Technology Ventures',
+    description: 'We develop ideas into useful products and sustainable businesses. Our approach begins with understanding a problem, testing a solution, and building around the needs of the people who will use it.',
+    link: { to: '/projects', label: 'Explore Our Ventures' },
   },
   {
     icon: GraduationCap,
-    title: 'STEM Education & Research',
-    description: 'Rigorous courses, research collaborations, and learning tools designed to develop technically capable, innovation-ready talent.',
-    link: { to: '/courses', label: 'Browse courses' },
+    title: 'STEM Education and Research',
+    description: 'We help learners build technical understanding and practical skills through STEM education, hands-on projects, and opportunities to engage with research.',
+    link: { to: '/courses', label: 'Explore Learning Opportunities' },
   },
   {
     icon: Handshake,
-    title: 'Innovation & Partnerships',
-    description: 'We partner with tech companies, academic institutions, and NGOs to co-develop solutions, share resources, and advance shared missions.',
-    link: { to: '/contact', label: 'Partner with us' },
+    title: 'Collaboration and Partnerships',
+    description: 'We welcome collaboration with educators, researchers, entrepreneurs, healthcare providers, and institutions to investigate problems and develop useful solutions.',
+    link: { to: '/contact', label: 'Discuss a Partnership' },
   },
 ];
 
@@ -181,6 +181,59 @@ function HeroCarousel() {
   );
 }
 
+const healthRoadmap = [
+  { stage: 'Initial focus', text: 'Understanding clinic and laboratory workflows, and where better software can make a measurable difference.' },
+  { stage: 'Exploring', text: 'Insurance administration through licensed partners.' },
+  { stage: 'Planned', text: 'A computational medical AI research program.' },
+];
+
+function HealthInitiative() {
+  return (
+    <section className="py-16 px-4 sm:px-6 lg:px-8" aria-labelledby="gtech-health-heading">
+      <div className="max-w-7xl mx-auto rounded-3xl bg-gradient-to-br from-brand-900 to-brand-700 text-white overflow-hidden">
+        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 p-8 sm:p-12 lg:p-14">
+          <div>
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-gold">Introducing <span className="whitespace-nowrap">G-Tech</span> Health</p>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/15 px-3 py-1 text-xs font-semibold text-white">
+                <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />
+                In Development
+              </span>
+            </div>
+            <h2 id="gtech-health-heading" className="text-3xl sm:text-4xl leading-tight text-white mb-6">Developing technology for better healthcare operations.</h2>
+            <div className="space-y-4 text-lg text-white/90 leading-relaxed mb-8">
+              <p><span className="whitespace-nowrap">G-Tech</span> Health is our developing healthcare division, beginning with software designed around the everyday needs of healthcare providers in Liberia.</p>
+              <p>Our initial focus is understanding clinic and laboratory workflows and identifying where better software can make a measurable difference. Our roadmap also includes exploring insurance administration through licensed partners and establishing a computational medical AI research program.</p>
+              <p>We welcome conversations with healthcare providers, insurance organizations, and researchers interested in helping shape this work.</p>
+            </div>
+            <Button asChild size="lg" className="group bg-white text-primary hover:bg-brand-tint-50">
+              <Link to="/contact">
+                Discuss a Pilot or Partnership
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="lg:pl-10 lg:border-l lg:border-white/15 flex flex-col justify-center">
+            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-6">
+              <HeartPulse className="w-6 h-6 text-gold" aria-hidden />
+            </div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/70 mb-4">Roadmap</p>
+            <ol className="space-y-5">
+              {healthRoadmap.map((item) => (
+                <li key={item.stage} className="border-l-2 border-gold/60 pl-4">
+                  <p className="text-sm font-semibold text-gold mb-1">{item.stage}</p>
+                  <p className="text-base text-white/90 leading-relaxed">{item.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FeaturedCourses({ courses }: { courses: Course[] }) {
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8">
@@ -244,22 +297,22 @@ export function Landing() {
         <section className="relative overflow-hidden px-4 sm:px-6 lg:px-8 pt-28 pb-28 lg:pb-32 bg-gradient-to-br from-brand-900 to-brand-700">
           <div className="max-w-7xl mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold mb-5">STEM · Research · Ventures</p>
-              <h1 className="text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] font-bold text-white mb-6 max-w-[16ch]">
-                Where STEM education, research, and ventures grow together
+              <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-gold mb-5">STEM Education · Applied Research · Technology Ventures</p>
+              <h1 className="text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.08] font-bold text-white mb-6 max-w-[22ch]">
+                Building skills, advancing research, creating technology that matters.
               </h1>
               <p className="text-lg sm:text-xl text-white/90 leading-relaxed max-w-xl mb-9">
-                Advancing STEM education, applied research, and tech entrepreneurship on a global scale.
+                <Brand /> brings together STEM learning, applied research, and entrepreneurship to address practical challenges in Liberia, across Africa, and beyond.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button asChild size="lg" className="group bg-white text-primary hover:bg-brand-tint-50 shadow-lg shadow-black/20">
-                  <Link to="/courses">
-                    Explore Courses
+                  <Link to="/projects">
+                    Explore Our Work
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="bg-transparent border-white/70 text-white hover:bg-white/10 hover:text-white hover:border-white">
-                  <Link to="/store">Browse Solutions</Link>
+                  <Link to="/courses">Explore Courses</Link>
                 </Button>
               </div>
             </motion.div>
@@ -305,13 +358,20 @@ export function Landing() {
           <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 items-stretch">
             <GlassCard className="p-8 sm:p-10 flex flex-col justify-center">
               <p className={`${eyebrow} mb-4`}>Why <Brand /></p>
-              <h2 className="text-3xl sm:text-4xl mb-5 leading-tight">One mission across education, research, and enterprise.</h2>
-              <p className="text-lg text-text-secondary mb-4 leading-relaxed">
-                <Brand /> was built on a singular conviction: that technology, when paired with rigorous education and entrepreneurial intent, is the most reliable engine for sustainable development. We don't separate research from business, or education from industry — they are the same mission.
-              </p>
-              <p className="text-lg text-text-secondary leading-relaxed">
-                Our ecosystem spans learning programs, product ventures, consulting engagements, and research partnerships, all built on shared infrastructure for global reach and local impact.
-              </p>
+              <h2 className="text-3xl sm:text-4xl mb-5 leading-tight">Connecting what we learn with what we build.</h2>
+              <div className="space-y-4 text-lg text-text-secondary leading-relaxed mb-8">
+                <p><Brand /> connects education, research, and entrepreneurship because progress depends on people who can understand problems, investigate ideas, and turn knowledge into practical solutions.</p>
+                <p>Our goal is to help learners develop their capabilities, support meaningful research, and build technology ventures that respond to real needs. We begin with the communities and institutions we aim to serve, using their experiences to guide what we explore and develop.</p>
+                <p>Starting with Liberia and looking across Africa, we are building an organization where learning informs research, research strengthens products, and practical experience creates new questions worth investigating.</p>
+              </div>
+              <div>
+                <Button asChild size="lg" variant="outline" className="group">
+                  <Link to="/team">
+                    Learn About <Brand />
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden />
+                  </Link>
+                </Button>
+              </div>
             </GlassCard>
 
             <motion.div
@@ -321,15 +381,17 @@ export function Landing() {
               transition={{ duration: 0.5 }}
               className="relative overflow-hidden rounded-3xl min-h-[360px] lg:min-h-0 border border-black/[0.07] shadow-lg"
             >
-              <img src="/img/research_and_innovation.png" alt="Researchers collaborating on applied technology" className="absolute inset-0 h-full w-full object-cover" />
+              <img src="/img/research_and_innovation.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-7 text-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold mb-2">Research & Innovation</p>
-                <p className="text-xl leading-snug max-w-md">Translating discovery into deployable solutions.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold mb-2">Applied Research</p>
+                <p className="text-xl leading-snug max-w-md">Investigate meaningful questions. Develop and test ideas.</p>
               </div>
             </motion.div>
           </div>
         </section>
+
+        <HealthInitiative />
 
         {courses.length > 0 && <FeaturedCourses courses={courses} />}
 
@@ -398,13 +460,13 @@ export function Landing() {
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
             <div className="rounded-3xl bg-brand-tint-50 border border-brand-tint-100 p-10 sm:p-14">
-              <h2 className="text-3xl sm:text-4xl mb-5 leading-tight">Ready to build, learn, or partner with <Brand />?</h2>
+              <h2 className="text-3xl sm:text-4xl mb-5 leading-tight">Learn with us. Build with us. Work with us.</h2>
               <p className="text-lg text-text-secondary mb-8 max-w-2xl mx-auto leading-relaxed">
-                Whether you're a student pursuing STEM mastery, an entrepreneur building a tech venture, a researcher seeking collaboration, or an institution looking to partner, <Brand /> has a place for you.
+                Explore learning opportunities, discover our developing initiatives, or start a conversation about a research collaboration, product idea, or partnership.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button asChild size="lg"><Link to="/courses">Start Learning</Link></Button>
-                <Button asChild size="lg" variant="outline" className="bg-white"><Link to="/contact">Get in Touch</Link></Button>
+                <Button asChild size="lg"><Link to="/projects">Explore Our Work</Link></Button>
+                <Button asChild size="lg" variant="outline" className="bg-white"><Link to="/contact">Contact Us</Link></Button>
               </div>
             </div>
           </div>

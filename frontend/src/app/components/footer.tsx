@@ -65,8 +65,8 @@ export function Footer() {
               <img src="/gtech_mark.svg" alt="" className="h-10 w-10" />
               <span className="font-heading text-xl font-bold tracking-tight text-black">G-Tech</span>
             </Link>
-            <p className="text-[15px] text-text-secondary leading-relaxed max-w-xs">
-              STEM education, applied research, and tech ventures, built together.
+            <p className="text-[15px] text-text-secondary leading-relaxed max-w-sm">
+              <span className="whitespace-nowrap">G-Tech</span> connects STEM education, applied research, and technology entrepreneurship to develop skills and practical solutions for Liberia, Africa, and beyond.
             </p>
             <div className="flex -ml-3">
               <a href={githubUrl} target="_blank" rel="noopener noreferrer" className={socialClass} aria-label="G-Tech on GitHub">
