@@ -17,10 +17,13 @@ Before the first deployment, run from the repository root:
 ```sh
 npm ci --prefix server
 npm run prisma:generate --prefix server
-npx prisma migrate deploy --schema server/prisma/schema.prisma
+npx prisma db execute --file server/prisma/migrations/0031_add_kv_store/migration.sql --schema server/prisma/schema.prisma
+npx prisma migrate resolve --applied 0031_add_kv_store --schema server/prisma/schema.prisma
 ```
 
-Back up the Neon database first. The included migration only creates `kv_store` and its expiry index. The older database schema remains owned by the existing Alembic history.
+Back up the Neon database first. The included migration only creates `kv_store` and its expiry index, and is safe to re-run (`IF NOT EXISTS`). The older database schema remains owned by the existing Alembic history.
+
+Do not use `prisma migrate deploy` for this first run: the database already contains the Alembic tables but no Prisma migration history, so Prisma refuses with error P3005. The two commands above create the table and then record the migration as applied, after which `prisma migrate deploy` works for future migrations. The app cannot authenticate any request until `kv_store` exists, so confirm it with `SELECT COUNT(*) FROM kv_store;` before going live.
 
 ## 2. Hostinger application settings
 
@@ -37,6 +40,10 @@ Required environment variables:
 - `ALLOWED_ORIGINS`: comma-separated production origins, such as `https://example.com,https://www.example.com`
 - `FRONTEND_URL` and `SITE_URL`: the public HTTPS site URL
 
+Build-time variable (read by Vite during `npm run build`, not at runtime):
+
+- `VITE_STRIPE_PUBLISHABLE_KEY`: the Stripe publishable key (`pk_live_…` / `pk_test_…`). It is compiled into the frontend bundle, so set it before the build and rebuild after changing it. Without it the card form on checkout and course purchase does not render.
+
 Recommended application settings are listed in `server/.env.example`. Configure Hostinger Email with `SMTP_HOST=smtp.hostinger.com`, port `465`, the complete mailbox as `SMTP_USER`, its password, and `SMTP_FROM`. Leave `REDIS_URL` empty to use Neon. Optional integrations emit startup warnings when incomplete.
 
 ## 3. External callback URLs
@@ -52,7 +59,7 @@ Use real sandbox transactions to verify Stripe, PayPal, and MoMo before enabling
 
 ## 4. Persistence and operations
 
-`LOCAL_MEDIA_ROOT` defaults to `media`. Hostinger application files may be replaced during redeployment, so uploaded media can be lost. The filesystem access is isolated in `src/services/storage.js` for a future object-storage adapter; back up the media directory until then.
+`LOCAL_MEDIA_ROOT` defaults to `media`, resolved from the repository root (both uploads and the `/media` route use `<repo>/media`). An absolute path also works and is preferable if Hostinger offers a directory outside the application root. The nightly cleanup job only deletes files that no `media` row references; it never deletes database rows, and logs a warning for rows whose file is missing. Hostinger application files may be replaced during redeployment, so uploaded media can be lost. The filesystem access is isolated in `src/services/storage.js` for a future object-storage adapter; back up the media directory until then.
 
 Email/image jobs run in process with retries where applicable. Hourly/daily schedules also run in process and therefore pause during restarts or cold starts. Do not configure multiple application instances unless scheduler leadership is added: the singleton guard prevents duplicates within one process, not across multiple processes.
 

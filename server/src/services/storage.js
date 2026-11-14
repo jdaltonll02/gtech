@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { config } from '../config.js';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-export const projectRoot=path.resolve(here,'../..');
+// server/src/services -> repository root. Must match app.js, which serves /media from the same root.
+export const projectRoot=path.resolve(here,'../../..');
 export const mediaRoot=path.resolve(projectRoot,config.LOCAL_MEDIA_ROOT);
 export const mediaPath=(folder,filename)=>path.join(mediaRoot,folder,filename);
 export async function store(folder,filename,bytes){const target=mediaPath(folder,filename);await mkdir(path.dirname(target),{recursive:true});await writeFile(target,bytes);return target;}
