@@ -65,6 +65,20 @@ export const issuedBeforePasswordChange = async (userId, issuedAt) => {
   return changedAt != null && Number(issuedAt) < Number(changedAt);
 };
 
+// Idempotent: mirrors prisma/migrations/0031_add_kv_store so a fresh database works without a
+// manual migration step. Skipped when Redis holds the key-value state.
+export async function ensureKvTable() {
+  if (config.REDIS_URL) return;
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "kv_store" (
+    "key" TEXT PRIMARY KEY,
+    "value" JSONB NOT NULL,
+    "expires_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "ix_kv_store_expires_at" ON "kv_store" ("expires_at")');
+}
+
 export async function cleanupExpired() {
   if (!config.REDIS_URL) await prisma.$executeRaw`DELETE FROM "kv_store" WHERE "expires_at" <= NOW()`;
 }
