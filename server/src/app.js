@@ -1,7 +1,5 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import express from 'express';
-import { config } from './config.js';
 import { healthRouter } from './routes/health.js';
 import { authRouter } from './routes/auth.js';
 import { rbacRouter } from './routes/rbac.js';
@@ -19,9 +17,7 @@ import { aiRouter } from './routes/ai.js';
 import { coursesRouter } from './routes/courses/index.js';
 import { corsMiddleware, globalLimiter, permissionsPolicy, securityHeaders } from './middleware/security.js';
 import { errorHandler, notFound } from './middleware/errors.js';
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(here, '../..');
+import { mediaRoot, projectRoot } from './services/storage.js';
 
 export function createApp() {
   const app = express();
@@ -46,7 +42,7 @@ export function createApp() {
   app.use('/api/v1/admin', adminRouter);
   app.use('/api/v1', aiRouter);
   app.use('/api/v1/courses', coursesRouter);
-  app.use('/media', express.static(path.resolve(projectRoot, config.LOCAL_MEDIA_ROOT), { fallthrough: false }));
+  app.use('/media', express.static(mediaRoot, { fallthrough: false }));
 
   const frontendDist = path.resolve(projectRoot, 'frontend/dist');
   app.use(express.static(frontendDist));

@@ -11,9 +11,11 @@
     "dev": "node --watch src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:pull": "prisma db pull",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ai:reembed": "node scripts/reembed-ai-chunks.js"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.13.32",
     "@prisma/client": "^6.19.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
