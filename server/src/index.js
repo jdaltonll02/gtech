@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { createApp } from './app.js';
 import { config, warnForMissingIntegrations } from './config.js';
 import { closeKv, ensureKvTable } from './lib/kv.js';
+import { ensureEnumCasts } from './lib/enum-casts.js';
 import { disconnectPrisma } from './lib/prisma.js';
 import { startScheduler } from './jobs/scheduler.js';
 
@@ -11,6 +12,11 @@ try {
 } catch (error) {
   // Keep serving: public pages work without it; auth features log their own errors.
   console.error('Could not ensure kv_store table; logins and password resets will fail until it exists', error.message);
+}
+try {
+  await ensureEnumCasts();
+} catch (error) {
+  console.error('Could not check enum casts', error.message);
 }
 const server = createServer(createApp());
 const scheduler=startScheduler();
