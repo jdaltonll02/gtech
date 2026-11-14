@@ -45,7 +45,7 @@ export function AnimatedBackground() {
         canvas.height / 2,
         canvas.width / 2
       );
-      gradient.addColorStop(0, 'rgba(139, 0, 0, 0.06)');
+      gradient.addColorStop(0, 'rgba(139, 21, 34, 0.06)');
       gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -60,7 +60,7 @@ export function AnimatedBackground() {
 
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(139, 0, 0, 0.2)';
+        ctx.fillStyle = 'rgba(139, 21, 34, 0.2)';
         ctx.fill();
 
         // Draw connections
@@ -74,25 +74,32 @@ export function AnimatedBackground() {
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(otherParticle.x, otherParticle.y);
-            ctx.strokeStyle = `rgba(139, 0, 0, ${0.12 * (1 - distance / 150)})`;
+            ctx.strokeStyle = `rgba(139, 21, 34, ${0.12 * (1 - distance / 150)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         });
       });
 
-      requestAnimationFrame(animate);
+      if (!reduceMotion) frameId = requestAnimationFrame(animate);
     }
 
+    // Reduced motion: draw one still frame instead of animating.
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let frameId = 0;
     animate();
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      if (reduceMotion) animate();
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return (

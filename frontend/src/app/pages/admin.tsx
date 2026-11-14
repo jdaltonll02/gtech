@@ -2667,7 +2667,7 @@ export function Admin() {
     ? ALL_MENU
     : ALL_MENU.filter((item) => item.perms.length === 0 || hp(...item.perms));
 
-  const colors = useMemo(() => ['#8B0000', '#b91c1c', '#dc2626', '#ef4444', '#f87171'], []);
+  const colors = useMemo(() => ['#8B1522', '#b91c1c', '#dc2626', '#ef4444', '#f87171'], []);
 
   const loadAdminData = async () => {
     setLoading(true);
@@ -3450,7 +3450,7 @@ export function Admin() {
                         <XAxis dataKey="month" stroke="rgba(11,11,11,0.5)" />
                         <YAxis stroke="rgba(11,11,11,0.5)" />
                         <Tooltip />
-                        <Bar dataKey="revenue" fill="#8B0000" />
+                        <Bar dataKey="revenue" fill="#8B1522" />
                       </BarChart>
                     </ResponsiveContainer>
                   </GlassCard>

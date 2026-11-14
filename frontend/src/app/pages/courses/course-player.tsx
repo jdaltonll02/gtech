@@ -262,7 +262,7 @@ export function CoursePlayer() {
                   <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
                     <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
                     <circle
-                      cx="18" cy="18" r="15.9" fill="none" stroke="#8B0000" strokeWidth="3"
+                      cx="18" cy="18" r="15.9" fill="none" stroke="#8B1522" strokeWidth="3"
                       strokeDasharray={`${progress} ${100 - progress}`}
                       strokeLinecap="round"
                     />

@@ -26,7 +26,7 @@ function ProgressRing({ percent, size = 48, stroke = 4 }: { percent: number; siz
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth={stroke} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={percent >= 100 ? '#22c55e' : '#8B0000'}
+        stroke={percent >= 100 ? '#22c55e' : '#8B1522'}
         strokeWidth={stroke}
         strokeDasharray={circ}
         strokeDashoffset={offset}

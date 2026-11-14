@@ -19,6 +19,7 @@ export function Navbar() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [navForms, setNavForms] = useState<NavForm[]>([]);
   const [formsOpen, setFormsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const partnersRef = useRef<HTMLDivElement>(null);
   const businessesRef = useRef<HTMLDivElement>(null);
@@ -37,9 +38,22 @@ export function Navbar() {
     { name: 'Store', path: '/store' },
     { name: 'Blog', path: '/blog' },
     { name: 'Help', path: '/docs' },
+    { name: 'Contact', path: '/contact' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
+  const desktopLink = (active: boolean) => cn(
+    'relative py-2 transition-colors duration-200 whitespace-nowrap',
+    'after:absolute after:left-0 after:right-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-primary after:transition-transform after:origin-left',
+    active ? 'text-primary font-medium after:scale-x-100' : 'text-black/70 hover:text-black after:scale-x-0 hover:after:scale-x-100 hover:after:bg-black/20'
+  );
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const handleLogout = async () => {
     const refresh_token = localStorage.getItem('refresh_token');
@@ -86,36 +100,40 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-b border-black/10">
+    <nav
+      aria-label="Main"
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 bg-white border-b transition-shadow duration-300',
+        scrolled ? 'border-black/10 shadow-[0_4px_16px_-6px_rgba(20,22,26,0.12)]' : 'border-transparent'
+      )}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <img src="/gtech_logo.svg" alt="G-Tech" className="h-10 w-auto" />
+          <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="G-Tech home">
+            <img src="/gtech_mark.svg" alt="" className="h-10 w-10" />
+            <span className="font-heading text-xl font-bold tracking-tight text-black whitespace-nowrap">G-Tech</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center gap-6">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={cn(
-                  'transition-colors duration-200',
-                  isActive(item.path)
-                    ? 'text-primary'
-                    : 'text-black/60 hover:text-black'
-                )}
+                aria-current={isActive(item.path) ? 'page' : undefined}
+                className={desktopLink(isActive(item.path))}
               >
                 {item.name}
               </Link>
             ))}
-            
+
             {/* Dynamic Forms — single link or dropdown */}
             {navForms.length === 1 && (
               <Link
                 to={`/forms/${navForms[0].slug}`}
-                className={cn('transition-colors duration-200', isActive(`/forms/${navForms[0].slug}`) ? 'text-primary' : 'text-black/60 hover:text-black')}
+                aria-current={isActive(`/forms/${navForms[0].slug}`) ? 'page' : undefined}
+                className={desktopLink(isActive(`/forms/${navForms[0].slug}`))}
               >
                 {navForms[0].nav_label || navForms[0].title}
               </Link>
@@ -124,7 +142,7 @@ export function Navbar() {
               <div ref={formsRef} className="relative">
                 <button
                   onClick={() => setFormsOpen((o) => !o)}
-                  className="flex items-center space-x-1 transition-colors duration-200 text-black/60 hover:text-black"
+                  className="flex items-center gap-1 py-2 whitespace-nowrap transition-colors duration-200 text-black/70 hover:text-black" aria-haspopup="true"
                 >
                   <span>Apply</span>
                   <ChevronDown className={cn('w-4 h-4 transition-transform', formsOpen && 'rotate-180')} />
@@ -151,7 +169,7 @@ export function Navbar() {
               <div ref={partnersRef} className="relative">
                 <button
                   onClick={() => setPartnersOpen((o) => !o)}
-                  className="flex items-center space-x-1 transition-colors duration-200 text-black/60 hover:text-black"
+                  className="flex items-center gap-1 py-2 whitespace-nowrap transition-colors duration-200 text-black/70 hover:text-black" aria-haspopup="true"
                 >
                   <span>Partners</span>
                   <ChevronDown className={cn('w-4 h-4 transition-transform', partnersOpen && 'rotate-180')} />
@@ -179,7 +197,7 @@ export function Navbar() {
               <div ref={businessesRef} className="relative">
                 <button
                   onClick={() => setBusinessesOpen((o) => !o)}
-                  className="flex items-center space-x-1 transition-colors duration-200 text-black/60 hover:text-black"
+                  className="flex items-center gap-1 py-2 whitespace-nowrap transition-colors duration-200 text-black/70 hover:text-black" aria-haspopup="true"
                 >
                   <span>Businesses</span>
                   <ChevronDown className={cn('w-4 h-4 transition-transform', businessesOpen && 'rotate-180')} />
@@ -203,12 +221,12 @@ export function Navbar() {
           </div>
 
           {/* Right Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/store/cart">
-              <Button variant="ghost" size="icon">
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <Button asChild variant="ghost" size="icon" title="Cart">
+              <Link to="/store/cart" aria-label="Cart">
                 <ShoppingCart className="w-5 h-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
 
             {user ? (
               <div ref={userMenuRef} className="relative">
@@ -265,20 +283,24 @@ export function Navbar() {
                 )}
               </div>
             ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost" size="icon">
-                    <User className="w-5 h-5" />
-                  </Button>
+              <Button asChild variant="ghost" size="icon" title="Sign in">
+                <Link to="/login" aria-label="Sign in">
+                  <User className="w-5 h-5" />
                 </Link>
-              </>
+              </Button>
             )}
+            <Button asChild className="ml-2">
+              <Link to="/courses">Get Started</Link>
+            </Button>
           </div>
 
           {/* Mobile menu button */}
           <button
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2"
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isOpen}
+            className="lg:hidden h-11 w-11 -mr-2 flex items-center justify-center rounded-lg hover:bg-black/5"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -287,18 +309,19 @@ export function Navbar() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden border-t border-black/10">
+        <div className="lg:hidden border-t border-black/10 bg-white max-h-[calc(100vh-4rem)] overflow-y-auto">
           <div className="px-4 py-4 space-y-3">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsOpen(false)}
+                aria-current={isActive(item.path) ? 'page' : undefined}
                 className={cn(
-                  'block py-2 transition-colors duration-200',
+                  'flex items-center min-h-11 py-2 pl-3 border-l-2 transition-colors duration-200',
                   isActive(item.path)
-                    ? 'text-primary'
-                    : 'text-black/60 hover:text-black'
+                    ? 'text-primary font-medium border-primary'
+                    : 'text-black/70 border-transparent hover:text-black'
                 )}
               >
                 {item.name}
@@ -354,12 +377,16 @@ export function Navbar() {
               </div>
             )}
             
+            <Button asChild className="w-full">
+              <Link to="/courses" onClick={() => setIsOpen(false)}>Get Started</Link>
+            </Button>
+
             <div className="flex items-center space-x-2 pt-2 border-t border-black/10">
-              <Link to="/store/cart" onClick={() => setIsOpen(false)}>
-                <Button variant="ghost" size="icon">
+              <Button asChild variant="ghost" size="icon">
+                <Link to="/store/cart" onClick={() => setIsOpen(false)} aria-label="Cart">
                   <ShoppingCart className="w-5 h-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               {user ? (
                 <>
                   <Link to="/profile" onClick={() => setIsOpen(false)}>
@@ -377,11 +404,11 @@ export function Navbar() {
                   </Button>
                 </>
               ) : (
-                <Link to="/login" onClick={() => setIsOpen(false)}>
-                  <Button variant="ghost" size="icon">
-                    <User className="w-5 h-5" />
-                  </Button>
-                </Link>
+                <Button asChild variant="ghost" size="sm" className="h-11">
+                  <Link to="/login" onClick={() => setIsOpen(false)}>
+                    <User className="w-5 h-5" /> Sign in
+                  </Link>
+                </Button>
               )}
             </div>
           </div>

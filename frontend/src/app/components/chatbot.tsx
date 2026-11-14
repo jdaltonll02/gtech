@@ -104,14 +104,17 @@ export function Chatbot() {
       {/* Floating button */}
       <button
         type="button"
-        aria-label="Open G-Tech assistant"
+        aria-label={open ? 'Close G-Tech assistant' : 'Ask G-Tech'}
+        aria-expanded={open}
+        title={open ? 'Close assistant' : 'Ask G-Tech'}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200',
-          open ? 'bg-black/80 text-white hover:bg-black/70' : 'bg-primary text-white hover:bg-primary/90',
+          'fixed bottom-6 right-6 z-50 h-14 rounded-full shadow-lg flex items-center justify-center gap-2 transition-all duration-200',
+          open ? 'w-14 bg-black/80 text-white hover:bg-black/70' : 'w-14 sm:w-auto sm:px-5 bg-primary text-white hover:bg-primary-hover',
         )}
       >
-        {open ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+        {open ? <X className="w-6 h-6" aria-hidden /> : <MessageCircle className="w-6 h-6" aria-hidden />}
+        {!open && <span className="hidden sm:inline font-medium whitespace-nowrap">Ask G-Tech</span>}
       </button>
 
       {/* Chat panel */}
