@@ -42,6 +42,8 @@ npm run dev
 
 Open `http://localhost:5173` and sign in with the demo phone and OTP above.
 
+For the manual web acceptance pass, test at 320 px, 390 px, 768 px, and desktop widths. Complete every primary route using only the keyboard; confirm the skip link, visible focus, dialogs, retry alerts, reduced-motion preference, and mobile bottom navigation. Repeat discovery and Likes with browser data-saving or network throttling enabled to verify responsive/lazy images and recoverable offline states.
+
 Android emulator:
 
 ```powershell

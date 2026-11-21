@@ -19,5 +19,8 @@ describe('Pepper web',()=>{
     renderApp('/app/discover');
     expect(await screen.findByRole('heading',{name:/Demo, 29/})).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'Like'})).toBeInTheDocument();
+    expect(screen.getByRole('link',{name:'Skip to main content'})).toHaveAttribute('href','#main-content');
+    expect(screen.getByRole('main')).toHaveAttribute('id','main-content');
+    expect(screen.getAllByRole('navigation',{name:'Primary navigation'})).toHaveLength(2);
   });
 });

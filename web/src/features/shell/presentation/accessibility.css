@@ -1,0 +1,149 @@
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--white);
+  transform: translateY(-150%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.stage:focus {
+  outline: 0;
+}
+
+.app-shell :is(a, button, input, textarea):focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.inline-error {
+  padding: 10px 12px;
+  border-left: 4px solid var(--red);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.messages,
+.feature-panel {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-tabs {
+    height: calc(72px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (max-width: 480px) {
+  .stage {
+    padding: 0;
+  }
+
+  .feature-panel,
+  .thread-page {
+    height: calc(100dvh - 72px - env(safe-area-inset-bottom));
+    border-radius: 0;
+    padding: 20px 16px;
+  }
+
+  .thread-page {
+    padding: 0;
+  }
+
+  .discover-page {
+    height: calc(100dvh - 84px - env(safe-area-inset-bottom));
+    padding: 8px;
+  }
+
+  .profile-card {
+    border-radius: 20px;
+  }
+
+  .round-action {
+    width: 48px;
+    height: 48px;
+  }
+
+  .round-action.primary {
+    width: 54px;
+    height: 54px;
+  }
+
+  .explore-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .explore-grid button {
+    min-height: 150px;
+  }
+
+  .likes-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .likes-grid article {
+    height: 220px;
+  }
+
+  .profile-actions,
+  .age-fields,
+  .match-modal > div,
+  .edit-modal > div {
+    flex-direction: column;
+  }
+
+  .profile-about dl {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-tabs a {
+    min-width: 48px;
+  }
+
+  .mobile-tabs span {
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .primary-button,
+  .round-action.primary,
+  .message.mine p {
+    border: 1px solid ButtonText;
+  }
+}

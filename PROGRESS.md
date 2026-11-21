@@ -71,6 +71,7 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [x] Local-stack authentication, discovery, match, chat and fake-purchase smoke workflow
 - [x] React behavior coverage for Explore, Likes, Chats, Profile, Settings and Upgrade
 - [ ] Browser-level visual and accessibility acceptance pass
-- [ ] Performance, accessibility and resilient states
+- [x] React keyboard, semantic, narrow-screen, reduced-motion, offline and low-bandwidth hardening
+- [ ] Flutter accessibility audit and measured web/mobile performance budgets
 - [ ] Runbook, API and store-compliance docs
 - [ ] Full test/build/coverage acceptance checks

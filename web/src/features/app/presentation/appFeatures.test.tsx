@@ -10,6 +10,7 @@ import {LikesPage} from './LikesPage';
 import {ProfilePage} from './ProfilePage';
 import {SettingsPage} from './SettingsPage';
 import {UpgradePage} from './UpgradePage';
+import {Loading} from './DiscoverPage';
 
 const repository=vi.hoisted(()=>({
   likes:vi.fn(),matches:vi.fn(),messages:vi.fn(),sendMessage:vi.fn(),profile:vi.fn(),updateProfile:vi.fn(),preferences:vi.fn(),notificationPreferences:vi.fn(),updatePreferences:vi.fn(),updateNotifications:vi.fn(),products:vi.fn(),fakePurchase:vi.fn(),unmatch:vi.fn(),block:vi.fn(),report:vi.fn(),pause:vi.fn(),exportData:vi.fn(),deleteAccount:vi.fn(),
@@ -57,6 +58,26 @@ describe('web feature parity',()=>{
     expect(screen.getByRole('link',{name:'See upgrade options'})).toHaveAttribute('href','/app/upgrade');
   });
 
+  it('announces loading and recoverable request failures',async()=>{
+    const loading=renderPage(<Loading/>);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading');
+    loading.unmount();
+    repository.likes.mockRejectedValue(new Error('offline'));
+    renderPage(<LikesPage/>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Check your connection and try again.');
+    fireEvent.click(screen.getByRole('button',{name:'Try again'}));
+    await waitFor(()=>expect(repository.likes).toHaveBeenCalledTimes(2));
+  });
+
+  it('loads admirer images lazily with descriptive alternatives',async()=>{
+    repository.likes.mockResolvedValue({count:1,results:[{id:'like-1',name:'Miatta',age:28,verified:true,photo_url:'https://example.test/miatta.webp',superlike:false,liked_at:'2026-11-21T12:00:00.000Z'}]});
+    renderPage(<LikesPage/>);
+    const image=await screen.findByRole('img',{name:'Miatta'});
+    expect(image).toHaveAttribute('loading','lazy');
+    expect(image).toHaveAttribute('decoding','async');
+    expect(screen.getByText('verified')).toHaveClass('visually-hidden');
+  });
+
   it('renders conversations and unread counts',async()=>{
     renderPage(<ChatsPage/>);
     expect(await screen.findByRole('heading',{name:'Chats'})).toBeInTheDocument();
@@ -79,6 +100,7 @@ describe('web feature parity',()=>{
     repository.updateProfile.mockImplementation((value:Partial<Profile>)=>Promise.resolve({...profile,...value}));
     renderPage(<ProfilePage/>);
     fireEvent.click(await screen.findByRole('button',{name:/Edit profile/i}));
+    expect(screen.getByRole('dialog',{name:'Edit profile'})).toHaveAttribute('aria-modal','true');
     const bio=screen.getByLabelText('About me');
     fireEvent.change(bio,{target:{value:'Ready for a real connection.'}});
     fireEvent.click(screen.getByRole('button',{name:'Save profile'}));
@@ -98,6 +120,9 @@ describe('web feature parity',()=>{
   it('activates a development upgrade',async()=>{
     renderPage(<UpgradePage/>);
     expect(await screen.findByRole('heading',{name:'Pepper Gold'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'LRD'})).toHaveAttribute('aria-pressed','true');
+    fireEvent.click(screen.getByRole('button',{name:'USD'}));
+    expect(screen.getByRole('button',{name:'USD'})).toHaveAttribute('aria-pressed','true');
     fireEvent.click(screen.getByRole('button',{name:'Continue'}));
     await waitFor(()=>expect(repository.fakePurchase).toHaveBeenCalledWith('pepper_gold_month'));
   });
