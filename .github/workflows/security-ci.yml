@@ -1,0 +1,14 @@
+name: Security CI
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for committed credentials
+        shell: pwsh
+        run: ./scripts/secret-scan.ps1

@@ -1,0 +1,32 @@
+name: pepper
+description: Pepper dating app for Liberia and the Liberian diaspora.
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+dependencies:
+  cached_network_image: ^3.4.1
+  dio: ^5.7.0
+  flutter: {sdk: flutter}
+  flutter_blurhash: ^0.9.1
+  flutter_riverpod: ^2.6.1
+  flutter_secure_storage: ^9.2.2
+  flutter_svg: ^2.3.0
+  geolocator: ^14.0.2
+  go_router: ^14.6.2
+  google_sign_in: 6.3.0
+  image_cropper: ^12.2.1
+  image_picker: ^1.2.2
+  in_app_purchase: ^3.2.3
+  intl: ^0.20.3
+  lottie: ^3.3.3
+  # Flutter 3.35/AGP 8 compatible; v13 currently requires AGP 9/Kotlin 2.3.
+  permission_handler: 12.0.1
+  shared_preferences: ^2.3.3
+  sign_in_with_apple: 6.1.4
+  web_socket_channel: ^3.0.1
+dev_dependencies:
+  flutter_test: {sdk: flutter}
+  very_good_analysis: ^7.0.0
+flutter:
+  uses-material-design: true
