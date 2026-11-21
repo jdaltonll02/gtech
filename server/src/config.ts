@@ -35,6 +35,8 @@ const schema = z.object({
   APPLE_APP_ID: z.preprocess(value=>value===''?undefined:value,z.coerce.number().int().positive().optional()),
   GOOGLE_PACKAGE_NAME: z.string().default('com.easytechsolutionz.pepper'),
   GOOGLE_SERVICE_ACCOUNT_FILE: z.string().default(''),
+  GOOGLE_PUBSUB_AUDIENCE: z.string().default(''),
+  GOOGLE_PUBSUB_SERVICE_ACCOUNT_EMAIL: z.string().email().or(z.literal('')).default(''),
   ORANGE_MONEY_API_URL: z.string().default(''),
   ORANGE_MONEY_API_KEY: z.string().default(''),
   ORANGE_MONEY_WEBHOOK_SECRET: z.string().default(''),

@@ -1,5 +1,9 @@
 # Engineering decisions
 
+## 2026-11-21 — Dedicated store notification trust boundaries
+
+Apple and Google billing notifications use separate endpoints instead of the generic HMAC webhook. Apple V2 JWS signatures, including nested transaction data, are verified with Apple's server library. Google Pub/Sub OIDC audience and service-account claims are verified before Pepper queries Google Play for authoritative purchase state. Provider event identifiers are persisted for idempotency, and only purchase or renewal events may grant wallet benefits.
+
 ## 2026-11-21 — Source architecture location
 
 The architecture specification now lives at its canonical path, `docs/ARCHITECTURE.md`. It was moved from the repository root without changing its contents so the documented source-of-truth rule and the filesystem agree.

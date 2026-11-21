@@ -2,7 +2,8 @@ import {Router} from 'express';
 import rateLimit from 'express-rate-limit';
 import {z} from 'zod';
 import {authenticate,authenticatedUserId} from '../../core/auth.js';
-import {activateBoost,getEntitlements,getPurchase,handlePaymentWebhook,initiateMobileMoney,listProducts,verifyPurchase} from './services.js';
+import {activateBoost,getEntitlements,getPurchase,handlePaymentWebhook,handleStoreNotification,initiateMobileMoney,listProducts,verifyPurchase} from './services.js';
+import {storeNotificationVerifiers} from './storeNotifications.js';
 
 const writeLimit=rateLimit({windowMs:60_000,limit:10});
 export const billingRouter=Router();
@@ -12,4 +13,6 @@ billingRouter.post('/billing/verify',authenticate,writeLimit,async(request,respo
 billingRouter.post('/billing/mobile-money/initiate',authenticate,writeLimit,async(request,response)=>{const body=z.object({provider:z.enum(['orange_money','mtn_momo']),sku:z.string().min(1).max(100),msisdn:z.string().regex(/^\+[1-9]\d{7,14}$/),currency:z.enum(['USD','LRD']).default('LRD')}).strict().parse(request.body);response.status(201).json(await initiateMobileMoney(authenticatedUserId(request),body));});
 billingRouter.get('/billing/purchases/:id',authenticate,async(request,response)=>response.json(await getPurchase(authenticatedUserId(request),z.uuid().parse(request.params.id))));
 billingRouter.post('/billing/boost/activate',authenticate,writeLimit,async(request,response)=>response.json(await activateBoost(authenticatedUserId(request))));
+billingRouter.post('/billing/webhooks/apple',rateLimit({windowMs:60_000,limit:120}),async(request,response)=>{const body=z.object({signedPayload:z.string().min(1).max(1_000_000)}).strict().parse(request.body);const event=await storeNotificationVerifiers.apple.verify(body);response.json(await handleStoreNotification(event));});
+billingRouter.post('/billing/webhooks/google',rateLimit({windowMs:60_000,limit:120}),async(request,response)=>{const body=z.object({message:z.object({messageId:z.string().min(1),data:z.string().min(1).max(1_000_000)}).passthrough(),subscription:z.string().optional()}).passthrough().parse(request.body);const event=await storeNotificationVerifiers.google.verify(body,request.header('authorization'));response.json(await handleStoreNotification(event));});
 billingRouter.post('/billing/webhooks/:provider',rateLimit({windowMs:60_000,limit:120}),async(request,response)=>{const provider=z.enum(['orange_money','mtn_momo','fake']).parse(request.params.provider);const body=z.object({event_id:z.string().min(1),provider_ref:z.string().min(1),status:z.enum(['succeeded','failed','refunded']),expires_at:z.iso.datetime().optional(),auto_renew:z.boolean().optional()}).passthrough().parse(request.body);response.json(await handlePaymentWebhook(provider,request.header('x-pepper-signature'),{event_id:body.event_id,provider_ref:body.provider_ref,status:body.status,...(body.expires_at?{expires_at:body.expires_at}:{}),...(body.auto_renew===undefined?{}:{auto_renew:body.auto_renew})}));});
