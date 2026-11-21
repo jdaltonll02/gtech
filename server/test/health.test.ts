@@ -25,5 +25,7 @@ describe('operations API', () => {
     const body=response.body as {openapi:string;paths:Record<string,unknown>};
     expect(body.openapi).toBe('3.1.0');
     expect(Object.keys(body.paths)).toEqual(expect.arrayContaining(Object.keys(openApi.paths)));
+    expect(body.paths).toHaveProperty('/api/v1/schema.get');
+    expect(body.paths).toHaveProperty('/api/v1/auth/devices/{id}.delete');
   });
 });

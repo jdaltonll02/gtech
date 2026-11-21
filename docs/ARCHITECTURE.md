@@ -2,9 +2,11 @@
 
 > **Pepper** is a working name (red chili = our brand color, and "fiery" without borrowing Tinder's flame). Change it in one place: `APP_NAME` in `.env` and `app/lib/core/config/brand.dart`.
 >
-> **Goal:** a Tinder-equivalent dating product for Liberia (and the Liberian diaspora) that runs as a **web app, Android app and iOS app from one codebase**, with Tinder's interaction model and service architecture, in a **black / red / white** visual identity.
+> **Goal:** a full-featured dating product for Liberia and the Liberian diaspora that runs as a **React web app plus Flutter Android and iOS apps**, with a **black / red / white** visual identity.
 >
 > **Ground rule:** we copy Tinder's *patterns* (card stack, swipe gestures, match flow, tab layout, monetisation model, backend topology). We do **not** copy Tinder's name, flame logo, wordmark, gradient, icons, sounds or marketing copy (e.g. "It's a Match!"). Apple rejects copycat apps and trademark use is a legal risk.
+
+> **Authoritative implementation amendment (2026-11-15):** Pepper uses React + TypeScript in `web/`, Flutter only for Android/iOS in `app/`, Express + TypeScript in `server/`, PostgreSQL/PostGIS with explicit SQL migrations, Redis/BullMQ workers, and Socket.IO realtime. Express routes are thin; module business logic lives in `services.ts`, reads in `repositories.ts`, and modules call one another through exported services. This amendment supersedes any remaining legacy Django, Celery, or Flutter-web implementation examples below; those passages retain product intent only.
 
 ---
 
@@ -12,12 +14,12 @@
 
 | Concern | Decision | Why |
 |---|---|---|
-| Client | **Flutter 3 (Dart)** — one codebase → Android, iOS, Web | You already know Flutter; Android Studio emulator works out of the box; pixel-identical UI on all three targets |
-| Backend | **Django 5 + Django REST Framework + Django Channels (ASGI)** | Your strongest backend stack; Channels gives WebSockets; Django Admin = free moderation console |
+| Clients | **React + TypeScript web; Flutter 3 mobile** | Web and mobile share API behavior while using platform-appropriate clients |
+| Backend | **Express 5 + TypeScript + Socket.IO** | Thin HTTP routes, module services/repositories, authenticated realtime gateway |
 | Architecture style | **Modular monolith** whose modules mirror Tinder's microservices 1-to-1 | One deployable now; each module can be lifted out into its own service later without redesign |
 | Primary DB | **PostgreSQL 16 + PostGIS** | Geo queries (`ST_DWithin`) for discovery; relational integrity for matches/payments |
-| Cache / pub-sub / quotas | **Redis 7** | Deck cache, swipe sets, rate limits, presence, Channels layer (plays the role of Tinder's NATS) |
-| Async jobs | **Celery + Redis broker**, Celery Beat for schedules | Deck rebuilds, image processing, push fan-out, subscription expiry |
+| Cache / pub-sub / quotas | **Redis 7** | Deck cache, swipe sets, rate limits, presence, and BullMQ coordination |
+| Async jobs | **BullMQ + Redis** | Deck rebuilds, image processing, subscription expiry, top picks, account deletion |
 | Media | **S3-compatible object storage** (MinIO locally → Cloudflare R2 or GCS in prod) + signed upload URLs | Clients upload directly; backend never proxies bytes |
 | Realtime | WebSocket per online user, server-side per-user group; **FCM** push when offline | Same pattern Tinder describes (per-user subscription behind a WebSocket tier) |
 | Auth | **Phone number + SMS OTP** (primary), Google & Sign in with Apple (secondary); JWT access/refresh | Phone-first market; Apple requires a privacy-focused login option if you offer Google |

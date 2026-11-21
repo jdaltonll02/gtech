@@ -73,5 +73,5 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [ ] Browser-level visual and accessibility acceptance pass
 - [x] React keyboard, semantic, narrow-screen, reduced-motion, offline and low-bandwidth hardening
 - [x] Flutter accessibility audit and measured web/mobile performance budgets
-- [ ] Runbook, API and store-compliance docs
+- [x] Runbook, API and store-compliance docs
 - [ ] Full test/build/coverage acceptance checks
