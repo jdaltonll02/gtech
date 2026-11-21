@@ -22,7 +22,9 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: data.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: PepperProgressIndicator(label: 'Loading settings'),
+        ),
         error: (_, __) => PepperErrorView(
           onRetry: () => ref.invalidate(settingsDataProvider),
         ),

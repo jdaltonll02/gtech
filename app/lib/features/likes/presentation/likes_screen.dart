@@ -14,7 +14,9 @@ class LikesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Likes You')),
       body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: PepperProgressIndicator(label: 'Loading likes'),
+        ),
         error: (_, __) => PepperErrorView(
           onRetry: () => ref.read(likesControllerProvider.notifier).reload(),
         ),
@@ -46,7 +48,10 @@ class LikesScreen extends ConsumerWidget {
                     fit: StackFit.expand,
                     children: [
                       if (like.photoUrl case final url?)
-                        PepperImage(url: url)
+                        PepperImage(
+                          url: url,
+                          semanticLabel: '${like.name} profile photo',
+                        )
                       else
                         const ColoredBox(
                           color: Brand.ink800,

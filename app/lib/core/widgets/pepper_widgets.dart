@@ -49,6 +49,7 @@ class CircularActionButton extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
         label: label,
         button: true,
+        excludeSemantics: true,
         child: IconButton.filledTonal(
           style: IconButton.styleFrom(
             minimumSize: const Size.square(52),
@@ -96,30 +97,80 @@ class PepperAvatar extends StatelessWidget {
   final String? url;
   final double radius;
   @override
-  Widget build(BuildContext context) => CircleAvatar(
-        radius: radius,
-        foregroundImage: url == null ? null : NetworkImage(url!),
-        child: Text(label.isEmpty ? '?' : label.characters.first.toUpperCase()),
+  Widget build(BuildContext context) => Semantics(
+        label: '$label profile photo',
+        image: true,
+        excludeSemantics: true,
+        child: CircleAvatar(
+          radius: radius,
+          foregroundImage: url == null ? null : NetworkImage(url!),
+          child:
+              Text(label.isEmpty ? '?' : label.characters.first.toUpperCase()),
+        ),
       );
 }
 
 class PepperImage extends StatelessWidget {
-  const PepperImage({required this.url, this.fit = BoxFit.cover, super.key});
+  const PepperImage({
+    required this.url,
+    this.fit = BoxFit.cover,
+    this.semanticLabel,
+    super.key,
+  });
   final String url;
   final BoxFit fit;
+  final String? semanticLabel;
+
   @override
-  Widget build(BuildContext context) => Image.network(
-        url,
-        fit: fit,
-        frameBuilder: (context, child, frame, _) => AnimatedOpacity(
-          opacity: frame == null ? 0 : 1,
-          duration: const Duration(milliseconds: 250),
-          child: child,
-        ),
-        errorBuilder: (_, __, ___) => ColoredBox(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: const Center(child: Icon(Icons.broken_image_outlined)),
-        ),
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final ratio = MediaQuery.devicePixelRatioOf(context);
+          final cacheWidth = constraints.hasBoundedWidth
+              ? (constraints.maxWidth * ratio).ceil().clamp(1, 1440)
+              : null;
+          final cacheHeight = constraints.hasBoundedHeight
+              ? (constraints.maxHeight * ratio).ceil().clamp(1, 1920)
+              : null;
+          final reduceMotion = MediaQuery.disableAnimationsOf(context);
+          return Image.network(
+            url,
+            fit: fit,
+            cacheWidth: cacheWidth,
+            cacheHeight: cacheHeight,
+            gaplessPlayback: true,
+            semanticLabel: semanticLabel,
+            excludeFromSemantics: semanticLabel == null,
+            frameBuilder: (context, child, frame, _) => AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
+              child: child,
+            ),
+            errorBuilder: (_, __, ___) => Semantics(
+              label: semanticLabel == null
+                  ? 'Image unavailable'
+                  : '$semanticLabel unavailable',
+              image: true,
+              child: ColoredBox(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Center(child: Icon(Icons.broken_image_outlined)),
+              ),
+            ),
+          );
+        },
+      );
+}
+
+class PepperProgressIndicator extends StatelessWidget {
+  const PepperProgressIndicator({this.label = 'Loading', super.key});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: label,
+        liveRegion: true,
+        child: const ExcludeSemantics(child: CircularProgressIndicator()),
       );
 }
 
@@ -165,10 +216,13 @@ class PepperErrorView extends StatelessWidget {
   const PepperErrorView({required this.onRetry, super.key});
   final VoidCallback onRetry;
   @override
-  Widget build(BuildContext context) => PepperEmptyState(
-        icon: Icons.cloud_off_outlined,
-        title: 'Could not load this',
-        body: 'Check your connection and try again.',
-        action: PepperButton(label: 'Try again', onPressed: onRetry),
+  Widget build(BuildContext context) => Semantics(
+        liveRegion: true,
+        child: PepperEmptyState(
+          icon: Icons.cloud_off_outlined,
+          title: 'Could not load this',
+          body: 'Check your connection and try again.',
+          action: PepperButton(label: 'Try again', onPressed: onRetry),
+        ),
       );
 }

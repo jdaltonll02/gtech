@@ -55,7 +55,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Upgrade Pepper')),
       body: products.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: PepperProgressIndicator(label: 'Loading upgrade options'),
+        ),
         error: (_, __) =>
             PepperErrorView(onRetry: () => ref.invalidate(productsProvider)),
         data: (items) {

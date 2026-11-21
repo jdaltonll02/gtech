@@ -101,7 +101,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
         ],
       ),
       body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: PepperProgressIndicator(label: 'Loading messages'),
+        ),
         error: (_, __) => PepperErrorView(
           onRetry: () =>
               ref.invalidate(threadControllerProvider(widget.matchId)),

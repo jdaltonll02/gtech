@@ -78,7 +78,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ],
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: PepperProgressIndicator(label: 'Loading profile editor'),
+            )
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [

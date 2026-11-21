@@ -21,21 +21,25 @@ const card = DiscoveryCardModel(
 Widget deck({
   required Future<void> Function(DiscoveryCardModel, SwipeAction) onSwipe,
   SwipeDeckController? controller,
+  bool disableAnimations = false,
 }) =>
     MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: 400,
-            height: 600,
-            child: SwipeDeck(
-              cards: const [card],
-              controller: controller,
-              cardBuilder: (_, value) => ColoredBox(
-                color: Colors.black,
-                child: Text(value.name),
+      home: MediaQuery(
+        data: MediaQueryData(disableAnimations: disableAnimations),
+        child: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 400,
+              height: 600,
+              child: SwipeDeck(
+                cards: const [card],
+                controller: controller,
+                cardBuilder: (_, value) => ColoredBox(
+                  color: Colors.black,
+                  child: Text(value.name),
+                ),
+                onSwipe: onSwipe,
               ),
-              onSwipe: onSwipe,
             ),
           ),
         ),
@@ -82,5 +86,32 @@ void main() {
     await tester.pump();
     expect(action, SwipeAction.superlike);
     controller.dispose();
+  });
+
+  testWidgets('exposes the profile and swipe actions to assistive technology',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(deck(onSwipe: (_, __) async {}));
+    final profile = find.bySemanticsLabel(RegExp('Ayo, 27'));
+    expect(profile, findsOneWidget);
+    final node = tester.getSemantics(profile);
+    expect(node.hint, contains('Swipe right to like'));
+    expect(
+      node.getSemanticsData().customSemanticsActionIds?.length,
+      3,
+      reason: 'Like, pass and Super Like must work without drag gestures.',
+    );
+    handle.dispose();
+  });
+
+  testWidgets('removes deck animation when reduced motion is requested',
+      (tester) async {
+    await tester.pumpWidget(
+      deck(onSwipe: (_, __) async {}, disableAnimations: true),
+    );
+    expect(
+      tester.widget<AnimatedContainer>(find.byType(AnimatedContainer)).duration,
+      Duration.zero,
+    );
   });
 }

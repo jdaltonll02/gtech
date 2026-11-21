@@ -114,7 +114,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       body: SafeArea(
         top: false,
         child: deck.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(
+            child: PepperProgressIndicator(label: 'Loading profiles'),
+          ),
           error: (_, __) => PepperErrorView(
             onRetry: () =>
                 ref.read(discoveryControllerProvider.notifier).reload(),
@@ -219,6 +221,8 @@ class _ProfileCardState extends State<_ProfileCard> {
               onPageChanged: (value) => setState(() => _page = value),
               itemBuilder: (_, index) => PepperImage(
                 url: card.photos[index].large,
+                semanticLabel:
+                    '${card.name} photo ${index + 1} of ${card.photos.length}',
               ),
             ),
           const DecoratedBox(

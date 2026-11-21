@@ -298,7 +298,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         future: ref.read(onboardingRepositoryProvider).interests(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: PepperProgressIndicator(label: 'Loading interests'),
+            );
           }
           final chips = snapshot.data!.map((item) {
             final id = item['id'] as String;

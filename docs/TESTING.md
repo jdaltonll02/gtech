@@ -58,3 +58,25 @@ cd app
 flutter analyze
 flutter test
 ```
+
+## Performance budgets
+
+The web production build is limited to 400 KiB of uncompressed JavaScript and
+25 KiB of uncompressed CSS. The Android development APK is limited to 150 MiB;
+this is a CI artifact-regression guard, not an estimate of the optimized store
+download. CI checks these limits after each build. Run the same checks locally:
+
+```powershell
+cd web
+npm run build
+npm run budget
+
+cd ..\app
+flutter build apk --debug
+cd ..
+node scripts/performance-budget.mjs app
+```
+
+Flutter profile photos are decoded near their rendered dimensions (with an
+upper bound) to avoid retaining source-resolution images in memory. The swipe
+deck and image fades also honor the platform reduced-motion setting.

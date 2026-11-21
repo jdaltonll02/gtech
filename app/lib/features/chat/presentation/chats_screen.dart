@@ -14,7 +14,9 @@ class ChatsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Chats')),
       body: matches.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: PepperProgressIndicator(label: 'Loading conversations'),
+        ),
         error: (_, __) => PepperErrorView(
           onRetry: () => ref.read(matchesControllerProvider.notifier).reload(),
         ),

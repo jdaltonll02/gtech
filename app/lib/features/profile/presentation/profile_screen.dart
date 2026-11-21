@@ -22,7 +22,9 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
       body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: PepperProgressIndicator(label: 'Loading profile'),
+        ),
         error: (_, __) => PepperErrorView(
           onRetry: () => ref.read(profileControllerProvider.notifier).reload(),
         ),

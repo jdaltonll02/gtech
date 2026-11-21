@@ -28,6 +28,7 @@ if ($Target -in @('web','all')) {
   try {
     Invoke-Checked 'Web lint' { npm.cmd run lint }
     Invoke-Checked 'Web build' { npm.cmd run build }
+    Invoke-Checked 'Web performance budget' { npm.cmd run budget }
     Invoke-Checked 'Web tests' { npm.cmd test }
   } finally { Pop-Location }
 }

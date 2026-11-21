@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:pepper/core/config/brand.dart';
 import 'package:pepper/features/discovery/domain/discovery_card.dart';
 
@@ -69,6 +70,12 @@ class _SwipeDeckState extends State<SwipeDeck> {
     await widget.onSwipe(card, action);
   }
 
+  String _actionLabel(SwipeAction action) => switch (action) {
+        SwipeAction.like => 'Like profile',
+        SwipeAction.nope => 'Pass profile',
+        SwipeAction.superlike => 'Super Like profile',
+      };
+
   SwipeAction? _actionFor(double width) {
     if (offset.dx > width * .24) return SwipeAction.like;
     if (offset.dx < -width * .24) return SwipeAction.nope;
@@ -94,30 +101,43 @@ class _SwipeDeckState extends State<SwipeDeck> {
               }
               final action = _actionFor(size.maxWidth);
               return Positioned.fill(
-                child: GestureDetector(
-                  key: const ValueKey('top-card'),
-                  onPanUpdate: (details) =>
-                      setState(() => offset += details.delta),
-                  onPanEnd: (_) {
-                    final selected = _actionFor(size.maxWidth);
-                    if (selected == null) {
-                      setState(() => offset = Offset.zero);
-                    } else {
-                      _complete(selected);
-                    }
+                child: Semantics(
+                  container: true,
+                  label: '${card.name}, ${card.age}',
+                  hint:
+                      'Swipe right to like, left to pass, or up to Super Like',
+                  customSemanticsActions: {
+                    for (final value in SwipeAction.values)
+                      CustomSemanticsAction(label: _actionLabel(value)): () =>
+                          _complete(value),
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    transform: Matrix4.identity()
-                      ..translateByDouble(offset.dx, offset.dy, 0, 1)
-                      ..rotateZ(offset.dx / size.maxWidth * math.pi / 18),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        widget.cardBuilder(context, card),
-                        if (action != null) _SwipeStamp(action: action),
-                      ],
+                  child: GestureDetector(
+                    key: const ValueKey('top-card'),
+                    onPanUpdate: (details) =>
+                        setState(() => offset += details.delta),
+                    onPanEnd: (_) {
+                      final selected = _actionFor(size.maxWidth);
+                      if (selected == null) {
+                        setState(() => offset = Offset.zero);
+                      } else {
+                        _complete(selected);
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      transform: Matrix4.identity()
+                        ..translateByDouble(offset.dx, offset.dy, 0, 1)
+                        ..rotateZ(offset.dx / size.maxWidth * math.pi / 18),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          widget.cardBuilder(context, card),
+                          if (action != null) _SwipeStamp(action: action),
+                        ],
+                      ),
                     ),
                   ),
                 ),
