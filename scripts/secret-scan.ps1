@@ -41,3 +41,4 @@ if ($found) {
 }
 
 Write-Host 'Secret scan passed.'
+$global:LASTEXITCODE = 0

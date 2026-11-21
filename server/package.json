@@ -20,6 +20,7 @@
     "unmatch:smoke": "node scripts/unmatch-smoke.mjs",
     "billing:smoke": "node scripts/billing-smoke.mjs",
     "safety:smoke": "node scripts/safety-lifecycle-smoke.mjs",
+    "product:smoke": "node scripts/product-flow-smoke.mjs",
     "lint": "eslint src test --max-warnings=0",
     "test": "vitest run --coverage"
   },
