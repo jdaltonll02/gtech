@@ -38,7 +38,7 @@ final class RealtimeService {
   Stream<RealtimeEvent> get events => _events.stream;
 
   Future<void> connect() async {
-    if (_disposed) return;
+    if (_disposed || _channel != null) return;
     final token = await _storage.readAccessToken();
     if (token == null) return;
     final base = Uri.parse(Environment.apiBaseUrl);
@@ -51,19 +51,23 @@ final class RealtimeService {
         'transport': 'websocket',
       },
     );
-    _channel = WebSocketChannel.connect(uri);
-    await _channel!.ready;
-    _attempt = 0;
-    _heartbeat = Timer.periodic(
-      const Duration(seconds: 25),
-      (_) => _channel?.sink.add('42["ping",{}]'),
-    );
-    _channel!.stream.listen(
-      _receive,
-      onDone: _scheduleReconnect,
-      onError: (_) => _scheduleReconnect(),
-    );
-    await _resync();
+    try {
+      final channel = WebSocketChannel.connect(uri);
+      await channel.ready;
+      if (_disposed) {
+        await channel.sink.close();
+        return;
+      }
+      _channel = channel;
+      channel.stream.listen(
+        _receive,
+        onDone: _connectionEnded,
+        onError: (_) => _connectionEnded(),
+      );
+    } on Object {
+      _channel = null;
+      _scheduleReconnect();
+    }
   }
 
   void _receive(Object? raw) {
@@ -76,16 +80,32 @@ final class RealtimeService {
       _channel?.sink.add('3');
       return;
     }
-    if (!raw.startsWith('42')) return;
-    final decoded = jsonDecode(raw.substring(2));
-    if (decoded is! List<Object?> ||
-        decoded.length < 2 ||
-        decoded[1] is! Map<String, dynamic>) {
+    if (raw.startsWith('40')) {
+      _attempt = 0;
+      _heartbeat?.cancel();
+      _heartbeat = Timer.periodic(
+        const Duration(seconds: 25),
+        (_) => _channel?.sink.add('42["ping",{}]'),
+      );
+      unawaited(_resync().catchError((Object _) => _closeForReconnect()));
       return;
     }
-    final event = RealtimeEvent.fromJson(decoded[1]! as Map<String, dynamic>);
-    _lastSync = event.timestamp;
-    _events.add(event);
+    if (!raw.startsWith('42')) return;
+    try {
+      final decoded = jsonDecode(raw.substring(2));
+      if (decoded is! List<Object?> ||
+          decoded.length < 2 ||
+          decoded[1] is! Map<String, dynamic>) {
+        return;
+      }
+      final event = RealtimeEvent.fromJson(
+        decoded[1]! as Map<String, dynamic>,
+      );
+      _lastSync = event.timestamp;
+      _events.add(event);
+    } on FormatException {
+      // Ignore malformed frames and keep the authenticated session alive.
+    }
   }
 
   void send(String type, Map<String, Object?> data) =>
@@ -106,13 +126,27 @@ final class RealtimeService {
     );
   }
 
+  void _connectionEnded() {
+    _channel = null;
+    _scheduleReconnect();
+  }
+
+  void _closeForReconnect() {
+    final channel = _channel;
+    _channel = null;
+    unawaited(channel?.sink.close());
+    _scheduleReconnect();
+  }
+
   void _scheduleReconnect() {
     _heartbeat?.cancel();
     if (_disposed || (_reconnect?.isActive ?? false)) return;
     final seconds = min(30, pow(2, _attempt).toInt()) + _random.nextDouble();
     _attempt += 1;
-    _reconnect =
-        Timer(Duration(milliseconds: (seconds * 1000).round()), connect);
+    _reconnect = Timer(
+      Duration(milliseconds: (seconds * 1000).round()),
+      () => unawaited(connect()),
+    );
   }
 
   Future<void> dispose() async {

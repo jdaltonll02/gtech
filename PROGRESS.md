@@ -66,7 +66,8 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [ ] Remote branch protection and required CI checks (no Git remote configured)
 - [x] Generic billing webhook fails closed for unverified Apple/Google events
 - [ ] Dedicated Apple and Google signed notification verification
-- [ ] Realtime clients, offline reconciliation and end-to-end tests
+- [x] Realtime clients, reconnect/offline reconciliation and gateway integration tests
+- [ ] Cross-client realtime end-to-end tests against the complete local stack
 - [ ] Performance, accessibility and resilient states
 - [ ] Runbook, API and store-compliance docs
 - [ ] Full test/build/coverage acceptance checks
