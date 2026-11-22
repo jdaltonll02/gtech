@@ -8,7 +8,22 @@ On Windows PowerShell, run all repository checks from the project root:
 ./scripts/test.ps1 all
 ```
 
-Individual suites are available as `server`, `web`, or `app`. The combined command also runs the credential scan and fails immediately when any native tool exits unsuccessfully.
+Individual suites are available as `server`, `web`, or `app`. The combined
+command also runs the credential scan and fails immediately when any native
+tool exits unsuccessfully. The app target includes a debug APK build, so it is
+slower than the analysis and widget tests alone.
+
+The acceptance commands enforce non-regression coverage floors:
+
+| Area | Statements | Branches | Functions | Lines |
+|---|---:|---:|---:|---:|
+| Express server | 33% | 15% | 18% | 53% |
+| React web | 70% | 60% | 60% | 90% |
+| Flutter mobile | — | — | — | 17% |
+
+These floors prevent coverage from silently declining; they are not a claim
+that every risk is comprehensively tested. New and changed business logic still
+requires focused happy, authorization, permission, and validation coverage.
 
 ## Complete local product smoke test
 
@@ -56,7 +71,8 @@ Flutter unit and widget checks:
 ```powershell
 cd app
 flutter analyze
-flutter test
+flutter test --coverage
+node ../scripts/flutter-coverage-budget.mjs
 ```
 
 ## Performance budgets
@@ -72,7 +88,7 @@ npm run build
 npm run budget
 
 cd ..\app
-flutter build apk --debug
+flutter build apk --debug --target-platform android-x64
 cd ..
 node scripts/performance-budget.mjs app
 ```

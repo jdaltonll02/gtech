@@ -493,23 +493,19 @@ Both **light** (white bg, black text, red accents — Tinder's default look) and
 
 ## 18. Testing strategy
 
-- **Backend**: pytest unit tests per `services.py`; API tests per endpoint (auth, permissions, happy + error paths); Channels consumer tests with `WebsocketCommunicator`; a concurrency test proving two simultaneous mutual likes create exactly one Match; coverage ≥ 80% on `services.py`.
-- **App**: unit tests for notifiers/repositories (mock Dio), widget tests for deck gestures and stamps, golden tests (light/dark) for card, action bar, match screen, chat; one `integration_test` end-to-end against seeded backend.
-- **Seed data**: `python manage.py seed_demo --users 300` creates profiles spread across Liberian towns (Monrovia, Paynesville, Kakata, Gbarnga, Buchanan, Ganta, Harper, Zwedru, Voinjama, Robertsport) with **generated** avatar images (abstract shapes/initials — no real people's photos), plus some users who already liked the demo account so matches happen immediately.
-- **CI**: backend lint+tests on every push; `flutter analyze` + `flutter test` on every push; build Android APK artifact on `main`.
+- **Server**: Vitest unit/service tests and API tests cover auth, permissions, happy and error paths, realtime behavior, and concurrency-sensitive matching. V8 coverage floors prevent regressions; current thresholds and results are documented in `docs/TESTING.md`.
+- **Web**: Vitest + Testing Library cover authentication, API refresh/error behavior, feature screens, repositories, and realtime reconciliation. Production build and bundle budgets run with coverage in CI.
+- **App**: Flutter unit/widget tests cover network/auth contracts, OTP flow, deck gestures and semantics, billing gates, and light/dark goldens. CI measures line coverage and builds an Android x64 debug APK under an artifact budget.
+- **Seed and smoke**: `npm run seed -- --users 300` creates generated demo profiles, and `npm run product:smoke` exercises the complete local-stack product path.
+- **CI**: server, React web, Flutter mobile, security, coverage, build, and artifact gates run on every push and pull request.
 
 ---
 
-## 19. Store compliance checklist (dating apps get extra scrutiny)
+## 19. Store compliance checklist
 
-- [ ] In-app account deletion (Apple 5.1.1(v), Google Play policy)
-- [ ] Report + block on every user-generated surface; published moderation contact; timely action (Apple 1.2)
-- [ ] 18+ age rating and age gate
-- [ ] Digital subscriptions via IAP on iOS/Android; mobile money only on web
-- [ ] Sign in with Apple offered if Google sign-in is offered on iOS
-- [ ] Privacy policy + Terms + Community Guidelines URLs in app and store listings
-- [ ] Permission prompts with clear purpose strings (location, camera, photos, notifications)
-- [ ] Original name, logo and copy (no Tinder trademarks)
+The maintained engineering matrix, privacy data inventory, official policy
+links, implemented controls, and unresolved release blockers live in
+`docs/STORE_COMPLIANCE.md`. A passing CI build does not imply store readiness.
 
 ---
 

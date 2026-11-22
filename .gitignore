@@ -14,6 +14,7 @@ coverage/
 app/.dart_tool/
 app/build/
 app/android/build/
+app/android/.kotlin/
 app/.flutter-plugins*
 .idea/
 *.iml

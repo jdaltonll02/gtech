@@ -12,6 +12,6 @@ test-server:
 lint-server:
 	docker compose run --rm api npm run lint && docker compose run --rm api npm run build
 test-web:
-	cd web && npm test && npm run lint && npm run build
+	cd web && npm run lint && npm run build && npm run budget && npm run test:coverage
 test-app:
-	cd app && flutter analyze && flutter test
+	cd app && flutter analyze && flutter test --coverage && node ../scripts/flutter-coverage-budget.mjs && flutter build apk --debug --target-platform android-x64 && node ../scripts/performance-budget.mjs app

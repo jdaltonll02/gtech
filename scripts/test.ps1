@@ -29,13 +29,16 @@ if ($Target -in @('web','all')) {
     Invoke-Checked 'Web lint' { npm.cmd run lint }
     Invoke-Checked 'Web build' { npm.cmd run build }
     Invoke-Checked 'Web performance budget' { npm.cmd run budget }
-    Invoke-Checked 'Web tests' { npm.cmd test }
+    Invoke-Checked 'Web tests and coverage' { npm.cmd run test:coverage }
   } finally { Pop-Location }
 }
 if ($Target -in @('app','all')) {
   Push-Location app
   try {
     Invoke-Checked 'Flutter analysis' { flutter analyze }
-    Invoke-Checked 'Flutter tests' { flutter test }
+    Invoke-Checked 'Flutter tests and coverage' { flutter test --coverage }
+    Invoke-Checked 'Flutter coverage budget' { node ../scripts/flutter-coverage-budget.mjs }
+    Invoke-Checked 'Android x64 debug build' { flutter build apk --debug --target-platform android-x64 }
+    Invoke-Checked 'Android artifact budget' { node ../scripts/performance-budget.mjs app }
   } finally { Pop-Location }
 }

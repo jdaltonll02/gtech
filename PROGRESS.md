@@ -74,4 +74,4 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [x] React keyboard, semantic, narrow-screen, reduced-motion, offline and low-bandwidth hardening
 - [x] Flutter accessibility audit and measured web/mobile performance budgets
 - [x] Runbook, API and store-compliance docs
-- [ ] Full test/build/coverage acceptance checks
+- [x] Full test/build/coverage acceptance checks
