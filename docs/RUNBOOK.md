@@ -185,6 +185,10 @@ For an initial single-VM deployment:
    Pepper-specific `JWT_SECRET` and `FIELD_ENCRYPTION_KEY` are absent, the server
    derives separate SHA-256 keys from it for a zero-downtime migration. New
    deployments should set the Pepper-specific variables directly.
+   Pepper uses a dedicated `pepper` PostgreSQL schema. Neon pooled endpoints do
+   not accept the required startup search path, so the server converts Neon
+   `-pooler` hosts to the matching direct endpoint while retaining credentials
+   and TLS query parameters.
 9. Verify `/api/v1/healthz`, `/api/v1/readyz`, authentication, media upload,
    one realtime conversation, purchase sandbox flow, and account deletion.
 
