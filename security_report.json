@@ -1,0 +1,100 @@
+[
+  {
+    "name": "Brute-force login protection",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "Sent 20 wrong password attempts \u2014 never blocked, never throttled",
+    "recommendation": "Add rate limiting: 5 failed attempts per email per 15 min \u2192 lock"
+  },
+  {
+    "name": "2FA brute-force protection",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "12 OTP guesses accepted without throttle (all returned non-429)",
+    "recommendation": "Rate-limit /2fa/verify to 5 attempts per user_id per 15 min, then invalidate the code"
+  },
+  {
+    "name": "User enumeration via forgot-password timing",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "Timing gap only 125.3ms \u2014 not exploitable",
+    "recommendation": ""
+  },
+  {
+    "name": "Forgot-password rate limiting",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "12 requests sent without 429 \u2014 no rate limiting on password reset",
+    "recommendation": "Limit to 3/hour per email address"
+  },
+  {
+    "name": "Unauthenticated file upload",
+    "severity": "HIGH",
+    "status": "VULNERABLE",
+    "evidence": "File accepted without auth token \u2192 /media/uploads/6488e42d-a422-4b09-b6a4-a7cfd0e9dab9.png",
+    "recommendation": "Require Bearer token for all uploads; remove the optional-auth fallback"
+  },
+  {
+    "name": "JWT algorithm=none attack",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Forged alg=none token rejected (HTTP 401)",
+    "recommendation": ""
+  },
+  {
+    "name": "JWT empty secret",
+    "severity": "CRITICAL",
+    "status": "PROTECTED",
+    "evidence": "Empty-secret JWT rejected (HTTP 401)",
+    "recommendation": ""
+  },
+  {
+    "name": "Missing HTTP security headers",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "Missing: x-content-type-options, x-frame-options, strict-transport-security, content-security-policy, x-xss-protection, referrer-policy",
+    "recommendation": "Add SecurityHeadersMiddleware returning X-Frame-Options, HSTS, CSP, etc."
+  },
+  {
+    "name": "CORS misconfiguration",
+    "severity": "HIGH",
+    "status": "PROTECTED",
+    "evidence": "CORS only allows whitelisted origins",
+    "recommendation": ""
+  },
+  {
+    "name": "Open redirect",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "No unvalidated redirect to external domains detected",
+    "recommendation": ""
+  },
+  {
+    "name": "Sensitive data in error responses",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "Error responses contain no stack traces or internal paths",
+    "recommendation": ""
+  },
+  {
+    "name": "Password strength on reset",
+    "severity": "MEDIUM",
+    "status": "WARNING",
+    "evidence": "Cannot verify without valid reset token \u2014 static analysis shows only min-length (8) is checked, not complexity",
+    "recommendation": "Apply same password_strength validator from RegisterRequest to ResetPasswordRequest"
+  },
+  {
+    "name": "Email verification brute-force",
+    "severity": "MEDIUM",
+    "status": "VULNERABLE",
+    "evidence": "15 random token guesses on /verify-email \u2014 never throttled (no 429)",
+    "recommendation": "Rate-limit /verify-email to 5 attempts per IP per hour"
+  },
+  {
+    "name": "Media directory listing",
+    "severity": "MEDIUM",
+    "status": "PROTECTED",
+    "evidence": "GET /media/ returned HTTP 404 \u2014 no directory listing",
+    "recommendation": ""
+  }
+]

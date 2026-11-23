@@ -1,7 +1,0 @@
-import {AppError} from '../../core/errors.js';
-import {pool} from '../../db/pool.js';
-import {matchRepository} from './repositories.js';
-import {emitToUser} from '../realtime/gateway.js';
-
-export const listMatches=async(userId:string,before:string|undefined,limit:number)=>{const client=await pool.connect();try{const cursor=before?new Date(Buffer.from(before,'base64url').toString('utf8')):undefined;if(cursor&&Number.isNaN(cursor.valueOf()))throw new AppError(400,'VALIDATION_ERROR','Match cursor is invalid.');const rows=await matchRepository.list(client,userId,cursor,limit+1);const hasMore=rows.length>limit;const results=rows.slice(0,limit);return{results:results.map((row)=>({id:row.id,created_at:row.created_at,other_user:{id:row.other_user_id,display_name:row.display_name,blurhash:row.blurhash},last_message:row.last_message_created_at?{kind:row.last_kind,body:row.last_body,created_at:row.last_message_created_at}:null,unread_count:row.unread_count})),next_cursor:hasMore&&results.length?Buffer.from((results.at(-1)!.last_message_created_at??results.at(-1)!.created_at).toISOString()).toString('base64url'):null};}finally{client.release();}};
-export const unmatch=async(userId:string,matchId:string)=>{const client=await pool.connect();try{const match=await matchRepository.unmatch(client,matchId,userId);if(!match)throw new AppError(404,'NOT_FOUND','Match not found.');const event={match_id:match.id,removed_at:match.unmatched_at};emitToUser(match.user_a_id,'match.removed',event);emitToUser(match.user_b_id,'match.removed',event);}finally{client.release();}};

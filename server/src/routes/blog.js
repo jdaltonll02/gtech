@@ -1,0 +1,23 @@
+import { randomUUID } from 'node:crypto';
+import { Router } from 'express';
+import { z } from 'zod';
+import { requirePermissions } from '../auth/middleware.js';
+import { asyncHandler, HttpError } from '../lib/http-error.js';
+import { deletePattern, get, set } from '../lib/kv.js';
+import { prisma } from '../lib/prisma.js';
+
+export const blogRouter=Router();
+const admin=requirePermissions('manage_blog');
+const slugify=(v)=>v.toLowerCase().trim().replace(/[^\w\s-]/g,'').replace(/[\s_-]+/g,'-').replace(/^-|-$/g,'');
+const fields=['id','title','slug','excerpt','cover_image_url','author_name','category','tags','is_published','published_at','created_at','updated_at'];
+const listOut=(x)=>Object.fromEntries(fields.map((k)=>[k,x[k]]));
+const detailOut=(x)=>({...listOut(x),content:x.content});
+const schema=z.object({title:z.string(),slug:z.string().nullable().optional(),excerpt:z.string().nullable().default(null),content:z.string().default(''),cover_image_url:z.string().nullable().default(null),author_name:z.string().default('G-Tech Team'),category:z.string().nullable().default(null),tags:z.string().nullable().default(null),is_published:z.boolean().default(false)});
+
+blogRouter.get('/',asyncHandler(async(q,s)=>{const skip=z.coerce.number().int().default(0).parse(q.query.skip),limit=z.coerce.number().int().default(20).parse(q.query.limit),category=q.query.category?String(q.query.category):null,tag=q.query.tag?String(q.query.tag):null,key=`blog:list:${skip}:${limit}:${category}:${tag}`;const cached=await get(key);if(cached)return s.json(cached);const rows=await prisma.$queryRawUnsafe('SELECT * FROM blog_posts WHERE is_published=TRUE AND ($1::text IS NULL OR category=$1) AND ($2::text IS NULL OR tags ILIKE $3) ORDER BY published_at DESC NULLS LAST,created_at DESC OFFSET $4 LIMIT $5',category,tag,tag?`%${tag}%`:null,skip,limit);const out=rows.map(listOut);await set(key,out,120);s.json(out);}));
+blogRouter.get('/categories',asyncHandler(async(_q,s)=>s.json((await prisma.$queryRawUnsafe('SELECT DISTINCT category FROM blog_posts WHERE is_published=TRUE AND category IS NOT NULL')).map((x)=>x.category))));
+blogRouter.get('/admin/all',...admin,asyncHandler(async(q,s)=>{const skip=z.coerce.number().int().default(0).parse(q.query.skip),limit=z.coerce.number().int().default(50).parse(q.query.limit);s.json((await prisma.$queryRawUnsafe('SELECT * FROM blog_posts ORDER BY created_at DESC OFFSET $1 LIMIT $2',skip,limit)).map(listOut));}));
+blogRouter.post('/admin/posts',...admin,asyncHandler(async(q,s)=>{const b=schema.parse(q.body),slug=slugify(b.slug||b.title);if((await prisma.$queryRawUnsafe('SELECT 1 FROM blog_posts WHERE slug=$1',slug)).length)throw new HttpError(409,'A post with this slug already exists.');const rows=await prisma.$queryRawUnsafe('INSERT INTO blog_posts(id,title,slug,excerpt,content,cover_image_url,author_name,category,tags,is_published,published_at,created_at,updated_at) VALUES($1::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $10 THEN NOW() ELSE NULL END,NOW(),NOW()) RETURNING *',randomUUID(),b.title,slug,b.excerpt,b.content,b.cover_image_url,b.author_name,b.category,b.tags,b.is_published);await deletePattern('blog:*');s.status(201).json(detailOut(rows[0]));}));
+blogRouter.patch('/admin/posts/:id',...admin,asyncHandler(async(q,s)=>{const id=z.string().uuid().parse(q.params.id),old=(await prisma.$queryRawUnsafe('SELECT * FROM blog_posts WHERE id=$1::uuid',id))[0];if(!old)throw new HttpError(404,'Post not found');const b=schema.partial().parse(q.body),entries=Object.entries(b),vals=entries.map(([,v])=>v);let sql=entries.map(([k],i)=>`${k}=$${i+1}`).join(',');if(b.is_published&&!old.is_published&&!old.published_at)sql+=(sql?',':'')+'published_at=NOW()';vals.push(id);const rows=await prisma.$queryRawUnsafe(`UPDATE blog_posts SET ${sql}${sql?',':''}updated_at=NOW() WHERE id=$${vals.length}::uuid RETURNING *`,...vals);await deletePattern('blog:*');s.json(detailOut(rows[0]));}));
+blogRouter.delete('/admin/posts/:id',...admin,asyncHandler(async(q,s)=>{const n=await prisma.$executeRawUnsafe('DELETE FROM blog_posts WHERE id=$1::uuid',z.string().uuid().parse(q.params.id));if(!n)throw new HttpError(404,'Post not found');await deletePattern('blog:*');s.status(204).end();}));
+blogRouter.get('/:slug',asyncHandler(async(q,s)=>{const key=`blog:post:${q.params.slug}`,cached=await get(key);if(cached)return s.json(cached);const rows=await prisma.$queryRawUnsafe('SELECT * FROM blog_posts WHERE slug=$1 AND is_published=TRUE LIMIT 1',q.params.slug);if(!rows.length)throw new HttpError(404,'Post not found');const out=detailOut(rows[0]);await set(key,out,120);s.json(out);}));

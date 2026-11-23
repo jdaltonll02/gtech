@@ -1,14 +1,11 @@
 {
-  "name": "pepper",
+  "name": "gtech-website",
   "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
+  "version": "1.0.0",
+  "engines": { "node": ">=20" },
   "scripts": {
-    "build": "npm ci --prefix web && npm run build --prefix web && npm ci --prefix server && npm run build --prefix server",
-    "start": "node server/dist/index.js",
-    "test": "npm test --prefix server && npm test --prefix web"
+    "build": "npm install --prefix frontend --no-package-lock --workspaces=false && npm run build --prefix frontend && npm ci --prefix server && npm run prisma:generate --prefix server",
+    "start": "npm start --prefix server",
+    "test": "npm test --prefix server"
   }
 }

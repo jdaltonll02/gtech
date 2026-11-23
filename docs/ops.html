@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ops & Infrastructure Guide — Gibson Technologies</title>
+<style>
+  :root {
+    --primary: #6d28d9;
+    --primary-light: #ede9fe;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --warn-bg: #fefce8;
+    --warn-border: #fbbf24;
+    --danger-bg: #fff1f2;
+    --danger-border: #f43f5e;
+    --success-bg: #f0fdf4;
+    --success-border: #22c55e;
+    --sidebar-w: 260px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  nav { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; padding: 24px 0; }
+  .nav-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .nav-logo span { display: block; font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .05em; }
+  .nav-logo small { color: var(--muted); font-size: 11px; }
+  .nav-section { padding: 6px 20px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-top: 8px; }
+  nav a { display: block; padding: 6px 20px; font-size: 13.5px; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; transition: all .15s; }
+  nav a:hover { color: var(--primary); background: var(--primary-light); }
+  nav a.active { color: var(--primary); border-left-color: var(--primary); font-weight: 600; background: var(--primary-light); }
+
+  /* Main */
+  main { margin-left: var(--sidebar-w); flex: 1; max-width: 860px; padding: 48px 48px 80px; }
+  h1 { font-size: 2rem; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 40px; }
+  h2 { font-size: 1.35rem; font-weight: 700; margin: 48px 0 16px; padding-top: 16px; border-top: 1px solid var(--border); scroll-margin-top: 24px; }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+  p { margin-bottom: 14px; }
+  ul, ol { padding-left: 20px; margin-bottom: 14px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--primary); }
+
+  /* Code */
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 14px 0 20px; font-size: 13px; line-height: 1.6; position: relative; }
+  code { font-family: "SF Mono", "Fira Code", monospace; font-size: .88em; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #be185d; }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  .copy-btn { position: absolute; top: 10px; right: 10px; background: #334155; border: none; color: #94a3b8; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+  .copy-btn:hover { background: #475569; color: #fff; }
+
+  /* Callouts */
+  .callout { border-radius: 8px; padding: 14px 18px; margin: 16px 0; border-left: 4px solid; font-size: 14px; }
+  .callout.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+  .callout.danger { background: var(--danger-bg); border-color: var(--danger-border); }
+  .callout.info { background: var(--primary-light); border-color: var(--primary); }
+  .callout.success { background: var(--success-bg); border-color: var(--success-border); }
+  .callout strong { display: block; margin-bottom: 4px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13.5px; }
+  th { background: #f1f5f9; text-align: left; padding: 10px 14px; font-weight: 600; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .badge.green { background: #dcfce7; color: #166534; }
+  .badge.red { background: #fee2e2; color: #991b1b; }
+  .badge.yellow { background: #fef9c3; color: #854d0e; }
+  .badge.blue { background: #dbeafe; color: #1e40af; }
+
+  @media (max-width: 768px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 24px 20px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="nav-logo">
+    <span>Gibson Technologies</span>
+    <small>Ops &amp; Infrastructure Guide</small>
+  </div>
+  <div class="nav-section">Infrastructure</div>
+  <a href="#stack">Stack Overview</a>
+  <a href="#containers">Containers</a>
+  <a href="#env">Environment Variables</a>
+  <div class="nav-section">Operations</div>
+  <a href="#start-stop">Start / Stop</a>
+  <a href="#updates">Updating the App</a>
+  <a href="#migrations">DB Migrations</a>
+  <a href="#backups">Backups</a>
+  <a href="#ssl">SSL / Certificates</a>
+  <div class="nav-section">Monitoring</div>
+  <a href="#logs">Logs</a>
+  <a href="#flower">Celery Flower</a>
+  <a href="#health">Health Checks</a>
+  <div class="nav-section">Troubleshooting</div>
+  <a href="#ts-containers">Containers Not Starting</a>
+  <a href="#ts-502">502 Bad Gateway</a>
+  <a href="#ts-db">Database Errors</a>
+  <a href="#ts-disk">Disk Space</a>
+  <a href="#ts-ssl">SSL Renewal</a>
+  <div class="nav-section">Security</div>
+  <a href="#security">Security Checklist</a>
+  <a href="#firewall">Firewall Rules</a>
+  <div class="nav-section">Reference</div>
+  <a href="#commands">Quick Commands</a>
+</nav>
+
+<main>
+  <h1>Ops &amp; Infrastructure Guide</h1>
+  <p class="subtitle">Gibson Technologies — GCP VM + Docker Compose + Neon PostgreSQL</p>
+
+  <!-- Stack -->
+  <h2 id="stack">Stack Overview</h2>
+  <p>The platform runs as a set of Docker Compose services on a GCP VM. PostgreSQL is fully managed by Neon (serverless). All public traffic enters through host Nginx on ports 80/443.</p>
+  <pre><code>Browser
+  │
+  ▼
+Nginx (host, port 80/443)
+  │
+  ▼
+Frontend container (127.0.0.1:3000)
+  ├── /api/*  → API container (172.x.x.x:8000)
+  │              ├── Neon PostgreSQL (external, TLS)
+  │              ├── Redis container (internal)
+  │              └── Celery Worker / Beat
+  └── /*      → React SPA (static files)</code></pre>
+
+  <!-- Containers -->
+  <h2 id="containers">Containers</h2>
+  <table>
+    <tr><th>Service</th><th>Image</th><th>Port</th><th>Role</th></tr>
+    <tr><td><code>redis</code></td><td>redis:7-alpine</td><td>internal only</td><td>Cache + Celery broker</td></tr>
+    <tr><td><code>api</code></td><td>gtechwebsite-api</td><td>0.0.0.0:8000</td><td>FastAPI (4 Uvicorn workers)</td></tr>
+    <tr><td><code>worker</code></td><td>gtechwebsite-api</td><td>internal</td><td>Celery worker (email, orders)</td></tr>
+    <tr><td><code>beat</code></td><td>gtechwebsite-api</td><td>internal</td><td>Celery beat scheduler</td></tr>
+    <tr><td><code>flower</code></td><td>gtechwebsite-api</td><td>127.0.0.1:5555</td><td>Celery monitoring UI</td></tr>
+    <tr><td><code>frontend</code></td><td>gtechwebsite-frontend</td><td>127.0.0.1:3000</td><td>React SPA + Nginx proxy</td></tr>
+  </table>
+  <div class="callout danger"><strong>⚠ Never expose Redis (6379) externally.</strong> The GCP firewall must not have a rule opening port 6379.</div>
+
+  <!-- Env -->
+  <h2 id="env">Environment Variables</h2>
+  <p>All configuration lives in <code>/home/Jdalton/gtechwebsite/backend/.env</code>. Never commit this file.</p>
+  <table>
+    <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+    <tr><td><code>SECRET_KEY</code></td><td><span class="badge red">Required</span></td><td>64-char hex JWT signing secret</td></tr>
+    <tr><td><code>DATABASE_URL</code></td><td><span class="badge red">Required</span></td><td>Async Neon URL (<code>postgresql+asyncpg://...</code>)</td></tr>
+    <tr><td><code>DATABASE_URL_SYNC</code></td><td><span class="badge red">Required</span></td><td>Sync Neon URL for Celery tasks</td></tr>
+    <tr><td><code>REDIS_URL</code></td><td><span class="badge red">Required</span></td><td><code>redis://redis:6379/0</code></td></tr>
+    <tr><td><code>STRIPE_SECRET_KEY</code></td><td><span class="badge red">Required</span></td><td>Stripe secret key</td></tr>
+    <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td><span class="badge red">Required</span></td><td>Stripe webhook signing secret</td></tr>
+    <tr><td><code>ALLOWED_ORIGINS</code></td><td><span class="badge red">Required</span></td><td>Comma-separated CORS origins (production: <code>https://gibtechs.com</code>)</td></tr>
+    <tr><td><code>ENVIRONMENT</code></td><td><span class="badge yellow">Optional</span></td><td><code>production</code> disables Swagger UI</td></tr>
+    <tr><td><code>FLOWER_USER</code> / <code>FLOWER_PASSWORD</code></td><td><span class="badge yellow">Optional</span></td><td>Basic auth for Flower dashboard</td></tr>
+    <tr><td><code>SMTP_HOST</code> / <code>SMTP_USER</code> / <code>SMTP_PASSWORD</code></td><td><span class="badge yellow">Optional</span></td><td>Leave blank to disable email</td></tr>
+  </table>
+  <p>After editing <code>.env</code>, restart affected services:</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd /home/Jdalton/gtechwebsite
+docker compose restart api worker beat</code></pre>
+
+  <!-- Start / Stop -->
+  <h2 id="start-stop">Start / Stop</h2>
+  <h3>Start all services</h3>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd /home/Jdalton/gtechwebsite
+docker compose up -d</code></pre>
+  <h3>Stop all services</h3>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>docker compose down</code></pre>
+  <h3>Restart a single service</h3>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>docker compose restart api      # restart API only
+docker compose restart worker   # restart Celery worker</code></pre>
+  <div class="callout info"><strong>Auto-restart:</strong> All containers use <code>restart: unless-stopped</code>. They will automatically come back up after a VM reboot.</div>
+
+  <!-- Updates -->
+  <h2 id="updates">Updating the Application</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>cd /home/Jdalton/gtechwebsite
+
+# Pull latest code
+git pull origin main
+
+# Rebuild and restart changed services
+docker compose build
+docker compose up -d --no-deps --build api worker beat frontend
+
+# Confirm migrations ran
+docker compose logs api | grep -i alembic</code></pre>
+  <div class="callout info"><strong>Alembic migrations</strong> run automatically on API container start — no manual step needed.</div>
+
+  <!-- Migrations -->
+  <h2 id="migrations">Database Migrations</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Check current revision
+docker compose exec api alembic current
+
+# Apply all pending migrations
+docker compose exec api alembic upgrade head
+
+# Roll back one step
+docker compose exec api alembic downgrade -1
+
+# Create a new migration (after model changes)
+docker compose exec api alembic revision --autogenerate -m "description"</code></pre>
+
+  <!-- Backups -->
+  <h2 id="backups">Backups</h2>
+  <h3>Database (Neon)</h3>
+  <p>Neon provides automatic point-in-time restore (7 days free tier, 30 days on paid plans). For additional manual backups, a cron job runs daily at 3:00 AM:</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Manual on-demand backup
+docker run --rm postgres:18-alpine \
+  pg_dump "postgresql://neondb_owner:PASSWORD@HOST/neondb?sslmode=require" \
+  > /home/Jdalton/backups/db_$(date +%Y%m%d).sql
+
+# Restore
+docker run --rm -i postgres:18-alpine \
+  psql "postgresql://neondb_owner:PASSWORD@HOST/neondb?sslmode=require" \
+  < /home/Jdalton/backups/db_20260101.sql</code></pre>
+  <h3>Media files</h3>
+  <p>Media uploads live in the Docker volume <code>gtechwebsite_media_data</code>. A cron job backs them up daily at 3:30 AM to <code>/home/Jdalton/backups/</code>. Both DB and media backups are retained for 7 days.</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># List backups
+ls -lh /home/Jdalton/backups/
+
+# View cron schedule
+crontab -l</code></pre>
+
+  <!-- SSL -->
+  <h2 id="ssl">SSL / Certificates</h2>
+  <p>Certificates are managed by Certbot (snap) and stored at <code>/etc/letsencrypt/live/gibtechs.com/</code>. Auto-renewal is handled by a systemd timer.</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Check timer status
+sudo systemctl status certbot.timer
+
+# Test auto-renewal (dry run)
+sudo certbot renew --dry-run
+
+# Force renewal
+sudo certbot renew --force-renewal
+sudo systemctl reload nginx</code></pre>
+  <div class="callout warn"><strong>Certificate expires 2026-09-02.</strong> Auto-renew will fire ~30 days before expiry. If it fails, run the force-renewal command above.</div>
+
+  <!-- Logs -->
+  <h2 id="logs">Logs</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Stream all logs
+docker compose logs -f
+
+# Specific service
+docker compose logs -f api
+docker compose logs -f worker
+docker compose logs -f frontend
+
+# Last 100 lines
+docker compose logs --tail=100 api
+
+# Nginx access/error logs
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log</code></pre>
+
+  <!-- Flower -->
+  <h2 id="flower">Celery Flower Dashboard</h2>
+  <p>Flower runs on <code>127.0.0.1:5555</code> and is not publicly accessible. Access it via SSH tunnel:</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>ssh -L 5555:127.0.0.1:5555 Jdalton@104.196.57.152</code></pre>
+  <p>Then open <a href="http://localhost:5555" target="_blank">http://localhost:5555</a> in your browser. Login with <code>FLOWER_USER</code> / <code>FLOWER_PASSWORD</code> from <code>backend/.env</code>.</p>
+
+  <!-- Health -->
+  <h2 id="health">Health Checks</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># API health
+curl https://gibtechs.com/api/v1/health
+# Expected: {"status":"ok","version":"1.0.0"}
+
+# Container status
+docker compose ps
+
+# Resource usage
+docker stats</code></pre>
+
+  <!-- Troubleshooting -->
+  <h2 id="ts-containers">Containers Not Starting</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>docker compose ps
+docker compose logs api
+docker compose logs worker</code></pre>
+
+  <h2 id="ts-502">502 Bad Gateway</h2>
+  <p>The API container may still be starting — health check takes up to 40 s on boot.</p>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>docker compose logs -f api
+# Wait for: INFO: Application startup complete.</code></pre>
+
+  <h2 id="ts-db">Database / Neon Errors</h2>
+  <ul>
+    <li>Confirm <code>DATABASE_URL</code> ends with <code>?sslmode=require</code></li>
+    <li>Use the <strong>pooled</strong> connection string from Neon Dashboard</li>
+    <li>Check if the Neon project is suspended — log in to <a href="https://console.neon.tech" target="_blank">console.neon.tech</a> and wake the branch</li>
+  </ul>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>docker compose exec api alembic current
+docker compose exec api alembic upgrade head</code></pre>
+
+  <h2 id="ts-disk">Out of Disk Space</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>df -h
+docker system prune -f        # removes stopped containers & dangling images
+docker volume ls              # NEVER prune media_data or redis data volumes</code></pre>
+
+  <h2 id="ts-ssl">SSL Certificate Not Renewing</h2>
+  <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>sudo certbot renew --force-renewal
+sudo systemctl reload nginx</code></pre>
+
+  <!-- Security -->
+  <h2 id="security">Security Checklist</h2>
+  <ul>
+    <li><code>SECRET_KEY</code> is a random 64-character hex string</li>
+    <li><code>FIRST_SUPERADMIN_PASSWORD</code> changed after first login</li>
+    <li><code>STRIPE_WEBHOOK_SECRET</code> is the live Stripe signing secret</li>
+    <li><code>FLOWER_USER</code> and <code>FLOWER_PASSWORD</code> are non-default values</li>
+    <li>Flower accessed via SSH tunnel only — not open in GCP firewall</li>
+    <li>Redis port 6379 is NOT exposed in GCP firewall</li>
+    <li><code>ALLOWED_ORIGINS</code> contains only <code>https://gibtechs.com</code></li>
+    <li>SMTP credentials are app-specific passwords</li>
+    <li>HTTPS redirect working: <code>curl -I http://gibtechs.com</code> returns 301</li>
+  </ul>
+
+  <!-- Firewall -->
+  <h2 id="firewall">Firewall Rules (GCP)</h2>
+  <table>
+    <tr><th>Rule name</th><th>Protocol</th><th>Port</th><th>Source</th></tr>
+    <tr><td>allow-http</td><td>TCP</td><td>80</td><td>0.0.0.0/0</td></tr>
+    <tr><td>allow-https</td><td>TCP</td><td>443</td><td>0.0.0.0/0</td></tr>
+    <tr><td>allow-ssh</td><td>TCP</td><td>22</td><td>Your IP only</td></tr>
+    <tr><td>allow-flower</td><td>TCP</td><td>5555</td><td>Your IP only</td></tr>
+    <tr><td colspan="4"><strong>NOT exposed:</strong> 6379 (Redis), 5432 (Neon — cloud only)</td></tr>
+  </table>
+
+  <!-- Quick Commands -->
+  <h2 id="commands">Quick Reference Commands</h2>
+  <table>
+    <tr><th>Task</th><th>Command</th></tr>
+    <tr><td>Start all</td><td><code>docker compose up -d</code></td></tr>
+    <tr><td>Stop all</td><td><code>docker compose down</code></td></tr>
+    <tr><td>Restart API</td><td><code>docker compose restart api</code></td></tr>
+    <tr><td>View all logs</td><td><code>docker compose logs -f</code></td></tr>
+    <tr><td>Run migrations</td><td><code>docker compose exec api alembic upgrade head</code></td></tr>
+    <tr><td>Container status</td><td><code>docker compose ps</code></td></tr>
+    <tr><td>Resource usage</td><td><code>docker stats</code></td></tr>
+    <tr><td>Backup DB</td><td><code>docker run --rm postgres:18-alpine pg_dump "..." > backup.sql</code></td></tr>
+    <tr><td>Check health</td><td><code>curl https://gibtechs.com/api/v1/health</code></td></tr>
+    <tr><td>Flower tunnel</td><td><code>ssh -L 5555:127.0.0.1:5555 Jdalton@104.196.57.152</code></td></tr>
+    <tr><td>Renew SSL</td><td><code>sudo certbot renew --force-renewal && sudo systemctl reload nginx</code></td></tr>
+  </table>
+</main>
+
+<script>
+  function copyCode(btn) {
+    const code = btn.nextSibling.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('h2[id]');
+  const links = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

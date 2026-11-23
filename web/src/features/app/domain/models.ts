@@ -1,9 +1,0 @@
-export type Photo={md:string;lg:string;blurhash:string};
-export type DiscoveryCard={id:string;name:string;age:number;distance_label:string;county:string;job_title:string;school:string;bio:string;interests:string[];photos:Photo[];verified:boolean;superliked_you:boolean};
-export type Match={id:string;created_at:string;other_user:{id:string;display_name:string;blurhash:string|null};last_message:{kind:string;body:string;created_at:string}|null;unread_count:number};
-export type Message={id:string;match_id:string;sender_id:string;kind:'text'|'image';body:string;media_url:string|null;safety_warning:boolean;read_at:string|null;created_at:string};
-export type Like={id:string;name:string;age:number;verified:boolean;photo_url:string|null;superlike:boolean;liked_at:string};
-export type LikesResponse={count:number;results?:Like[];blurred?:Array<{blurhash:string|null}>};
-export type Profile={user_id:string;display_name:string;bio:string;job_title:string;school:string;county:string;languages:string[];relationship_goal:string;completeness:number;is_verified:boolean;verification_status:string};
-export type Preferences={show_me:string[];age_min:number;age_max:number;max_distance_km:number;counties_filter:string[];global_mode:boolean;is_discoverable:boolean};
-export type Product={sku:string;kind:string;tier:'plus'|'gold'|'platinum'|null;duration_days:number|null;prices:{USD:number;LRD:number}};

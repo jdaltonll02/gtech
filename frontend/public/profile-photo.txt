@@ -1,0 +1,8 @@
+Replace this file with your professional photo and rename it to `profile-photo.jpg`.
+
+Expected path used by the portfolio page:
+- /profile-photo.jpg
+
+Recommended image:
+- Size: at least 900x900
+- Format: JPG or PNG
