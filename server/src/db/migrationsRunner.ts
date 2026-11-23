@@ -5,10 +5,15 @@ import {pool} from './pool.js';
 
 const directory = join(dirname(fileURLToPath(import.meta.url)), 'migrations');
 const lockName = 'pepper-schema-migrations';
+let ready = false;
+
+export const migrationsReady = () => ready;
 
 export const runMigrations = async () => {
   const client = await pool.connect();
   try {
+    await client.query('CREATE SCHEMA IF NOT EXISTS pepper');
+    await client.query('SET search_path TO pepper, public');
     await client.query('SELECT pg_advisory_lock(hashtext($1))', [lockName]);
     await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
     for (const name of (await readdir(directory)).filter((item) => item.endsWith('.sql')).sort()) {
@@ -24,6 +29,7 @@ export const runMigrations = async () => {
         throw error;
       }
     }
+    ready = true;
   } finally {
     await client.query('SELECT pg_advisory_unlock(hashtext($1))', [lockName]).catch(() => undefined);
     client.release();
