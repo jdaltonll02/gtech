@@ -4,7 +4,7 @@ import {existsSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import helmet from 'helmet';
-import {corsOrigins} from './config.js';
+import {config, corsOrigins} from './config.js';
 import {errorHandler} from './core/errors.js';
 import {openApi} from './core/openapi.js';
 import {accountsRouter} from './modules/accounts/routes.js';
@@ -26,6 +26,7 @@ const webDist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist
 export const createApp = () => {
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', config.NODE_ENV === 'production' ? 1 : false);
   app.use(helmet());
   app.use(cors({origin: corsOrigins}));
   app.use(express.json({limit: '1mb'}));

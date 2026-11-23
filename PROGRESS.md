@@ -76,3 +76,4 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [x] Runbook, API and store-compliance docs
 - [x] Full test/build/coverage acceptance checks
 - [x] Hostinger monorepo root build and same-origin React/Express packaging
+- [ ] Hostinger live production readiness (schema migration, Redis and auth smoke)
