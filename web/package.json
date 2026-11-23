@@ -9,7 +9,8 @@
     "budget": "node ../scripts/performance-budget.mjs web",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:realtime:e2e": "vitest run src/core/realtime.live.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.8",

@@ -102,6 +102,12 @@ cd server
 npm run product:smoke
 ```
 
+Run the cross-client realtime acceptance from the repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/realtime-e2e.ps1
+```
+
 See [TESTING.md](TESTING.md) for targeted suites, manual client checks, and
 performance budgets.
 

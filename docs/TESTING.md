@@ -44,6 +44,19 @@ npm run product:smoke
 
 The smoke workflow uses the seeded `+231770000001` demo account and development OTP `000000`. It verifies real HTTP calls for authentication, the existing profile, discovery preferences, the discovery deck, likes, matches, chat persistence, products, fake purchase verification, and returned entitlements. It may create a match, adds a timestamped development chat message, and uses a deterministic fake receipt so repeated purchase verification is idempotent.
 
+For the complete realtime acceptance across the isolated server protocol, the
+production React realtime client, and the production Flutter realtime service:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/realtime-e2e.ps1
+```
+
+The stack must be running, migrated, and seeded, and the demo account must have
+an active match (the product smoke workflow creates one when possible). The
+server portion creates and cleans up isolated users; the client portions use a
+short-lived development session. If OTP throttling is active, pass a current
+development token with `-AccessToken`.
+
 OTP requests are deliberately rate-limited. On a reused development database, wait for the 15-minute OTP window if the demo number has already reached its request limit.
 
 ## Manual clients

@@ -16,6 +16,7 @@
     "media:smoke": "node scripts/media-smoke.mjs",
     "swipe:smoke": "node scripts/swipe-race-smoke.mjs",
     "realtime:smoke": "node scripts/realtime-smoke.mjs",
+    "realtime:cross-client": "node scripts/cross-client-realtime-smoke.mjs",
     "match-event:smoke": "node scripts/match-event-smoke.mjs",
     "unmatch:smoke": "node scripts/unmatch-smoke.mjs",
     "billing:smoke": "node scripts/billing-smoke.mjs",

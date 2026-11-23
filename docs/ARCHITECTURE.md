@@ -497,6 +497,7 @@ Both **light** (white bg, black text, red accents — Tinder's default look) and
 - **Web**: Vitest + Testing Library cover authentication, API refresh/error behavior, feature screens, repositories, and realtime reconciliation. Production build and bundle budgets run with coverage in CI.
 - **App**: Flutter unit/widget tests cover network/auth contracts, OTP flow, deck gestures and semantics, billing gates, and light/dark goldens. CI measures line coverage and builds an Android x64 debug APK under an artifact budget.
 - **Seed and smoke**: `npm run seed -- --users 300` creates generated demo profiles, and `npm run product:smoke` exercises the complete local-stack product path.
+- **Realtime E2E**: an opt-in local-stack command validates the isolated Socket.IO protocol plus the production React and Flutter realtime clients, including reconnect and HTTP reconciliation.
 - **CI**: server, React web, Flutter mobile, security, coverage, build, and artifact gates run on every push and pull request.
 
 ---

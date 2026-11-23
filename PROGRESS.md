@@ -67,7 +67,7 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [x] Generic billing webhook fails closed for unverified Apple/Google events
 - [x] Dedicated Apple and Google signed notification verification
 - [x] Realtime clients, reconnect/offline reconciliation and gateway integration tests
-- [ ] Cross-client realtime end-to-end tests against the complete local stack
+- [x] Cross-client realtime end-to-end tests against the complete local stack
 - [x] Local-stack authentication, discovery, match, chat and fake-purchase smoke workflow
 - [x] React behavior coverage for Explore, Likes, Chats, Profile, Settings and Upgrade
 - [ ] Browser-level visual and accessibility acceptance pass
