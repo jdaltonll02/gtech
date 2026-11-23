@@ -1,14 +1,20 @@
+import {createHash} from 'node:crypto';
 import {z} from 'zod';
+
+const legacySecret = process.env.SECRET_KEY;
+const derivedSecret = (purpose: string) => legacySecret
+  ? createHash('sha256').update(`pepper:${purpose}:${legacySecret}`).digest('hex')
+  : undefined;
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(8000),
   DATABASE_URL: z.string().url().default('postgresql://pepper:pepper@localhost:5432/pepper'),
   REDIS_URL: z.string().url().default('redis://localhost:6379/0'),
-  JWT_SECRET: z.string().min(32).default('unsafe-local-development-key-change-in-production'),
+  JWT_SECRET: z.string().min(32).default(derivedSecret('jwt') ?? 'unsafe-local-development-key-change-in-production'),
   CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:5173'),
   SMS_PROVIDER: z.enum(['console', 'twilio', 'africastalking']).default('console'),
-  FIELD_ENCRYPTION_KEY: z.string().min(16).default('unsafe-local-field-key-change-me'),
+  FIELD_ENCRYPTION_KEY: z.string().min(16).default(derivedSecret('field-encryption') ?? 'unsafe-local-field-key-change-me'),
   S3_ENDPOINT_URL: z.string().url().default('http://localhost:9000'),
   S3_PUBLIC_ENDPOINT_URL: z.string().url().default('http://localhost:9000'),
   S3_ACCESS_KEY: z.string().default('pepper'),

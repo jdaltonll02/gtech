@@ -181,6 +181,10 @@ For an initial single-VM deployment:
    private networks. Only 80/443 should be internet-facing.
 8. Set `NODE_ENV=production`, exact `CORS_ALLOWED_ORIGINS`, production provider
    credentials, and HTTPS webhook/public storage URLs.
+   Existing Hostinger deployments may supply a production `SECRET_KEY`; when the
+   Pepper-specific `JWT_SECRET` and `FIELD_ENCRYPTION_KEY` are absent, the server
+   derives separate SHA-256 keys from it for a zero-downtime migration. New
+   deployments should set the Pepper-specific variables directly.
 9. Verify `/api/v1/healthz`, `/api/v1/readyz`, authentication, media upload,
    one realtime conversation, purchase sandbox flow, and account deletion.
 
