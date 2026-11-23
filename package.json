@@ -1,0 +1,14 @@
+{
+  "name": "pepper",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm ci --prefix web && npm run build --prefix web && npm ci --prefix server && npm run build --prefix server",
+    "start": "node server/src/index.js",
+    "test": "npm test --prefix server && npm test --prefix web"
+  }
+}

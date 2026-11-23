@@ -75,3 +75,4 @@ Acceptance boxes are checked only after the corresponding checks pass.
 - [x] Flutter accessibility audit and measured web/mobile performance budgets
 - [x] Runbook, API and store-compliance docs
 - [x] Full test/build/coverage acceptance checks
+- [x] Hostinger monorepo root build and same-origin React/Express packaging

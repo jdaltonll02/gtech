@@ -1,5 +1,8 @@
 import cors from 'cors';
 import express from 'express';
+import {existsSync} from 'node:fs';
+import {dirname, join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import helmet from 'helmet';
 import {corsOrigins} from './config.js';
 import {errorHandler} from './core/errors.js';
@@ -17,6 +20,8 @@ import {notificationsRouter} from './modules/notifications/routes.js';
 import {billingRouter} from './modules/billing/routes.js';
 import {safetyRouter} from './modules/safety/routes.js';
 import {accountRouter} from './modules/account/routes.js';
+
+const webDist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist');
 
 export const createApp = () => {
   const app = express();
@@ -38,6 +43,10 @@ export const createApp = () => {
   app.use('/api/v1', safetyRouter);
   app.use('/api/v1', accountRouter);
   app.get('/api/v1/schema', (_request, response) => response.json(openApi));
+  if (existsSync(webDist)) {
+    app.use(express.static(webDist, {index: false}));
+    app.get(/^(?!\/api\/).*/, (_request, response) => response.sendFile(join(webDist, 'index.html')));
+  }
   app.use(errorHandler);
   return app;
 };
