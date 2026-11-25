@@ -11,6 +11,8 @@ vi.mock('../src/lib/prisma.js', () => ({
   disconnectPrisma: vi.fn(),
 }));
 
+const { prisma } = await import('../src/lib/prisma.js');
+
 let app;
 beforeAll(async () => { ({ createApp: app } = await import('../src/app.js')); });
 
@@ -26,5 +28,11 @@ describe('health', () => {
   it('returns the FastAPI detail envelope for unknown API routes', async () => {
     const response = await request(app()).get('/api/v1/not-a-route').expect(404);
     expect(response.body).toEqual({ detail: 'Not Found' });
+  });
+
+  it('reports readiness only when the database and latest migration are available', async () => {
+    vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([{ '?column?': 1 }]).mockResolvedValueOnce([{ exists: 1 }]);
+    const response=await request(app()).get('/health/ready').expect(200);
+    expect(response.body).toMatchObject({status:'ready',database:true,migrations:true});
   });
 });

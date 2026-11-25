@@ -56,13 +56,13 @@ describe('cartStore', () => {
     expect(useCartStore.getState().loading).toBe(false);
   });
 
-  it('addItem calls POST /cart and updates cart', async () => {
+  it('addItem calls the ecommerce cart endpoint and updates cart', async () => {
     const { api } = await import('../app/utils/api');
     vi.mocked(api.post).mockResolvedValue(mockCart);
 
     await useCartStore.getState().addItem('prod-1', 2);
 
-    expect(api.post).toHaveBeenCalledWith('/cart', { product_id: 'prod-1', quantity: 2 });
+    expect(api.post).toHaveBeenCalledWith('/ecommerce/cart', { product_id: 'prod-1', quantity: 2 });
     expect(useCartStore.getState().cart).toEqual(mockCart);
   });
 
@@ -72,7 +72,7 @@ describe('cartStore', () => {
 
     await useCartStore.getState().addItem('prod-1');
 
-    expect(api.post).toHaveBeenCalledWith('/cart', { product_id: 'prod-1', quantity: 1 });
+    expect(api.post).toHaveBeenCalledWith('/ecommerce/cart', { product_id: 'prod-1', quantity: 1 });
   });
 
   it('updateItem calls PATCH /cart/:id and updates cart', async () => {
@@ -82,7 +82,7 @@ describe('cartStore', () => {
 
     await useCartStore.getState().updateItem('item-1', 5);
 
-    expect(api.patch).toHaveBeenCalledWith('/cart/item-1', { quantity: 5 });
+    expect(api.patch).toHaveBeenCalledWith('/ecommerce/cart/item-1', { quantity: 5 });
     expect(useCartStore.getState().cart?.items[0].quantity).toBe(5);
   });
 
@@ -93,7 +93,7 @@ describe('cartStore', () => {
 
     await useCartStore.getState().removeItem('item-1');
 
-    expect(api.delete).toHaveBeenCalledWith('/cart/item-1');
+    expect(api.delete).toHaveBeenCalledWith('/ecommerce/cart/item-1');
     expect(useCartStore.getState().cart?.items).toHaveLength(0);
   });
 

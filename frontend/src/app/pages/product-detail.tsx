@@ -82,17 +82,17 @@ export function ProductDetail() {
     setFailedImages((prev) => new Set(prev).add(url));
 
   useEffect(() => {
-    api.get<Product>(`/products/${id}`)
+    api.get<Product>(`/ecommerce/products/${id}`)
       .then(setProduct)
       .catch(() => setError('Product not found.'))
       .finally(() => setLoading(false));
-    api.get<RatingSummary>(`/products/${id}/ratings/summary`).then(setRatingSummary).catch(() => {});
-    api.get<ProductRating[]>(`/products/${id}/ratings`).then(setReviews).catch(() => {});
+    api.get<RatingSummary>(`/ecommerce/products/${id}/ratings/summary`).then(setRatingSummary).catch(() => {});
+    api.get<ProductRating[]>(`/ecommerce/products/${id}/ratings`).then(setReviews).catch(() => {});
   }, [id]);
 
   useEffect(() => {
     if (!id || !isAuthenticated) return;
-    api.get<{ rating: number; review: string | null } | null>(`/products/${id}/ratings/me`)
+    api.get<{ rating: number; review: string | null } | null>(`/ecommerce/products/${id}/ratings/me`)
       .then((r) => { if (r) { setMyRating(r); setRatingInput(r.rating); setReviewInput(r.review ?? ''); } })
       .catch(() => {});
   }, [id, isAuthenticated]);
@@ -101,11 +101,11 @@ export function ProductDetail() {
     if (!id || ratingInput === 0) return;
     setRatingSubmitting(true);
     try {
-      await api.post(`/products/${id}/rate`, { rating: ratingInput, review: reviewInput || null });
+      await api.post(`/ecommerce/products/${id}/rate`, { rating: ratingInput, review: reviewInput || null });
       setMyRating({ rating: ratingInput, review: reviewInput || null });
       const [summary, list] = await Promise.all([
-        api.get<RatingSummary>(`/products/${id}/ratings/summary`),
-        api.get<ProductRating[]>(`/products/${id}/ratings`),
+        api.get<RatingSummary>(`/ecommerce/products/${id}/ratings/summary`),
+        api.get<ProductRating[]>(`/ecommerce/products/${id}/ratings`),
       ]);
       setRatingSummary(summary);
       setReviews(list);

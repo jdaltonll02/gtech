@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate, Link } from 'react-router';
+import { useNavigate, Link, useSearchParams } from 'react-router';
 import { Lock, CreditCard, Smartphone, CheckCircle, ArrowLeft, ArrowRight, ShoppingBag } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -54,6 +54,7 @@ const CARD_ELEMENT_OPTIONS = {
 
 function CheckoutInner() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { cart, fetchCart, clearCart } = useCartStore();
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -76,19 +77,51 @@ function CheckoutInner() {
   const [intent, setIntent] = useState<PaymentIntentResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [cartReady, setCartReady] = useState(false);
+  const paypalToken = searchParams.get('token');
+  const isPaypalReturn = searchParams.get('paypal') === 'success' && Boolean(paypalToken);
 
   useEffect(() => {
-    if (isAuthenticated) fetchCart();
-  }, [isAuthenticated]);
+    if (!isAuthenticated || isPaypalReturn) {
+      setCartReady(true);
+      return;
+    }
+    let active = true;
+    fetchCart().finally(() => { if (active) setCartReady(true); });
+    return () => { active = false; };
+  }, [isAuthenticated, isPaypalReturn, fetchCart]);
 
-  if (!isAuthenticated) {
-    navigate('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) navigate('/login', { replace: true });
+  }, [isAuthenticated, navigate]);
 
-  if (!cart || cart.items.length === 0) {
-    navigate('/store/cart');
-    return null;
+  useEffect(() => {
+    if (!isAuthenticated || !cartReady || isPaypalReturn) return;
+    if (!cart || cart.items.length === 0) navigate('/store/cart', { replace: true });
+  }, [isAuthenticated, cartReady, isPaypalReturn, cart, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isPaypalReturn || !paypalToken) return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    api.post(`/payments/paypal/capture/${encodeURIComponent(paypalToken)}`, {})
+      .then(() => {
+        if (!active) return;
+        clearCart();
+        navigate('/store/orders', { replace: true });
+      })
+      .catch((err: Error) => { if (active) setError(err.message || 'PayPal payment could not be confirmed.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [isAuthenticated, isPaypalReturn, paypalToken, clearCart, navigate]);
+
+  if (!isAuthenticated || !cartReady || isPaypalReturn || !cart || cart.items.length === 0) {
+    return (
+      <div className="min-h-screen pt-32 text-center">
+        <p className="text-black/60">{error || (isPaypalReturn ? 'Confirming your PayPal payment…' : 'Loading checkout…')}</p>
+      </div>
+    );
   }
 
   const handleBillingChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -100,11 +133,17 @@ function CheckoutInner() {
     setError('');
     setLoading(true);
     try {
-      const created = await api.post<OrderResponse>('/orders/checkout', {
+      const created = await api.post<OrderResponse>('/ecommerce/orders/checkout', {
         payment_provider: provider,
         billing_email: billing.email,
         billing_name: `${billing.firstName} ${billing.lastName}`.trim(),
         phone_number: billing.phone || undefined,
+        shipping_address: {
+          address: billing.address,
+          city: billing.city,
+          postal_code: billing.zip,
+          country: 'Liberia',
+        },
       });
       setOrder(created);
       setStep('payment');

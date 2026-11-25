@@ -41,7 +41,7 @@ export const useCartStore = create<CartState>((set) => ({
   fetchCart: async () => {
     set({ loading: true });
     try {
-      const cart = await api.get<CartData>('/cart');
+      const cart = await api.get<CartData>('/ecommerce/cart');
       set({ cart });
     } catch {
       set({ cart: null });
@@ -51,17 +51,17 @@ export const useCartStore = create<CartState>((set) => ({
   },
 
   addItem: async (productId, quantity = 1) => {
-    const cart = await api.post<CartData>('/cart', { product_id: productId, quantity });
+    const cart = await api.post<CartData>('/ecommerce/cart', { product_id: productId, quantity });
     set({ cart });
   },
 
   updateItem: async (itemId, quantity) => {
-    const cart = await api.patch<CartData>(`/cart/${itemId}`, { quantity });
+    const cart = await api.patch<CartData>(`/ecommerce/cart/${itemId}`, { quantity });
     set({ cart });
   },
 
   removeItem: async (itemId) => {
-    const cart = await api.delete<CartData>(`/cart/${itemId}`);
+    const cart = await api.delete<CartData>(`/ecommerce/cart/${itemId}`);
     set({ cart });
   },
 

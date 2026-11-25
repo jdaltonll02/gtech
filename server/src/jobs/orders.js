@@ -1,7 +1,24 @@
 import { prisma } from '../lib/prisma.js';
-import { enqueue } from './runner.js';
-import { sendOrderConfirmation } from '../services/email.js';
+import { enqueueDurable } from './durable.js';
+import { cancelExpiredOrders } from '../services/order-lifecycle.js';
 
-export async function processPaidOrder(orderId){return prisma.$transaction(async(tx)=>{const claimed=await tx.$queryRawUnsafe("UPDATE orders SET status='processing',updated_at=NOW() WHERE id=$1::uuid AND status='paid' RETURNING *",orderId);if(!claimed.length)return{status:'already_processed',order_id:orderId};const order=claimed[0],items=await tx.$queryRawUnsafe('SELECT * FROM order_items WHERE order_id=$1::uuid',orderId);for(const item of items)await tx.$executeRawUnsafe('UPDATE products SET stock_quantity=GREATEST(0,stock_quantity-$1),in_stock=(GREATEST(0,stock_quantity-$1)>0),updated_at=NOW() WHERE id=$2::uuid AND stock_quantity>0',item.quantity,String(item.product_id));if(order.billing_email)enqueue('send_order_confirmation',()=>sendOrderConfirmation(order.billing_email,order.billing_name||'Customer',String(order.id),order.total,items.map((x)=>({name:x.product_name,quantity:x.quantity,total:x.total_price}))));return{status:'processed',order_id:orderId};});}
-export function enqueuePaidOrder(orderId){enqueue('process_paid_order',()=>processPaidOrder(orderId),{retries:3,delayMs:30_000});}
-export async function cancelStaleOrders(){const count=await prisma.$executeRawUnsafe("UPDATE orders SET status='cancelled',updated_at=NOW() WHERE status='payment_pending' AND payment_status='pending' AND created_at<NOW()-INTERVAL '24 hours'");return{cancelled:count};}
+export async function processPaidOrder(orderId){
+  return prisma.$transaction(async(tx)=>{
+    const claimed=await tx.$queryRawUnsafe("UPDATE orders SET status='processing',updated_at=NOW() WHERE id=$1::uuid AND status='paid' RETURNING *",orderId);
+    if(!claimed.length)return{status:'already_processed',order_id:orderId};
+    const order=claimed[0];
+    const items=await tx.$queryRawUnsafe('SELECT * FROM order_items WHERE order_id=$1::uuid',orderId);
+    if(order.billing_email){
+      await enqueueDurable('send_order_confirmation',{
+        email:order.billing_email,
+        name:order.billing_name||'Customer',
+        order_id:String(order.id),
+        total:String(order.total),
+        items:items.map((item)=>({name:item.product_name,quantity:item.quantity,total:String(item.total_price)})),
+      },{db:tx});
+    }
+    return{status:'processed',order_id:orderId};
+  });
+}
+export function enqueuePaidOrder(orderId){return enqueueDurable('process_paid_order',{order_id:orderId},{maxAttempts:5});}
+export async function cancelStaleOrders(){return{cancelled:await cancelExpiredOrders()};}

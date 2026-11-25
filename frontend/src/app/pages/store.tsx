@@ -30,7 +30,7 @@ export function Store() {
   const markFailed = (url: string) => setFailedImages((prev) => new Set(prev).add(url));
 
   useEffect(() => {
-    api.get<Product[]>('/products')
+    api.get<Product[]>('/ecommerce/products')
       .then(setProducts)
       .catch(() => {})
       .finally(() => setLoading(false));

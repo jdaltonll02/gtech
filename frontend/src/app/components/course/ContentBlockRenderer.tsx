@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Button } from '../ui/button';
 import 'katex/dist/katex.min.css';
 import { renderMathInHtml } from '../../utils/renderMath';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 type ContentBlockType = 'text' | 'video' | 'image' | 'code';
 
@@ -44,7 +45,7 @@ export function ContentBlockRenderer({ block }: { block: ContentBlock }) {
       {block.block_type === 'text' && (
         <div
           className="prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: renderMathInHtml(block.content || '') }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMathInHtml(block.content || '')) }}
         />
       )}
 

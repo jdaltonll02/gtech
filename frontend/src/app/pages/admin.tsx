@@ -82,8 +82,9 @@ import { cn } from '../components/ui/utils';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { TeamAdminTab } from '../components/admin-team-tab';
+import { AdminOrdersTab } from '../components/admin-orders-tab';
 
-type Tab = 'dashboard' | 'projects' | 'products' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs' | 'team' | 'users';
+type Tab = 'dashboard' | 'projects' | 'products' | 'orders' | 'courses' | 'skills' | 'gallery' | 'partners' | 'businesses' | 'profile' | 'support' | 'testimonials' | 'blog' | 'forms' | 'roles' | 'ai_docs' | 'team' | 'users';
 
 type AnalyticsResponse = {
   stats: {
@@ -1009,7 +1010,7 @@ function ProductDialog({ open, mode, initialData, categories, onSave, onClose }:
       if (!resolved_category_id && form.category_name.trim()) {
         const slug = form.category_name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
         try {
-          const cat = await api.post<{ id: string }>('/categories', { name: form.category_name.trim(), slug });
+          const cat = await api.post<{ id: string }>('/ecommerce/categories', { name: form.category_name.trim(), slug });
           resolved_category_id = cat.id;
         } catch { /* may already exist */ }
       }
@@ -2649,6 +2650,7 @@ export function Admin() {
     { id: 'support' as Tab, label: 'Support', icon: LifeBuoy, perms: ['manage_tickets'] },
     { id: 'projects' as Tab, label: 'Projects', icon: FolderKanban, perms: ['manage_portfolio'] },
     { id: 'products' as Tab, label: 'Products', icon: ShoppingBag, perms: ['manage_ecommerce'] },
+    { id: 'orders' as Tab, label: 'Orders', icon: ClipboardList, perms: ['manage_ecommerce'] },
     { id: 'courses' as Tab, label: 'Courses', icon: GraduationCap, perms: ['manage_courses', 'manage_own_courses'] },
     { id: 'skills' as Tab, label: 'Skills', icon: Wrench, perms: ['manage_portfolio'] },
     { id: 'gallery' as Tab, label: 'Gallery', icon: Image, perms: ['manage_media'] },
@@ -2678,7 +2680,7 @@ export function Admin() {
       api.get<Experience[]>('/portfolio/experience'),
       api.get<Education[]>('/portfolio/education'),
       api.get<Certification[]>('/portfolio/certifications'),
-      api.get<Product[]>('/products?limit=200'),
+      api.get<Product[]>('/ecommerce/products?limit=200'),
     ]);
 
     const failures: string[] = [];
@@ -2729,7 +2731,7 @@ export function Admin() {
   };
 
   const loadCategories = async () => {
-    try { setCategories(await api.get<Category[]>('/categories')); } catch {}
+    try { setCategories(await api.get<Category[]>('/ecommerce/categories')); } catch {}
   };
 
   const loadPartners = async () => {
@@ -2918,7 +2920,7 @@ export function Admin() {
   const handleDeleteProduct = (id: string) => setConfirmDialog({
     open: true, title: 'Delete Product',
     message: 'This product will be permanently deleted from the store.',
-    onConfirm: () => { api.delete(`/products/${id}`).then(() => loadAdminData()); },
+    onConfirm: () => { api.delete(`/ecommerce/products/${id}`).then(() => loadAdminData()); },
   });
   const handleSaveProduct = async (data: ProductSavePayload) => {
     const { image_files, ...payload } = data;
@@ -2937,9 +2939,9 @@ export function Admin() {
     payload.image_url = mergedUrls.length > 0 ? mergedUrls[0] : undefined;
 
     if (productModal.mode === 'create') {
-      await api.post('/products', payload);
+      await api.post('/ecommerce/products', payload);
     } else {
-      await api.patch(`/products/${(productModal.data as Product).id}`, payload);
+      await api.patch(`/ecommerce/products/${(productModal.data as Product).id}`, payload);
     }
     setProductModal(closedModal);
     await loadAdminData();
@@ -3501,6 +3503,8 @@ export function Admin() {
                 onDelete={(idx) => handleDeleteProduct(products[idx].id)}
               />
             )}
+
+            {activeTab === 'orders' && <AdminOrdersTab />}
 
             {activeTab === 'skills' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>

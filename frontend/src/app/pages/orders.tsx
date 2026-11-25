@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { api } from '../utils/api';
 
 type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-type OrderStatus = 'payment_pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+type OrderStatus = 'pending' | 'payment_pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'completed' | 'cancelled' | 'refunded';
 type PaymentProvider = 'stripe' | 'paypal' | 'momo';
 
 interface OrderItem {
@@ -36,20 +36,26 @@ interface Order {
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   payment_pending: 'Awaiting Payment',
-  confirmed: 'Confirmed',
+  pending: 'Pending',
+  paid: 'Paid',
   processing: 'Processing',
   shipped: 'Shipped',
   delivered: 'Delivered',
+  completed: 'Completed',
   cancelled: 'Cancelled',
+  refunded: 'Refunded',
 };
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
   payment_pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
+  pending: 'bg-gray-100 text-gray-800',
+  paid: 'bg-blue-100 text-blue-800',
   processing: 'bg-purple-100 text-purple-800',
   shipped: 'bg-indigo-100 text-indigo-800',
   delivered: 'bg-green-100 text-green-800',
+  completed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
+  refunded: 'bg-gray-100 text-gray-700',
 };
 
 const PAYMENT_STATUS_COLORS: Record<PaymentStatus, string> = {

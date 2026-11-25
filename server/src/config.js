@@ -24,6 +24,7 @@ const schema = z.object({
   PAYPAL_CLIENT_ID: optional,
   PAYPAL_CLIENT_SECRET: optional,
   PAYPAL_MODE: z.enum(['sandbox', 'live']).default('sandbox'),
+  PAYMENT_CURRENCY: z.enum(['USD', 'EUR']).default('USD'),
   MOMO_SUBSCRIPTION_KEY: optional,
   MOMO_API_USER: optional,
   MOMO_API_KEY: optional,
@@ -71,7 +72,7 @@ const optionalIntegrations = {
   AI: ['HF_TOKEN'],
   Stripe: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'],
   PayPal: ['PAYPAL_CLIENT_ID', 'PAYPAL_CLIENT_SECRET'],
-  MoMo: ['MOMO_SUBSCRIPTION_KEY', 'MOMO_API_USER', 'MOMO_API_KEY', 'MOMO_CALLBACK_URL'],
+  MoMo: ['MOMO_SUBSCRIPTION_KEY', 'MOMO_API_USER', 'MOMO_API_KEY', 'MOMO_CALLBACK_URL', 'MOMO_CALLBACK_SECRET'],
 };
 
 export function warnForMissingIntegrations(logger = console) {

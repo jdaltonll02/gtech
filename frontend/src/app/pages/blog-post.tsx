@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Calendar, User, Tag, ArrowLeft } from 'lucide-react';
 import { GlassCard } from '../components/glass-card';
 import { api } from '../utils/api';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 type Post = {
   id: string;
@@ -120,7 +121,7 @@ export function BlogPost() {
               prose-img:rounded-xl prose-img:shadow-md
               prose-ul:list-disc prose-ol:list-decimal
               prose-li:text-black/75"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
           />
 
           {/* Footer */}

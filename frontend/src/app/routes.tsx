@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, Link, useLocation } from 'react-router';
+import { lazy, Suspense } from 'react';
 import { Layout } from './components/layout';
 import { Landing } from './pages/landing';
 import { Portfolio } from './pages/portfolio';
@@ -8,7 +9,6 @@ import { ProductDetail } from './pages/product-detail';
 import { Cart } from './pages/cart';
 import { Checkout } from './pages/checkout';
 import { Orders } from './pages/orders';
-import { Admin } from './pages/admin';
 import { Login } from './pages/login';
 import { Register } from './pages/register';
 import { Profile } from './pages/profile';
@@ -19,11 +19,6 @@ import { TicketDetail } from './pages/ticket-detail';
 import { ForgotPassword } from './pages/forgot-password';
 import { ResetPassword } from './pages/reset-password';
 import { CourseCatalog } from './pages/courses/catalog';
-import { CourseBuilder } from './pages/courses/course-builder';
-import { CourseDetail } from './pages/courses/course-detail';
-import { CoursePlayer } from './pages/courses/course-player';
-import { MyLearning } from './pages/courses/my-learning';
-import { CertificatePage } from './pages/courses/certificate';
 import { Docs } from './pages/docs';
 import { Blog } from './pages/blog';
 import { BlogPost } from './pages/blog-post';
@@ -37,6 +32,17 @@ import { Projects } from './pages/projects';
 import { ProjectOrgDetail } from './pages/project-org-detail';
 import { Resume } from './pages/resume';
 import { useAuthStore } from './store/authStore';
+
+const Admin=lazy(()=>import('./pages/admin').then((module)=>({default:module.Admin})));
+const CourseBuilder=lazy(()=>import('./pages/courses/course-builder').then((module)=>({default:module.CourseBuilder})));
+const CourseDetail=lazy(()=>import('./pages/courses/course-detail').then((module)=>({default:module.CourseDetail})));
+const CoursePlayer=lazy(()=>import('./pages/courses/course-player').then((module)=>({default:module.CoursePlayer})));
+const MyLearning=lazy(()=>import('./pages/courses/my-learning').then((module)=>({default:module.MyLearning})));
+const CertificatePage=lazy(()=>import('./pages/courses/certificate').then((module)=>({default:module.CertificatePage})));
+
+function Deferred({children}:{children:React.ReactNode}){
+  return <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center text-black/50">Loading…</div>}>{children}</Suspense>;
+}
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
@@ -96,11 +102,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'admin',
-        element: <RequireAdmin><Admin /></RequireAdmin>,
+        element: <RequireAdmin><Deferred><Admin /></Deferred></RequireAdmin>,
       },
       {
         path: 'admin/courses/:courseId/builder',
-        element: <RequireAdmin><CourseBuilder /></RequireAdmin>,
+        element: <RequireAdmin><Deferred><CourseBuilder /></Deferred></RequireAdmin>,
       },
       { path: 'login', Component: Login },
       { path: 'register', Component: Register },
@@ -137,13 +143,13 @@ export const router = createBrowserRouter([
       { path: 'forms/:slug', Component: FormPage },
       // Courses — public
       { path: 'courses', Component: CourseCatalog },
-      { path: 'courses/certificate/:certNumber', Component: CertificatePage },
+      { path: 'courses/certificate/:certNumber', element: <Deferred><CertificatePage /></Deferred> },
       { path: 'docs', Component: Docs },
-      { path: 'courses/:courseId', Component: CourseDetail },
+      { path: 'courses/:courseId', element: <Deferred><CourseDetail /></Deferred> },
       // Courses — auth required
       {
         path: 'courses/my-learning',
-        element: <RequireAuth><MyLearning /></RequireAuth>,
+        element: <RequireAuth><Deferred><MyLearning /></Deferred></RequireAuth>,
       },
       // 404
       { path: '*', Component: NotFound },
@@ -154,10 +160,10 @@ export const router = createBrowserRouter([
   // Course player is full-screen (no navbar/footer) — auth required
   {
     path: '/courses/:courseId/learn',
-    element: <RequireAuth><CoursePlayer /></RequireAuth>,
+    element: <RequireAuth><Deferred><CoursePlayer /></Deferred></RequireAuth>,
   },
   {
     path: '/courses/:courseId/learn/:lessonId',
-    element: <RequireAuth><CoursePlayer /></RequireAuth>,
+    element: <RequireAuth><Deferred><CoursePlayer /></Deferred></RequireAuth>,
   },
 ]);

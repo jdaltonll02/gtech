@@ -31,12 +31,14 @@ function formatDuration(s: number) {
 }
 
 interface PaymentIntentResponse {
-  client_secret: string;
-  payment_intent_id: string;
+  client_secret?: string;
+  payment_intent_id?: string;
   amount: number;
   course_id: string;
   coupon_code?: string;
   discount_applied?: number;
+  free_checkout?: boolean;
+  enrollment?: any;
 }
 
 const CARD_ELEMENT_OPTIONS = {
@@ -82,10 +84,6 @@ function CoursePaymentModal({
   };
 
   const handlePay = async () => {
-    if (!stripe || !elements) { setError('Payment not ready, please refresh.'); return; }
-    const cardEl = elements.getElement(CardElement);
-    if (!cardEl) { setError('Card form not found.'); return; }
-
     setLoading(true);
     setError('');
     try {
@@ -93,6 +91,14 @@ function CoursePaymentModal({
         ? `/courses/${course.id}/payment-intent?coupon_code=${encodeURIComponent(couponCode.trim().toUpperCase())}`
         : `/courses/${course.id}/payment-intent`;
       const intent = await api.post<PaymentIntentResponse>(intentUrl, {});
+
+      if (intent.free_checkout && intent.enrollment) {
+        onSuccess(intent.enrollment);
+        return;
+      }
+      if (!stripe || !elements || !intent.client_secret || !intent.payment_intent_id) { setError('Payment not ready, please refresh.'); return; }
+      const cardEl = elements.getElement(CardElement);
+      if (!cardEl) { setError('Card form not found.'); return; }
 
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         intent.client_secret,
@@ -170,28 +176,28 @@ function CoursePaymentModal({
             )}
           </div>
 
-          <div className={cn(
+          {finalPrice > 0 && <div className={cn(
             'rounded-lg border bg-white px-4 py-3 mb-4 transition-all',
             loading ? 'opacity-50 pointer-events-none border-black/10' : 'border-black/15 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
           )}>
             <CardElement options={CARD_ELEMENT_OPTIONS} />
-          </div>
+          </div>}
 
-          <div className="flex items-center gap-1.5 text-xs text-black/40 mb-5">
+          {finalPrice > 0 && <div className="flex items-center gap-1.5 text-xs text-black/40 mb-5">
             <Lock className="w-3 h-3" />
             <span>256-bit TLS · Powered by Stripe</span>
-          </div>
+          </div>}
 
           {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
 
-          <Button className="w-full" size="lg" onClick={handlePay} disabled={!stripe || loading}>
+          <Button className="w-full" size="lg" onClick={handlePay} disabled={loading || (finalPrice > 0 && !stripe)}>
             {loading ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                 Processing…
               </span>
             ) : (
-              `Pay $${finalPrice.toFixed(2)} & Enroll`
+              finalPrice === 0 ? 'Apply Coupon & Enroll' : `Pay $${finalPrice.toFixed(2)} & Enroll`
             )}
           </Button>
         </GlassCard>

@@ -15,6 +15,7 @@ import { useCourseStore, type Course, type Lesson } from '../../store/courseStor
 import { useAuthStore } from '../../store/authStore';
 import { api } from '../../utils/api';
 import { cn } from '../../components/ui/utils';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 const LESSON_ICONS: Record<string, React.ElementType> = {
   video: PlayCircle,
@@ -420,7 +421,7 @@ export function CoursePlayer() {
               {['text', 'code', 'document'].includes(currentLesson.lesson_type) &&
                 currentLesson.content && !hasContentBlocks && (
                   <div className="mb-8 prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: currentLesson.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(currentLesson.content) }}
                   />
                 )}
 
@@ -459,7 +460,6 @@ export function CoursePlayer() {
                         ) : (
                           <AssignmentViewer
                             assessment={assessment}
-                            onSubmit={handleAssessmentPassed}
                           />
                         )}
                       </div>

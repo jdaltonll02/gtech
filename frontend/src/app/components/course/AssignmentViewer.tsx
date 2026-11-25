@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { FileText, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { api } from '../../utils/api';
 
 interface Assessment {
   id: string;
@@ -18,26 +19,28 @@ interface Assessment {
 }
 
 interface AssignmentSubmission {
-  submission: string;
+  submission_text: string;
   submitted_at: string;
+  status: 'submitted' | 'passed' | 'failed';
   feedback?: string;
-  score?: number;
+  score_percent?: number;
 }
 
 export function AssignmentViewer({
   assessment,
-  onSubmit,
-  submitted = false,
-  submission = null,
 }: {
   assessment: Assessment;
-  onSubmit?: (submission: string) => Promise<void>;
-  submitted?: boolean;
-  submission?: AssignmentSubmission | null;
 }) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null);
+
+  useEffect(() => {
+    api.get<AssignmentSubmission | null>(`/courses/assessments/${assessment.id}/submissions/me`)
+      .then(setSubmission)
+      .catch(() => {});
+  }, [assessment.id]);
 
   const handleSubmit = async () => {
     if (!content.trim()) {
@@ -47,7 +50,9 @@ export function AssignmentViewer({
     setLoading(true);
     setError('');
     try {
-      await onSubmit?.(content);
+      const saved = await api.post<AssignmentSubmission>(`/courses/assessments/${assessment.id}/submissions`, { submission: content });
+      setSubmission(saved);
+      setContent('');
     } catch (err: any) {
       setError(err.message || 'Submission failed');
     } finally {
@@ -110,7 +115,7 @@ export function AssignmentViewer({
       )}
 
       {/* Submission Status */}
-      {submitted && submission ? (
+      {submission ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -125,16 +130,16 @@ export function AssignmentViewer({
 
           <div className="border rounded-lg p-4">
             <p className="text-xs text-black/50 uppercase tracking-widest mb-2">Your Submission</p>
-            <p className="whitespace-pre-wrap text-black/70">{submission.submission}</p>
+            <p className="whitespace-pre-wrap text-black/70">{submission.submission_text}</p>
           </div>
 
           {submission.feedback && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <p className="text-xs text-purple-700 uppercase tracking-widest font-medium mb-2">Instructor Feedback</p>
               <p className="text-sm text-purple-900 whitespace-pre-wrap">{submission.feedback}</p>
-              {submission.score !== undefined && (
+              {submission.score_percent !== undefined && submission.score_percent !== null && (
                 <div className="mt-3 pt-3 border-t border-purple-200">
-                  <p className="text-sm font-semibold text-purple-900">Score: {submission.score}%</p>
+                  <p className="text-sm font-semibold text-purple-900">Score: {submission.score_percent}%</p>
                 </div>
               )}
             </div>

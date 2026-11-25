@@ -51,17 +51,17 @@ describe('payment flow helpers', () => {
     vi.clearAllMocks();
   });
 
-  it('creates order via POST /orders/checkout', async () => {
+  it('creates order via the ecommerce checkout endpoint', async () => {
     const { api } = await import('../app/utils/api');
     vi.mocked(api.post).mockResolvedValueOnce(mockOrder);
 
-    const result = await api.post('/orders/checkout', {
+    const result = await api.post('/ecommerce/orders/checkout', {
       payment_provider: 'stripe',
       billing_email: 'buyer@test.com',
       billing_name: 'Test Buyer',
     });
 
-    expect(api.post).toHaveBeenCalledWith('/orders/checkout', expect.objectContaining({
+    expect(api.post).toHaveBeenCalledWith('/ecommerce/orders/checkout', expect.objectContaining({
       payment_provider: 'stripe',
     }));
     expect(result).toEqual(mockOrder);
@@ -118,18 +118,20 @@ describe('payment flow helpers', () => {
     const { api } = await import('../app/utils/api');
     vi.mocked(api.post).mockResolvedValueOnce(mockOrder);
 
-    await api.post('/orders/checkout', {
+    await api.post('/ecommerce/orders/checkout', {
       payment_provider: 'momo',
       billing_email: 'buyer@test.com',
       billing_name: 'Test Buyer',
       phone_number: '+256700000000',
+      shipping_address: { address: '1 Main Street', city: 'Monrovia', postal_code: '', country: 'Liberia' },
     });
 
-    expect(api.post).toHaveBeenCalledWith('/orders/checkout', {
+    expect(api.post).toHaveBeenCalledWith('/ecommerce/orders/checkout', {
       payment_provider: 'momo',
       billing_email: 'buyer@test.com',
       billing_name: 'Test Buyer',
       phone_number: '+256700000000',
+      shipping_address: { address: '1 Main Street', city: 'Monrovia', postal_code: '', country: 'Liberia' },
     });
   });
 });

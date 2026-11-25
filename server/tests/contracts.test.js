@@ -17,6 +17,8 @@ beforeAll(async()=>{({createApp:makeApp}=await import('../src/app.js'));});
 describe('ported API contracts',()=>{
  it('rejects weak registration data with FastAPI-style 422 details',async()=>{const r=await request(makeApp()).post('/api/v1/auth/register').send({email:'user@example.com',full_name:'Test User',password:'weak'}).expect(422);expect(Array.isArray(r.body.detail)).toBe(true);expect(r.body.detail[0]).toHaveProperty('loc');});
  it('requires bearer authentication for /auth/me',async()=>{const r=await request(makeApp()).get('/api/v1/auth/me').expect(403);expect(r.body).toEqual({detail:'Not authenticated'});});
+ it('requires authentication for course classroom AI',async()=>{const r=await request(makeApp()).post('/api/v1/ai/classroom/11111111-1111-4111-8111-111111111111').send({message:'Summarize this course'}).expect(403);expect(r.body).toEqual({detail:'Not authenticated'});});
+ it('requires authentication for course AI documents',async()=>{const r=await request(makeApp()).get('/api/v1/courses/11111111-1111-4111-8111-111111111111/ai/documents').expect(403);expect(r.body).toEqual({detail:'Not authenticated'});});
  it('rejects a MoMo callback with the wrong shared secret',async()=>{const r=await request(makeApp()).post('/api/v1/payments/momo/callback?secret=wrong').send({externalId:'ref'}).expect(403);expect(r.body).toEqual({detail:'Invalid callback secret'});});
  it('rejects an invalid Stripe webhook signature',async()=>{const r=await request(makeApp()).post('/api/v1/payments/stripe/webhook').set('stripe-signature','bad').set('content-type','application/json').send('{"type":"payment_intent.succeeded"}').expect(400);expect(r.body.detail).toContain('invalid signature');});
 });
